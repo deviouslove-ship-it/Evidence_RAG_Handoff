@@ -62,6 +62,8 @@ evaluation/search_eval/reports/
 docs/evidence/**
 !docs/evidence/**/
 !docs/evidence/**/*.md
+# Local inventory contains credentials for a live test environment.
+docs/evidence/2026-11-07-g5-rerank/DATA-INVENTORY.md
 
 # IDE
 .vscode/
