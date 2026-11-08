@@ -1,0 +1,30 @@
+name: POC technical verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    # Pre-provisioned tools remain under the configured installation root.
+    # Native desktop, real DB/AI, Gold and deployment acceptance are separate gates.
+    runs-on: [self-hosted, Windows, X64, evidence-rag]
+    env:
+      EVIDENCE_PROGRAMS_ROOT: ${{ vars.EVIDENCE_PROGRAMS_ROOT }}
+      # PostgreSQL integration tests must never be skipped in CI.  Provision
+      # this secret on the self-hosted runner (disposable DB).
+      EVIDENCE_TEST_DATABASE_URL: ${{ secrets.EVIDENCE_TEST_DATABASE_URL }}
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source and POC contracts
+        shell: pwsh
+        run: ./scripts/verify.ps1 -OutputDirectory docs/evidence/ci
+      - name: Keep verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-verification
+          path: docs/evidence/ci
+
