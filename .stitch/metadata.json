@@ -1,0 +1,29 @@
+{
+  "stitchProjectId": "local-evidence-rag-ui",
+  "screens": [
+    {
+      "id": "user-evidence-workspace",
+      "name": "User Evidence Workspace (3-Pane Desktop + Responsive)",
+      "status": "completed",
+      "variantIds": ["v1-aligned-3pane"],
+      "selectedVariantId": "v1-aligned-3pane",
+      "implementationStatus": "completed"
+    },
+    {
+      "id": "chat-agent-floating-dock",
+      "name": "Floating Chat Agent Bottom-Right Launcher & Drawer",
+      "status": "completed",
+      "variantIds": ["v1-bottom-right-dock"],
+      "selectedVariantId": "v1-bottom-right-dock",
+      "implementationStatus": "completed"
+    },
+    {
+      "id": "admin-portal",
+      "name": "Admin Portal (4 Tabs)",
+      "status": "completed",
+      "variantIds": ["v1-admin-grid"],
+      "selectedVariantId": "v1-admin-grid",
+      "implementationStatus": "completed"
+    }
+  ]
+}

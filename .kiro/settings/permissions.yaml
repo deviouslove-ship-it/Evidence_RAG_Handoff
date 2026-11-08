@@ -1,0 +1,75 @@
+# E:\Source\Evidence_RAG_Handoff\.kiro\settings\permissions.yaml  (workspace scope)
+# Dev tooling allowed in this project only. The deny/ask floor in the user-level file still wins.
+# Not allowed here on purpose: powershell/cmd/& wildcards, Invoke-Expression, Remove-Item, git commit/push.
+
+rules:
+  - capability: shell
+    effect: allow
+    match:
+      # Python (project venv + PATH spelling), tests, lint, type check
+      - 'python *'
+      - 'py *'
+      - 'pytest *'
+      - 'ruff *'
+      - 'mypy *'
+      - 'uv sync*'
+      - 'uv run *'
+      - 'uv pip *'
+      - 'uv venv*'
+      - 'uv lock*'
+      - 'uv --version'
+      - 'E:\Programs\EvidenceRAG\backend-venv\Scripts\python.exe *'
+      - 'E:\Programs\EvidenceRAG\backend-venv\Scripts\pytest.exe *'
+      - 'E:\Programs\EvidenceRAG\backend-venv\Scripts\ruff.exe *'
+      - 'E:\Programs\EvidenceRAG\backend-venv\Scripts\mypy.exe *'
+      - '& ''E:\Programs\EvidenceRAG\backend-venv\Scripts\python.exe'' *'
+      # Frontend
+      - 'node *'
+      - 'pnpm install*'
+      - 'pnpm run *'
+      - 'pnpm test*'
+      - 'pnpm build*'
+      - 'pnpm exec *'
+      - 'pnpm --dir * install*'
+      - 'pnpm --dir * run *'
+      - 'pnpm --dir * test*'
+      - 'pnpm --dir * build*'
+      - 'pnpm --dir * dev*'
+      - 'npm run *'
+      - 'npm test*'
+      - 'npm ci*'
+      - 'npm install*'
+      - 'npm ls *'
+      - 'npx vitest *'
+      - 'npx tsc *'
+      - 'npx eslint *'
+      - 'npx playwright test*'
+      - 'tsc *'
+      # Rust / Tauri
+      - 'cargo build*'
+      - 'cargo check*'
+      - 'cargo test*'
+      - 'cargo clippy*'
+      - 'cargo fmt*'
+      - 'cargo --version'
+      - 'rustc --version'
+      # Project scripts and agent-authored scratch scripts (no -ExecutionPolicy Bypass; CurrentUser is RemoteSigned)
+      - '.\scripts\verify.ps1 *'
+      - '.\scripts\start-local-stack.ps1 *'
+      - '.\scripts\package-portable.ps1 *'
+      - 'powershell -NoProfile -File E:\tmp\*'
+      - 'powershell -NoProfile -File E:\Source\Evidence_RAG_Handoff\*'
+      # Local API checks only (loopback)
+      - 'Invoke-RestMethod http://127.0.0.1:*'
+      - 'Invoke-RestMethod http://localhost:*'
+      - 'Invoke-RestMethod -Uri http://127.0.0.1:*'
+      - 'Invoke-RestMethod -Uri http://localhost:*'
+      - 'Invoke-WebRequest http://127.0.0.1:*'
+      - 'Invoke-WebRequest http://localhost:*'
+      - 'Invoke-WebRequest -Uri http://127.0.0.1:*'
+      - 'Invoke-WebRequest -Uri http://localhost:*'
+      - 'Invoke-WebRequest -UseBasicParsing http://127.0.0.1:*'
+      - 'Invoke-WebRequest -UseBasicParsing http://localhost:*'
+      # Creating files/dirs and copying inside the project
+      - 'New-Item *'
+      - 'Copy-Item *'

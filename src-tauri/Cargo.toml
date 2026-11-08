@@ -1,0 +1,22 @@
+[package]
+name = "vietnamese-evidence-desktop"
+version = "0.1.0"
+description = "Windows USER shell for the Evidence RAG Agent"
+authors = ["Evidence RAG Team"]
+edition = "2021"
+
+[lib]
+name = "evidence_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.3", features = [] }
+
+[dependencies]
+tauri = { version = "2.1.1", features = ["tray-icon", "image-ico"] }
+tauri-plugin-single-instance = "2"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

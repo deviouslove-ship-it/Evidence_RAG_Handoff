@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-rag.local/schemas/search-eval-queries.schema.json",
+  "title": "Bộ truy vấn đánh giá Search v1",
+  "description": "Schema cho file queries của bộ đánh giá tìm kiếm. Case chưa được người nắm nghiệp vụ duyệt phải có approved_by = null và corpus = HU_CAU (fixture hư cấu, không phải văn bản pháp luật).",
+  "type": "object",
+  "required": ["schema_version", "label", "description", "corpus", "cases"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "label": {
+      "type": "string",
+      "const": "HU_CAU"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus": {
+      "type": "string",
+      "const": "HU_CAU"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": [
+        "id",
+        "query",
+        "mode",
+        "filters",
+        "expected_documents",
+        "expected_nodes",
+        "expected_no_result",
+        "notes",
+        "approved_by",
+        "corpus"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["auto", "phrase", "keywords"]
+        },
+        "filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "category_id": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "doc_type": { "type": "string", "minLength": 1 },
+            "issuing_body": { "type": "string", "minLength": 1 },
+            "as_of_date": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "only_active": { "type": "boolean" },
+            "group_by": {
+              "type": "string",
+              "enum": ["document"]
+            }
+          }
+        },
+        "expected_documents": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "expected_nodes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "expected_no_result": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approved_by": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "corpus": {
+          "type": "string",
+          "const": "HU_CAU"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "status": "draft_requires_platform_hash_and_license_review",
+  "installation": {
+    "programs_root_source": "installation.programs_root_or_EVIDENCE_PROGRAMS_ROOT",
+    "global_path_fallback": false
+  },
+  "components": [
+    {
+      "name": "python",
+      "version": "3.11",
+      "artifact_sha256": null,
+      "license": "Python Software Foundation License",
+      "source": "owner-approved internal mirror"
+    },
+    {
+      "name": "node",
+      "version": "20",
+      "artifact_sha256": null,
+      "license": "MIT and bundled third-party licenses",
+      "source": "owner-approved internal mirror"
+    },
+    {
+      "name": "rust",
+      "version": "stable-pinned-by-lockfile",
+      "artifact_sha256": null,
+      "license": "MIT OR Apache-2.0",
+      "source": "owner-approved internal mirror"
+    },
+    {
+      "name": "postgresql",
+      "version": "owner-approved Windows build",
+      "artifact_sha256": null,
+      "license": "PostgreSQL License",
+      "source": "owner-approved internal mirror"
+    },
+    {
+      "name": "pgvector",
+      "version": "owner-approved Windows-compatible build",
+      "artifact_sha256": null,
+      "license": "PostgreSQL License",
+      "source": "owner-approved internal mirror"
+    }
+  ],
+  "notes": [
+    "Null hashes mean this manifest is not accepted for installation.",
+    "Python and Node package versions are declared in project manifests; lockfiles and artifact hashes must be added before release."
+  ]
+}

@@ -1,0 +1,9 @@
+# Reference shape only. Runtime profiles/routes are read from PostgreSQL and
+# edited through Admin Portal; this YAML is not automatically imported.
+# Supported adapters: openai_compatible, ollama_local, vllm_local, llama_cpp_local.
+# Each endpoint must expose the OpenAI-compatible /v1 API.
+# Only the answer stage (evidence selection) currently uses a model.
+# No model ID, provider URL, artifact or API credential is installed by default.
+version: 1
+profiles: []
+routes: []

@@ -1,0 +1,11 @@
+version: 1
+installation:
+  programs_root: null
+runtime:
+  database_url_env: DATABASE_URL
+  data_root_env: EVIDENCE_DATA_ROOT
+  backup_root_env: EVIDENCE_BACKUP_ROOT
+  logs_root_env: EVIDENCE_LOGS_ROOT
+ai:
+  operating_mode: LOCAL
+  llm_attempt_budget: 2

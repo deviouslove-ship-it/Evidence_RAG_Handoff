@@ -1,0 +1,13 @@
+# Reference only; not loaded by the application. Active AI egress policy uses
+# the environment variables in ai-runtime.env.example plus DB user/source grants.
+version: 1
+remote_processing_allowed: false
+allowed_remote_domains: []
+allowed_lan_endpoints: []
+retention:
+  approved: false
+  requires_opt_in: true
+cache:
+  analysis_enabled: false
+  retrieval_enabled: false
+  embedding_partition_by_principal: true

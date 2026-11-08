@@ -1,0 +1,157 @@
+{
+ "description": "D15: chủ đề kiểm thử độ bao phủ. Mỗi chủ đề có vài cách hỏi và danh sách căn cứ bắt buộc tìm thấy (số hiệu + Điều). Lấy từ test-data/cau-hoi-kiem-thu-vong-1.md và bộ test-data/van-ban. Không phải bộ Gold QA; căn cứ do AI soạn từ chữ của tệp, cần cán bộ chuyên môn xác nhận.",
+ "topics": [
+  {
+   "id": "van_tay_ho_chieu",
+   "source": "Q1",
+   "queries": ["tiêu chuẩn ảnh vân tay khi làm hộ chiếu gắn chíp điện tử",
+               "thu thập vân tay hộ chiếu điện tử chất lượng ảnh",
+               "ảnh vân tay ISO/IEC 19794-4 mật độ 500 điểm"],
+   "required": [{"document_number": "110/2020/TT-BCA", "article": 3}]
+  },
+  {
+   "id": "to_bao_ve_antt",
+   "source": "Q4",
+   "queries": ["hồ sơ tham gia Tổ bảo vệ an ninh, trật tự ở cơ sở",
+               "xét tuyển thành viên tổ bảo vệ an ninh trật tự thôn tổ dân phố",
+               "đơn đề nghị tham gia lực lượng tham gia bảo vệ an ninh trật tự cơ sở"],
+   "required": [{"document_number": "14/2024/TT-BCA", "article": 3}]
+  },
+  {
+   "id": "dang_ky_xe_truc_tuyen",
+   "source": "Q5",
+   "queries": ["đăng ký xe lần đầu trực tuyến toàn trình",
+               "đăng ký xe qua cổng dịch vụ công không phải mang xe đến",
+               "chà số máy số khung đăng ký xe trực tuyến"],
+   "required": [{"document_number": "28/2024/TT-BCA", "article": 2}]
+  },
+  {
+   "id": "khieu_nai_cong_nhan_cong_an",
+   "source": "Q6",
+   "queries": ["khiếu nại quyết định kỷ luật công nhân công an",
+               "thẩm quyền giải quyết khiếu nại lần đầu lần hai trong Công an nhân dân",
+               "thời hạn thụ lý khiếu nại 10 ngày làm việc"],
+   "required": [{"document_number": "23/2022/TT-BCA", "article": 5},
+                {"document_number": "23/2022/TT-BCA", "article": 6}]
+  },
+  {
+   "id": "cu_tru_truc_tuyen_ban_quet",
+   "source": "Q9",
+   "queries": ["nộp hồ sơ đăng ký cư trú trực tuyến bằng bản quét bản chụp",
+               "đăng ký cư trú qua VNeID giấy tờ không ký số",
+               "tiếp nhận hồ sơ đăng ký cư trú và thông báo kết quả"],
+   "required": [{"document_number": "55/2021/TT-BCA", "article": 3},
+                {"document_number": "66/2023/TT-BCA", "article": 1},
+                {"document_number": "43/VBHN-BCA", "article": 3}]
+  },
+  {
+   "id": "hieu_luc_ho_chieu_pho_thong",
+   "source": "Q10",
+   "queries": ["cấp hộ chiếu phổ thông ở trong nước cho công dân Việt Nam",
+               "bãi bỏ thông tư hướng dẫn cấp hộ chiếu phổ thông",
+               "Thông tư 29/2016/TT-BCA còn hiệu lực không"],
+   "required": [{"document_number": "29/2016/TT-BCA", "article": null},
+                {"document_number": "110/2021/TT-BCA", "article": 2}]
+  },
+  {
+   "id": "noi_quy_giam_giu",
+   "source": "Q11",
+   "queries": ["nội quy cơ sở giam giữ phạm nhân và nội quy trại tạm giam",
+               "đồ vật cấm đưa vào buồng tạm giữ tạm giam",
+               "thông tư nội quy cơ sở giam giữ hiệu lực 01/7/2026"],
+   "required": [{"document_number": "58/2026/TT-BCA", "article": 11},
+                {"document_number": "96/2026/TT-BCA", "article": 3}]
+  },
+  {
+   "id": "kiem_tra_giay_to_dinh_danh",
+   "source": "Q8, Q13",
+   "queries": ["kiểm tra giấy tờ người điều khiển xe qua tài khoản định danh điện tử",
+               "cảnh sát giao thông kiểm tra giấy phép lái xe trên VNeID",
+               "tuần tra kiểm soát kiểm tra giấy tờ đã tích hợp căn cước điện tử"],
+   "required": [{"document_number": "32/2023/TT-BCA", "article": 12},
+                {"document_number": "28/2024/TT-BCA", "article": 1}]
+  },
+  {
+   "id": "to_cao_cand",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 10/2014/TT-BCA Điều 9",
+   "queries": ["người tố cáo phải viết đơn ghi rõ họ tên địa chỉ và ký hoặc điểm chỉ",
+               "tố cáo trực tiếp thì người tiếp nhận hướng dẫn viết đơn hoặc ghi lại nội dung thành văn bản",
+               "hình thức và thời hạn giải quyết tố cáo trong Công an nhân dân"],
+   "required": [{"document_number": "10/2014/TT-BCA", "article": 9}]
+  },
+  {
+   "id": "the_cccd_thoi_han_xu_ly",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 60/2021/TT-BCA Điều 11",
+   "queries": ["thời hạn xử lý hồ sơ cấp đổi cấp lại thẻ căn cước công dân",
+               "công an cấp huyện phải hoàn thành xử lý hồ sơ thẻ căn cước trong bao nhiêu ngày làm việc",
+               "tiếp nhận đủ hồ sơ thẻ căn cước bao lâu chuyển dữ liệu lên Trung tâm dữ liệu quốc gia"],
+   "required": [{"document_number": "60/2021/TT-BCA", "article": 11}]
+  },
+  {
+   "id": "tai_nan_giao_thong_thoi_han",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 63/2020/TT-BCA Điều 18",
+   "queries": ["thời hạn giải quyết vụ tai nạn giao thông đường bộ không có dấu hiệu tội phạm",
+               "tai nạn giao thông đường bộ phức tạp được kéo dài không quá 30 ngày kể từ ngày nhận tin",
+               "Cảnh sát giao thông phải giải quyết tai nạn giao thông đường bộ trong bao nhiêu ngày"],
+   "required": [{"document_number": "63/2020/TT-BCA", "article": 18}]
+  },
+  {
+   "id": "am_hieu_coi_dieu_khien_giao_thong",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 69/2024/TT-BCA Điều 15",
+   "queries": ["một tiếng còi dài mạnh báo hiệu gì khi chỉ huy giao thông",
+               "âm hiệu còi của cảnh sát điều khiển giao thông cho phép rẽ trái qua mặt",
+               "sử dụng còi loa trong chỉ huy điều khiển giao thông đường bộ"],
+   "required": [{"document_number": "69/2024/TT-BCA", "article": 15}]
+  },
+  {
+   "id": "hieu_lenh_dung_phuong_tien",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); Điều 17 của 32/2023 và 65/2020, Điều 13 của 73/2024 (cùng tên điều)",
+   "queries": ["hiệu lệnh dừng phương tiện giao thông của Cảnh sát giao thông bằng gậy chỉ huy còi loa",
+               "cảnh sát giao thông kiểm soát tại một điểm đứng nghiêm hướng về phía phương tiện phát hiệu lệnh dừng",
+               "tín hiệu ưu tiên của xe tuần tra kiểm soát có được dùng làm hiệu lệnh dừng phương tiện không"],
+   "required": [{"document_number": "32/2023/TT-BCA", "article": 17},
+                {"document_number": "65/2020/TT-BCA", "article": 17},
+                {"document_number": "73/2024/TT-BCA", "article": 13}]
+  },
+  {
+   "id": "ung_xu_dien_thoai_mang",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 27/2017/TT-BCA Điều 13",
+   "queries": ["công an giao tiếp qua điện thoại phải xưng tên chức danh đơn vị công tác",
+               "công an nhân dân không được chia sẻ bình luận thông tin trái thuần phong mỹ tục trên mạng",
+               "quy tắc sử dụng phương tiện điện tử của cán bộ chiến sĩ Công an nhân dân"],
+   "required": [{"document_number": "27/2017/TT-BCA", "article": 13}]
+  },
+  {
+   "id": "cong_khai_tuyen_sinh",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 44/2021/TT-BCA Điều 5",
+   "queries": ["các hình thức công khai trong tuyển sinh vào Công an nhân dân",
+               "tuyển sinh công an niêm yết tại trụ sở và đăng trên trang thông tin điện tử của trường",
+               "thông báo công khai tuyển sinh tại hội nghị cán bộ chủ chốt hoặc bằng văn bản hành chính"],
+   "required": [{"document_number": "44/2021/TT-BCA", "article": 5}]
+  },
+  {
+   "id": "niem_phong_mau_nuoc_thai",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 71/2023/TT-BCA Điều 14",
+   "queries": ["niêm phong mẫu nước thải bằng tem có chữ ký của cán bộ thu mẫu và đại diện cơ sở",
+               "chủ nguồn thải vắng mặt thì ai ký vào tem niêm phong mẫu nước thải",
+               "dán tem niêm phong mẫu nước thải băng dính trong kín bề mặt tem"],
+   "required": [{"document_number": "71/2023/TT-BCA", "article": 14}]
+  },
+  {
+   "id": "xu_ly_vphc_duong_sat",
+   "set": "v2",
+   "source": "bổ sung 26 câu (07/11/2026); 26/2010/TT-BCA Điều 8",
+   "queries": ["chiến sĩ phát hiện vi phạm giao thông đường sắt phải đình chỉ hành vi và lập biên bản",
+               "tổ trưởng tổ công tác quyết định biện pháp ngăn chặn vi phạm hành chính trên đường sắt"],
+   "required": [{"document_number": "26/2010/TT-BCA", "article": 8}]
+  }
+ ]
+}

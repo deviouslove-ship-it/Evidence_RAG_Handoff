@@ -1,0 +1,412 @@
+{
+  "label": "HU_CAU",
+  "description": "Response giả lập cho --self-test và self_test.py: KHÔNG phải response của API thật, dùng số hiệu/node/quote hư cấu để kiểm tra công thức recall/precision/exact_phrase/wrong rate/no-result/p50-p95. exact_phrase_precision dùng định nghĩa owner: tự xác minh quote_exact chứa cụm từ, không tin nhãn match_type.",
+  "k": 10,
+  "cases": [
+    {
+      "case": {
+        "id": "hc-fixture-multi-doc",
+        "query": "báo cáo định kỳ và thường xuyên",
+        "mode": "phrase",
+        "filters": {},
+        "expected_documents": ["HU-CAU/2026/ND-CP", "HU-CAU/2026/TT-BTC"],
+        "expected_nodes": ["HC-ND-CP-N01"],
+        "expected_no_result": false,
+        "notes": "Fixture hư cấu: 2 văn bản kỳ vọng, API giả lập trả thêm 1 văn bản sai; 1 clause gắn exact_phrase nhưng quote không chứa cụm từ.",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "báo cáo định kỳ và thường xuyên"},
+        "results": [
+          {
+            "document_id": "hc-doc-nd-cp",
+            "document_number": "HU-CAU/2026/ND-CP",
+            "clauses": [
+              {
+                "node_id": "HC-ND-CP-N01",
+                "label": "Khoản 1 Điều 5",
+                "match_type": "exact_phrase",
+                "quote_exact": "Báo cáo định kỳ và thường xuyên theo quy định hư cấu."
+              },
+              {
+                "node_id": "HC-ND-CP-N02",
+                "label": "Khoản 2 Điều 5",
+                "match_type": "exact_phrase",
+                "quote_exact": "Đơn vị lập báo cáo định kỳ và thường xuyên gửi về cơ quan hư cấu."
+              }
+            ]
+          },
+          {
+            "document_id": "hc-doc-tt-btc",
+            "document_number": "HU-CAU/2026/TT-BTC",
+            "clauses": [
+              {
+                "node_id": "HC-TT-BTC-N01",
+                "label": "Điều 3",
+                "match_type": "exact_phrase",
+                "quote_exact": "Báo cáo định kỳ và thường xuyên được quy định tại văn bản hư cấu."
+              }
+            ]
+          },
+          {
+            "document_id": "hc-doc-qd-ubnd",
+            "document_number": "HU-CAU/2026/QD-UBND",
+            "clauses": [
+              {
+                "node_id": "HC-QD-N01",
+                "label": "Điều 2",
+                "match_type": "exact_phrase",
+                "quote_exact": "Báo cáo định kỳ và đột xuất theo yêu cầu hư cấu."
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": true
+      },
+      "expected": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.75,
+        "exact_phrase_precision": 0.75,
+        "exact_phrase_returned": 4,
+        "exact_phrase_verified": 3,
+        "wrong_doc_rate": 0.333333,
+        "wrong_node_rate": 0.25,
+        "returned_document_count": 3,
+        "returned_clause_count": 4,
+        "no_result_correct": null
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-folded",
+        "query": "bao cao dinh ky",
+        "mode": "auto",
+        "filters": {},
+        "expected_documents": ["HU-CAU/2026/ND-CP"],
+        "expected_nodes": ["HC-ND-CP-N01"],
+        "expected_no_result": false,
+        "notes": "Fixture hư cấu: chỉ khớp kênh không dấu (phrase_folded), không có clause exact_phrase → mẫu số 0 → null.",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "bao cao dinh ky"},
+        "results": [
+          {
+            "document_id": "hc-doc-nd-cp",
+            "document_number": "HU-CAU/2026/ND-CP",
+            "clauses": [
+              {
+                "node_id": "HC-ND-CP-N01",
+                "label": "Khoản 1 Điều 5",
+                "match_type": "phrase_folded",
+                "quote_exact": "bao cao dinh ky theo quy dinh hu cau"
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": false
+      },
+      "expected": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 1.0,
+        "exact_phrase_precision": null,
+        "exact_phrase_returned": 0,
+        "exact_phrase_verified": 0,
+        "wrong_doc_rate": 0.0,
+        "wrong_node_rate": 0.0,
+        "no_result_correct": null
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-negative-correct",
+        "query": "báo cáo định kỳ và đột xuất",
+        "mode": "phrase",
+        "filters": {},
+        "expected_documents": [],
+        "expected_nodes": [],
+        "expected_no_result": true,
+        "notes": "Fixture hư cấu: ca âm đúng — không kết quả, empty_reason hợp lệ; mẫu số 0 nhưng ca âm phải là 0.0 (không phải null/1.0).",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "báo cáo định kỳ và đột xuất"},
+        "results": [],
+        "empty_reason": "NO_RESULTS",
+        "phrase_found": false
+      },
+      "expected": {
+        "recall_at_k": null,
+        "precision_at_k": null,
+        "exact_phrase_precision": 0.0,
+        "exact_phrase_returned": 0,
+        "exact_phrase_verified": 0,
+        "wrong_doc_rate": 0.0,
+        "wrong_node_rate": 0.0,
+        "no_result_correct": true
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-negative-wrong",
+        "query": "thủ tục cấp phép vũ trụ",
+        "mode": "keywords",
+        "filters": {},
+        "expected_documents": [],
+        "expected_nodes": [],
+        "expected_no_result": true,
+        "notes": "Fixture hư cấu: ca âm nhưng API giả lập trả kết quả; quote có chứa cụm từ nhưng ca âm vẫn phải 0.0 (không được coi là 1.0).",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "thủ tục cấp phép vũ trụ"},
+        "results": [
+          {
+            "document_id": "hc-doc-qd-ubnd",
+            "document_number": "HU-CAU/2026/QD-UBND",
+            "clauses": [
+              {
+                "node_id": "HC-QD-N01",
+                "label": "Điều 2",
+                "match_type": "exact_phrase",
+                "quote_exact": "Thủ tục cấp phép vũ trụ là nội dung hư cấu."
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": true
+      },
+      "expected": {
+        "recall_at_k": null,
+        "precision_at_k": 0.0,
+        "exact_phrase_precision": 0.0,
+        "exact_phrase_returned": 1,
+        "exact_phrase_verified": 1,
+        "wrong_doc_rate": 1.0,
+        "wrong_node_rate": 1.0,
+        "no_result_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-recall-k",
+        "query": "trách nhiệm lập báo cáo",
+        "mode": "keywords",
+        "filters": {},
+        "expected_documents": ["HU-CAU/2026/ND-CP", "HU-CAU/2026/TT-BTC"],
+        "expected_nodes": [],
+        "expected_no_result": false,
+        "notes": "Fixture hư cấu: k=1 nên chỉ tính văn bản đầu → recall 0.5; clause exact_phrase có quote chứa cụm từ → 1.0.",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "k": 1,
+      "response": {
+        "query": {"phrase": "trách nhiệm lập báo cáo"},
+        "results": [
+          {
+            "document_id": "hc-doc-nd-cp",
+            "document_number": "HU-CAU/2026/ND-CP",
+            "clauses": [
+              {
+                "node_id": "HC-ND-CP-N03",
+                "label": "Khoản 3 Điều 5",
+                "match_type": "exact_phrase",
+                "quote_exact": "Trách nhiệm lập báo cáo thuộc về đơn vị hư cấu."
+              }
+            ]
+          },
+          {
+            "document_id": "hc-doc-tt-btc",
+            "document_number": "HU-CAU/2026/TT-BTC",
+            "clauses": [
+              {
+                "node_id": "HC-TT-BTC-N02",
+                "label": "Điều 4",
+                "match_type": "exact_phrase",
+                "quote_exact": "Trách nhiệm lập báo cáo của cơ quan hư cấu."
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": true
+      },
+      "expected": {
+        "recall_at_k": 0.5,
+        "precision_at_k": 1.0,
+        "exact_phrase_precision": 1.0,
+        "exact_phrase_returned": 1,
+        "exact_phrase_verified": 1,
+        "wrong_doc_rate": 0.0,
+        "wrong_node_rate": 0.0,
+        "returned_document_count": 1,
+        "returned_clause_count": 1
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-node-only",
+        "query": "Điều 5 báo cáo định kỳ",
+        "mode": "auto",
+        "filters": {},
+        "expected_documents": ["HU-CAU/2026/ND-CP"],
+        "expected_nodes": ["HC-TT-BTC-N09"],
+        "expected_no_result": false,
+        "notes": "Fixture hư cấu: văn bản kỳ vọng không có, nhưng node kỳ vọng xuất hiện trong văn bản khác; exact_phrase kiểm quote độc lập với expected.",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "báo cáo định kỳ"},
+        "results": [
+          {
+            "document_id": "hc-doc-tt-btc",
+            "document_number": "HU-CAU/2026/TT-BTC",
+            "clauses": [
+              {
+                "node_id": "HC-TT-BTC-N09",
+                "label": "Khoản 9 Điều 5",
+                "match_type": "exact_phrase",
+                "quote_exact": "Báo cáo định kỳ gửi về cơ quan hư cấu."
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": true
+      },
+      "expected": {
+        "recall_at_k": 0.0,
+        "precision_at_k": 1.0,
+        "exact_phrase_precision": 1.0,
+        "exact_phrase_returned": 1,
+        "exact_phrase_verified": 1,
+        "wrong_doc_rate": 1.0,
+        "wrong_node_rate": 0.0,
+        "no_result_correct": null
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-exact-quote-mismatch",
+        "query": "báo cáo định kỳ và thường xuyên",
+        "mode": "phrase",
+        "filters": {},
+        "expected_documents": ["HU-CAU/2026/ND-CP"],
+        "expected_nodes": [],
+        "expected_no_result": false,
+        "notes": "Fixture hư cấu: 2 clause đều gắn exact_phrase nhưng chỉ 1 quote thực sự chứa cụm từ → tử số 1/2, metric 0.5; quote đúng có chữ hoa, dấu câu và khoảng trắng kép để kiểm chuẩn hóa.",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "báo cáo định kỳ và thường xuyên"},
+        "results": [
+          {
+            "document_id": "hc-doc-nd-cp",
+            "document_number": "HU-CAU/2026/ND-CP",
+            "clauses": [
+              {
+                "node_id": "HC-ND-CP-N11",
+                "label": "Khoản 11 Điều 5",
+                "match_type": "exact_phrase",
+                "quote_exact": "BÁO CÁO, định kỳ — và  thường xuyên được lập hằng quý (hư cấu)."
+              },
+              {
+                "node_id": "HC-ND-CP-N12",
+                "label": "Khoản 12 Điều 5",
+                "match_type": "exact_phrase",
+                "quote_exact": "Báo cáo định kỳ và đột xuất theo yêu cầu (hư cấu)."
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": true
+      },
+      "expected": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 1.0,
+        "exact_phrase_precision": 0.5,
+        "exact_phrase_returned": 2,
+        "exact_phrase_verified": 1,
+        "wrong_doc_rate": 0.0,
+        "wrong_node_rate": 0.0,
+        "no_result_correct": null
+      }
+    },
+    {
+      "case": {
+        "id": "hc-fixture-exact-denominator-zero-positive",
+        "query": "báo cáo định kỳ",
+        "mode": "phrase",
+        "filters": {},
+        "expected_documents": ["HU-CAU/2026/ND-CP"],
+        "expected_nodes": [],
+        "expected_no_result": false,
+        "notes": "Fixture hư cấu: case dương không có clause exact_phrase nào → mẫu số 0 → exact_phrase_precision null (không phải 1.0).",
+        "approved_by": null,
+        "corpus": "HU_CAU"
+      },
+      "response": {
+        "query": {"phrase": "báo cáo định kỳ"},
+        "results": [
+          {
+            "document_id": "hc-doc-nd-cp",
+            "document_number": "HU-CAU/2026/ND-CP",
+            "clauses": [
+              {
+                "node_id": "HC-ND-CP-N13",
+                "label": "Khoản 13 Điều 5",
+                "match_type": "phrase_folded",
+                "quote_exact": "bao cao dinh ky hư cấu"
+              }
+            ]
+          }
+        ],
+        "empty_reason": null,
+        "phrase_found": false
+      },
+      "expected": {
+        "recall_at_k": 1.0,
+        "precision_at_k": 1.0,
+        "exact_phrase_precision": null,
+        "exact_phrase_returned": 0,
+        "exact_phrase_verified": 0,
+        "wrong_doc_rate": 0.0,
+        "wrong_node_rate": 0.0,
+        "no_result_correct": null
+      }
+    }
+  ],
+  "latency_checks": [
+    {
+      "values": [10, 20, 30, 40, 50],
+      "p50": 30.0,
+      "p95": 50.0
+    },
+    {
+      "values": [5, 15, 25, 35, 45, 55],
+      "p50": 30.0,
+      "p95": 55.0
+    },
+    {
+      "values": [7],
+      "p50": 7.0,
+      "p95": 7.0
+    },
+    {
+      "values": [1, 2, 3, 4],
+      "p50": 2.5,
+      "p95": 4.0
+    }
+  ]
+}

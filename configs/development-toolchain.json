@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "purpose": "Development verification; not an approved release installation manifest",
+  "root_subdirectory": "EvidenceRAG",
+  "executables": {
+    "python": "backend-venv/Scripts/python.exe",
+    "node": "runtimes/node/node.exe",
+    "pnpm": "tools/pnpm/node_modules/pnpm/bin/pnpm.cjs",
+    "uv": "tools/uv.exe"
+  }
+}

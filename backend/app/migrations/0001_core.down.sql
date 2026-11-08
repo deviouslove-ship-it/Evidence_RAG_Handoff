@@ -1,0 +1,18 @@
+DROP VIEW IF EXISTS authorized_nodes;
+DROP VIEW IF EXISTS authorized_categories;
+DROP TABLE IF EXISTS audit_events, feedback_reports, evaluation_runs, evaluation_cases, evaluation_corpora;
+DROP TABLE IF EXISTS job_attempts, jobs;
+DROP TABLE IF EXISTS security_policies, stage_routes, model_profiles, providers;
+DROP TABLE IF EXISTS fact_snapshots, messages, conversations;
+DROP TABLE IF EXISTS query_fact_revisions;
+DROP TABLE IF EXISTS claim_aspect_links, evidence_group_members, evidence_groups;
+DROP TABLE IF EXISTS node_embeddings, embedding_indices, lexical_search_index;
+DROP TABLE IF EXISTS node_effective_intervals, effectivity_snapshot_revisions;
+DROP TABLE IF EXISTS curator_review_tasks, node_amendments, node_references;
+DROP TABLE IF EXISTS document_nodes;
+DROP TABLE IF EXISTS source_spans, source_pages, source_provenance;
+DROP TABLE IF EXISTS document_versions;
+DROP TABLE IF EXISTS document_categories, document_acl, documents;
+DROP TABLE IF EXISTS categories, category_acl;
+DROP TABLE IF EXISTS user_roles, roles, users;
+DROP TYPE IF EXISTS job_status, effective_status, node_type, review_status;

@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+/coverage/
+frontend/coverage/
+
+# Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Local configuration and secrets
+.env
+*.env
+!deploy/portable/config/evidence.env
+!deploy/lan-portable/config/evidence.env
+*.local
+secrets/
+*.key
+*.pem
+
+# Runtime data
+data/
+logs/
+backups/
+*.pdf
+*.doc
+*.docx
+*.zip
+*.7z
+*.tar
+*.gz
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
+*.gguf
+*.safetensors
+*.log
+*.pid
+*.bak
+*.out
+*.err
+*.exe
+*.dll
+*.pyc
+.agents/
+test-data/van-ban/
+evaluation/corpus_public_real/files/
+evaluation/search_eval/reports/
+# Runtime test artifacts can contain source excerpts or machine information.
+docs/evidence/**
+!docs/evidence/**/
+!docs/evidence/**/*.md
+
+# IDE
+.vscode/
+.idea/

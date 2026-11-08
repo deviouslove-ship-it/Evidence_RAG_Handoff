@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "label": "HU_CAU",
+  "description": "Bộ case HƯ CẤU cho Search v1: số hiệu/định danh văn bản, node và nội dung đều là dữ liệu hư cấu, KHÔNG phải văn bản pháp luật và không phải Gold. Tất cả case có approved_by = null nên chỉ được dùng để kiểm tra công thức/đường gọi API, không dùng để tuyên bố chất lượng. Khi có Gold thật, người nắm nghiệp vụ duyệt thì điền approved_by và dùng file riêng có corpus khác.",
+  "corpus": "HU_CAU",
+  "cases": [
+    {
+      "id": "hc-001",
+      "query": "báo cáo định kỳ và thường xuyên",
+      "mode": "phrase",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP"],
+      "expected_nodes": ["HC-ND-CP-N01"],
+      "expected_no_result": false,
+      "notes": "Cụm từ chính xác có trong văn bản hư cấu; kỳ vọng match_type exact_phrase và đúng node hư cấu HC-ND-CP-N01.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-002",
+      "query": "báo cáo định kỳ và đột xuất",
+      "mode": "phrase",
+      "filters": {},
+      "expected_documents": [],
+      "expected_nodes": [],
+      "expected_no_result": true,
+      "notes": "Cụm từ hư cấu không tồn tại trong kho hư cấu; kỳ vọng 0 kết quả kèm empty_reason PHRASE_NOT_FOUND hoặc NO_RESULTS.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-003",
+      "query": "báo cáo định kỳ",
+      "mode": "keywords",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP", "HU-CAU/2026/TT-BTC"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Khớp đủ từ khóa hư cấu trên nhiều văn bản; không đòi hỏi nhãn exact_phrase.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-004",
+      "query": "bao cao dinh ky",
+      "mode": "auto",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP"],
+      "expected_nodes": ["HC-ND-CP-N01"],
+      "expected_no_result": false,
+      "notes": "Gõ không dấu trên văn bản hư cấu có dấu; kỳ vọng tìm được ở kênh không dấu (match_type phrase_folded), không phải exact_phrase.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-005",
+      "query": "báo cáo định kì",
+      "mode": "auto",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Biến thể kì/kỳ: truy vấn dùng 'kì', kho hư cấu viết 'kỳ'; kỳ vọng chuẩn hóa vẫn tìm được, không khẳng định nhãn exact_phrase.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-006",
+      "query": "hòa giải tranh chấp",
+      "mode": "phrase",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/TT-BTC"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Biến thể hòa/hoà: kho hư cấu viết 'hoà giải tranh chấp'; kỳ vọng tìm được theo chuẩn hóa, không khẳng định nhãn exact_phrase.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-007",
+      "query": "HU-CAU/2026/ND-CP",
+      "mode": "auto",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Tìm theo số hiệu văn bản hư cấu (không phải số hiệu thật).",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-008",
+      "query": "thủ tục cấp phép vũ trụ",
+      "mode": "keywords",
+      "filters": {},
+      "expected_documents": [],
+      "expected_nodes": [],
+      "expected_no_result": true,
+      "notes": "Ca âm hư cấu: không văn bản hư cấu nào chứa đủ các từ khóa; kỳ vọng 0 kết quả + empty_reason hợp lệ.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-009",
+      "query": "trách nhiệm lập báo cáo",
+      "mode": "keywords",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP", "HU-CAU/2026/TT-BTC"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Nhiều văn bản hư cấu cùng chứa cụm từ khóa; kiểm recall ở mức văn bản.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-010",
+      "query": "Điều 5 báo cáo định kỳ",
+      "mode": "auto",
+      "filters": {},
+      "expected_documents": ["HU-CAU/2026/ND-CP"],
+      "expected_nodes": ["HC-ND-CP-N01"],
+      "expected_no_result": false,
+      "notes": "Chuỗi vắt qua nhãn điều và nội dung: ca kiểm nhãn (không được gắn exact_phrase cho chuỗi vắt ranh giới), không phải ca Gold.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-011",
+      "query": "báo cáo tài chính",
+      "mode": "keywords",
+      "filters": {
+        "category_id": ["00000000-0000-4000-8000-000000000001"],
+        "doc_type": "circular",
+        "issuing_body": "Bộ Tài chính hư cấu"
+      },
+      "expected_documents": ["HU-CAU/2026/TT-BTC"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Kiểm bộ lọc category_id (UUID hư cấu), doc_type và issuing_body hư cấu.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    },
+    {
+      "id": "hc-012",
+      "query": "báo cáo định kỳ",
+      "mode": "phrase",
+      "filters": {
+        "as_of_date": "2026-10-31",
+        "only_active": true,
+        "group_by": "document"
+      },
+      "expected_documents": ["HU-CAU/2026/QD-UBND"],
+      "expected_nodes": [],
+      "expected_no_result": false,
+      "notes": "Kiểm bộ lọc hiệu lực tại mốc ngày hư cấu, only_active=true và group_by=document.",
+      "approved_by": null,
+      "corpus": "HU_CAU"
+    }
+  ]
+}
