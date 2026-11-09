@@ -2,14 +2,14 @@
   "version": "v1",
   "hooks": [
     {
-      "name": "Type-check frontend TypeScript on save",
+      "name": "Check frontend TypeScript on save",
       "trigger": "PostFileSave",
-      "description": "Runs tsc --noEmit in frontend/ after a TypeScript file is saved. Skips if dependencies are not installed.",
+      "description": "Runs eslint (--max-warnings=0) on the saved frontend/src/*.ts(x) file, then tsc --noEmit for the frontend project (tsc cannot check a single file inside a project). Tools come from EVIDENCE_PROGRAMS_ROOT via configs/development-toolchain.json and frontend/node_modules, never from PATH. Result PASS/FAIL/SKIPPED goes to stdout and .agents/hook-logs/kiro-hooks.log. Kiro fires PostFileSave for editor saves and for agent writes, so no PostToolUse hook is needed.",
       "matcher": "frontend[\\\\/]src[\\\\/].*\\.(ts|tsx)$",
       "action": {
         "type": "command",
-        "command": "powershell -NoProfile -Command \"if (-not (Test-Path 'frontend/node_modules')) { Write-Output 'frontend/node_modules missing; run pnpm install. Skipped.'; exit 0 }; Push-Location frontend; pnpm exec tsc --noEmit; Pop-Location; exit 0\"",
-        "timeout": 120
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kiro-hook-check.ps1 -Scope frontend",
+        "timeout": 180
       }
     }
   ]

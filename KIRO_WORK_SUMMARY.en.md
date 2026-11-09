@@ -148,7 +148,7 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 |---|---|
 | `.kiro/specs`, `.kiro/steering`, `.kiro/hooks` before 2026-11-09 | **None** found in the repository, backups or `~/.kiro` |
 | `.kiro/settings/permissions.yaml` | Present (on GitHub since the first commit); drafted by Kiro and applied by the user (A24). Left unchanged |
-| `.kiro/specs` (10 groups), `.kiro/steering` (3 files), `.kiro/hooks` (2 hooks) from 2026-11-09 | **Reconstructed from code** (type C), in English so Kiro reads them directly; Vietnamese translations in `docs/vi/kiro/`. The hook commands were run directly; automatic triggering by the IDE only takes effect from the next Kiro session and has not been observed |
+| `.kiro/specs` (10 groups), `.kiro/steering` (3 files), `.kiro/hooks` (2 hooks) from 2026-11-09 | **Reconstructed from code** (type C), in English so Kiro reads them directly; Vietnamese translations in `docs/vi/kiro/`. Hooks were revised on 2026-11-09 (scoped ruff/mypy and eslint/tsc via `scripts/kiro-hook-check.ps1`); automatic `PostFileSave` triggering was observed when the agent wrote test files, a manual editor save was not tried |
 | Project copy `Evidence_RAG_Handoff-20261109-171404` | Contains `.kiro/settings/permissions.yaml`, byte-identical; nothing else |
 | MCP configuration | Only at user level (`~/.kiro/settings/mcp.json`), 9 servers; only `stitch` relates to UI design; the rest are personal tools. Not copied into the repository (machine paths and personal configuration) |
 | Working mode | All stored sessions ran in free chat mode (`vibe`) or workflow; session settings record `specPlanEnabled = false`. **The specs, steering and hooks added on 2026-11-09 are reconstructed documents, not Kiro history.** |
@@ -265,7 +265,7 @@ File-by-file list, excluded files and uncounted candidates: [`KIRO_STATS_APPENDI
 - The portable packages (A5, A22) have not been tried on a second physical Windows machine; the Tauri desktop app and TXT files were not checked in session `201bebb1`.
 - 30 Oct – 4 Nov, the work on the second machine and the changes between 11-08 17:21 and 11-09 17:19 have no Kiro records to check against; they rest on the owner's confirmation.
 - The Kiro sessions in section 2 cover one machine; the statistics exclude the other.
-- Specs, steering and hooks of 2026-11-09 are reconstructed from code; automatic triggering of the hooks by the IDE has not been observed.
+- Specs, steering and hooks of 2026-11-09 are reconstructed from code; automatic `PostFileSave` triggering of the hooks was observed for agent writes only; a manual editor save was not tried.
 - Some other generated files (reports, files in `.agents/`) are outside Git per `.gitignore` and are not in the file statistics.
 - The current-turn tool-call count is a snapshot at the time of this count and keeps growing while the session continues.
 - The "files with `fs_write`" measure and the line counts are upper bounds on Kiro's authorship; the file count is a lower bound because files created by shell commands are not counted (29 uncounted candidates, see the appendix).

@@ -27,7 +27,9 @@ Kiro đọc trực tiếp các tệp tiếng Anh trong `.kiro/specs/` và `.kiro
 
 ## Hooks
 Hai hook nằm ở [`.kiro/hooks/`](../../../.kiro/hooks/):
-- `backend-python-lint.json`: sau khi lưu tệp Python trong `backend/`, chạy `ruff check backend` (dùng `ruff` trong PATH hoặc trong `EVIDENCE_PROGRAMS_ROOT`; bỏ qua kèm thông báo nếu không có).
-- `frontend-typescript-check.json`: sau khi lưu tệp `.ts`/`.tsx` trong `frontend/src/`, chạy `tsc --noEmit` (bỏ qua nếu chưa cài phụ thuộc).
+- `backend-python-lint.json`: sau khi lưu tệp `.py` trong `backend/`, chạy `ruff check <tệp>`; nếu tệp nằm trong `backend/app` thì chạy thêm `mypy` (strict, `backend/pyproject.toml`).
+- `frontend-typescript-check.json`: sau khi lưu tệp `.ts`/`.tsx` trong `frontend/src/`, chạy `eslint <tệp> --max-warnings=0` rồi `tsc --noEmit` (tsc kiểm tra cả dự án frontend vì không kiểm tra riêng được một tệp trong project).
 
-Cả hai luôn thoát với mã 0 (chỉ thông báo, không chặn thao tác). Lệnh của hook đã được chạy thử trực tiếp (backend: "All checks passed!"). Việc IDE tự kích hoạt hook chỉ có hiệu lực từ phiên Kiro kế tiếp và chưa được quan sát.
+Cả hai gọi [`scripts/kiro-hook-check.ps1`](../../../scripts/kiro-hook-check.ps1). Công cụ lấy từ `EVIDENCE_PROGRAMS_ROOT` qua `configs/development-toolchain.json` (cùng nguồn với `scripts/verify.ps1`) và `frontend/node_modules`; không dùng PATH. Kết quả là PASS (mã 0), FAIL (mã 1) hoặc SKIPPED kèm lý do (mã 3, ví dụ thiếu công cụ). Mỗi lần chạy được ghi vào `.agents/hook-logs/kiro-hooks.log` (không đưa lên Git), vì Kiro không hiển thị đầu ra của `PostFileSave` trong khung chat.
+
+Kiro phát `PostFileSave` cả khi lưu trong editor lẫn khi agent ghi tệp (`fs_write`, `str_replace`, `fs_append`), nên không dùng thêm hook `PostToolUse` để tránh chạy trùng. Đã quan sát hook tự kích hoạt ngày 09/11/2026 khi agent ghi tệp thử có lỗi cố ý (FAIL), rồi sửa lại (PASS). Lưu tệp bằng tay trong editor chưa được thử.

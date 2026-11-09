@@ -149,7 +149,7 @@ Mốc trước 05/11 suy ra từ thời gian sửa tệp và là **chỉ số th
 | Hạng mục | Kết quả |
 |---|---|
 | `.kiro/specs`, `.kiro/steering`, `.kiro/hooks` trước ngày 09/11/2026 | **Không có** (không tìm thấy ở repo, bản sao lưu, `~/.kiro`) |
-| `.kiro/specs` (10 nhóm), `.kiro/steering` (3 tệp), `.kiro/hooks` (2 hook) từ 09/11/2026 | **Dựng lại từ code** (loại C), tiếng Anh để Kiro đọc trực tiếp; bản dịch tiếng Việt ở `docs/vi/kiro/`. Hook đã chạy thử lệnh trực tiếp; kích hoạt thực tế bởi IDE chỉ có hiệu lực từ phiên Kiro kế tiếp, chưa quan sát |
+| `.kiro/specs` (10 nhóm), `.kiro/steering` (3 tệp), `.kiro/hooks` (2 hook) từ 09/11/2026 | **Dựng lại từ code** (loại C), tiếng Anh để Kiro đọc trực tiếp; bản dịch tiếng Việt ở `docs/vi/kiro/`. Hook được sửa ngày 09/11/2026 (ruff/mypy và eslint/tsc theo phạm vi tệp qua `scripts/kiro-hook-check.ps1`); đã quan sát `PostFileSave` tự kích hoạt khi agent ghi tệp thử, chưa thử lưu tay trong editor |
 | `.kiro/settings/permissions.yaml` trong repo | Có (đã nằm trên GitHub từ commit đầu); là tệp Kiro soạn và người dùng áp dụng (A24) |
 | `.kiro/specs`, `steering`, `hooks` ở `~/.kiro` và ở bản sao lưu cũ | Không có. Thư mục người dùng chỉ có cài đặt cá nhân, kỹ năng (skills), cơ sở bộ nhớ và nhật ký, không phải tài liệu dự án |
 | Bản sao dự án `Evidence_RAG_Handoff-20261109-171404` | Có `.kiro/settings/permissions.yaml` giống từng byte; không có gì khác |
@@ -268,7 +268,7 @@ Danh sách từng tệp, tệp bị loại và tệp ứng viên chưa tính: [`
 - Các gói portable (A5, A22) chưa được thử trên máy Windows vật lý thứ hai; bản desktop Tauri và tệp TXT chưa được kiểm trong phiên `201bebb1`.
 - Giai đoạn 30/10–04/11, phần công việc trên máy thứ hai và các thay đổi 08/11 17:21 → 09/11 17:19 không có bản ghi Kiro để đối chiếu; chúng dựa trên xác nhận của chủ dự án.
 - Phiên Kiro ghi lại ở mục 2 là lần chạy cho workspace này trên một máy; số liệu thống kê không bao gồm máy còn lại.
-- Spec, steering và hook ngày 09/11/2026 dựng từ code; việc IDE tự kích hoạt hook chưa được quan sát.
+- Spec, steering và hook ngày 09/11/2026 dựng từ code; `PostFileSave` đã được quan sát tự kích hoạt khi agent ghi tệp; lưu tay trong editor chưa thử.
 - Một số tệp tài liệu phát sinh khác (báo cáo, tệp trong `.agents/`) nằm ngoài Git theo `.gitignore` và không được đưa vào thống kê tệp.
 - Số lệnh công cụ của lượt hiện tại là ảnh chụp tại lúc lập thống kê và còn tăng khi phiên tiếp tục.
 - Chỉ số "tệp có `fs_write`" và số dòng đều là cận trên về quyền tác giả của Kiro; số tệp là cận dưới vì không đếm tệp tạo bằng lệnh shell (29 ứng viên chưa tính, xem phụ lục).

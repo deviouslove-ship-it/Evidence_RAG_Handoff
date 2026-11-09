@@ -2,14 +2,14 @@
   "version": "v1",
   "hooks": [
     {
-      "name": "Lint backend Python on save",
+      "name": "Check backend Python on save",
       "trigger": "PostFileSave",
-      "description": "Runs ruff on the backend after a Python file is saved. Uses ruff from PATH or from EVIDENCE_PROGRAMS_ROOT; skips with a message if neither exists.",
+      "description": "Runs ruff on the saved backend/*.py file and mypy (strict) when it is under backend/app. Tools come from EVIDENCE_PROGRAMS_ROOT via configs/development-toolchain.json, never from PATH. Result PASS/FAIL/SKIPPED goes to stdout and .agents/hook-logs/kiro-hooks.log. Kiro fires PostFileSave for editor saves and for agent writes (fs_write, str_replace, fs_append), so no PostToolUse hook is needed.",
       "matcher": "backend[\\\\/].*\\.py$",
       "action": {
         "type": "command",
-        "command": "powershell -NoProfile -Command \"$r = (Get-Command ruff -ErrorAction SilentlyContinue).Source; if (-not $r -and $env:EVIDENCE_PROGRAMS_ROOT) { $c = Join-Path $env:EVIDENCE_PROGRAMS_ROOT 'EvidenceRAG\\backend-venv\\Scripts\\ruff.exe'; if (Test-Path $c) { $r = $c } }; if (-not $r) { Write-Output 'ruff not found; set EVIDENCE_PROGRAMS_ROOT or add ruff to PATH. Skipped.'; exit 0 }; & $r check backend; exit 0\"",
-        "timeout": 60
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kiro-hook-check.ps1 -Scope backend",
+        "timeout": 180
       }
     }
   ]
