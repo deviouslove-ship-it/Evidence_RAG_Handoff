@@ -125,7 +125,7 @@ parts/            Extracts of the main handoff file (regenerated from docs/HOSO_
 4. `API` and `LOCAL` go through the Registry/Router; sending data outside is blocked by default; `LOCAL` refuses every `public` profile (`REMOTE_AI_DENIED`).
 5. Separation of duties: `CURATOR` prepares/submits drafts; only a different `REVIEWER` can approve (`SELF_APPROVAL_DENIED`).
 6. Session memory is never evidence; by default it lives in RAM only.
-7. Gold/trap cases count only after the domain owner approves them.
+7. No Gold question set is used to score the AI (ADR-010): the AI only assists, the domain staff decide.
 
 ## License
 Licensed under the Apache License, Version 2.0. See LICENSE and NOTICE. Project history is described in [PROJECT_TIMELINE.md](PROJECT_TIMELINE.md).

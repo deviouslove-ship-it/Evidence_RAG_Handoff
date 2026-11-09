@@ -1,3 +1,7 @@
+> **Không triển khai – xem [ADR-010](../architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md).** Giao thức này được giữ để tra cứu lịch sử; không áp dụng.
+
+> **Kh么ng tri峄僴 khai 鈥?xem [ADR-010](../architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md).** Giao th峄ヽ n脿y 膽瓢峄 gi峄?膽峄?tra c峄﹗ l峄媍h s峄? kh么ng 谩p d峄g.
+
 # Gold evaluation protocol
 
 ## Corpus

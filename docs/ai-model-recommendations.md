@@ -111,7 +111,7 @@ Chưa có tác dụng nếu cấu hình bây giờ. Ghi sẵn để chọn đún
 | `embedding` (tìm theo ngữ nghĩa) | `BAAI/bge-m3`; hoặc [`Vietnamese_Embedding_v2`](https://huggingface.co/akitara/Vietnamese_Embedding_v2) (tinh chỉnh từ BGE-M3 cho tiếng Việt) | API embedding của Gemini hoặc OpenAI | CPU được; RAM 4 GB; GPU làm nhanh việc nạp lại chỉ mục | Cột vector trong DB là `vector(768)`. BGE-M3 xuất 1.024 chiều (theo hiểu biết của tôi, cần xác nhận khi nối), nên cần migration hoặc chọn mô hình 768 chiều |
 | `rerank` (xếp lại ứng viên) | `BAAI/bge-reranker-v2-m3`; [ViRanker](https://arxiv.org/abs/2509.09131) (cross-encoder cho tiếng Việt) | Dịch vụ rerank của nhà cung cấp | CPU 8 nhân, RAM 4 GB; GPU nếu xếp lại hơn 50 ứng viên mỗi câu | Local Mode bắt buộc chạy cục bộ |
 | `analyze` bằng LLM (tách dữ kiện, viết lại câu) | Như mục 2 | Như mục 3 | Như mục 2 | Hiện chạy bằng quy tắc, không dùng LLM |
-| `verify` (claim có được căn cứ hỗ trợ) | Mô hình entailment đa ngôn ngữ cỡ nhỏ | Như mục 3 | CPU được | Thiết kế để P1, cần Gold để đo trước khi bật |
+| `verify` (claim có được căn cứ hỗ trợ) | Mô hình entailment đa ngôn ngữ cỡ nhỏ | Như mục 3 | CPU được | Thiết kế để P1, cần Gold [Không triển khai – xem ADR-010] để đo trước khi bật |
 
 ## 7. Bộ cấu hình khởi đầu đề xuất
 

@@ -1,8 +1,10 @@
 # Trạng thái triển khai
 
+> **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
+
 Cập nhật 09/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành**; diễn biến từng đợt nằm
 trong các báo cáo ở mục “Lịch sử”. Không coi ứng dụng là đã nghiệm thu: chưa có văn bản
-nghiệp vụ được duyệt, chưa có Gold; model thật mới chỉ được thử trên DB tạm (G1–G5).
+nghiệp vụ được duyệt, chưa có Gold [Không triển khai – xem ADR-010]; model thật mới chỉ được thử trên DB tạm (G1–G5).
 
 ## Quản lý văn bản (09/11/2026)
 
@@ -313,7 +315,7 @@ Chưa kiểm qua hai lần nhập: kênh theo nghĩa (HNSW xấp xỉ) và kênh
 
 ## Cổng phụ thuộc bên ngoài
 
-1. **Gold 150–200 ca và văn bản được duyệt** do người nắm nghiệp vụ duyệt — chưa có;
+1. **Gold [Không triển khai – xem ADR-010] 150–200 ca và văn bản được duyệt** do người nắm nghiệp vụ duyệt — chưa có;
    chưa có số recall/precision.
 2. **Model thật**: đã thử trên DB tạm với Ollama local (`qwen3-embedding:0.6b`, `qwen3:1.7b`) và
    DeepSeek-V4.1-Flash qua `api.river.ai` (khóa thử của chủ sở hữu); DB dev vẫn chưa cấu hình model.
@@ -338,7 +340,7 @@ Tham số có giá trị mặc định hoặc suy ra từ hệ thống nằm tro
 ## Việc đề xuất tiếp theo
 
 Lưu sẵn tsvector đã hạ chữ khi ingest; cache thứ tự kết quả theo trang; cộng điểm cụm âm
-tiết liền nhau; từ điển viết tắt pháp lý; kênh embedding khi có model và Gold. Chi tiết:
+tiết liền nhau; từ điển viết tắt pháp lý; kênh embedding khi có model và Gold [Không triển khai – xem ADR-010]. Chi tiết:
 [báo cáo 05/11](evidence/2026-11-05-retrieval-accuracy-performance/REPORT.md).
 
 ## Lịch sử

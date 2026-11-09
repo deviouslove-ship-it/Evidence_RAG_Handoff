@@ -158,7 +158,7 @@ API): `$env:CHROME_PATH="<chrome.exe>"` rồi `pnpm --dir frontend run e2e:searc
 
 ## 7. Đánh giá chất lượng
 
-Chỉ chạy khi có Gold đã được người nắm nghiệp vụ duyệt và văn bản đã duyệt:
+Chỉ chạy khi có Gold [Không triển khai – xem ADR-010] đã được người nắm nghiệp vụ duyệt và văn bản đã duyệt:
 
 ```powershell
 python evaluation/scripts/evaluate_search.py `
@@ -167,7 +167,7 @@ python evaluation/scripts/evaluate_search.py `
 ```
 
 Case `approved_by=null` bị tách vào `hucau_metrics`; không có case duyệt thì
-`quality_status=not_evaluated`. Không báo “đúng/đủ” khi chưa có báo cáo Gold.
+`quality_status=not_evaluated`. Không báo “đúng/đủ” khi chưa có báo cáo Gold [Không triển khai – xem ADR-010].
 
 ## 8. Sao lưu và rollback
 
@@ -179,7 +179,7 @@ Case `approved_by=null` bị tách vào `hucau_metrics`; không có case duyệt
 
 ## 9. Việc còn chờ owner
 
-- Duyệt Gold, chốt p95 trên máy đích; định nghĩa `exact_phrase_precision` (tử số: khoản
+- Duyệt Gold [Không triển khai – xem ADR-010], chốt p95 trên máy đích; định nghĩa `exact_phrase_precision` (tử số: khoản
   gắn `exact_phrase` có đúng cụm từ; mẫu số: tổng khoản gắn `exact_phrase`; ca âm = 0).
 - Chuẩn hóa `doc_type` free-text cũ (giao diện nạp mới đã chọn từ
   `decree/circular/decision/other`).

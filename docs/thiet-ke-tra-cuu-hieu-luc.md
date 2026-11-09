@@ -46,7 +46,7 @@ không cần thiết.
 | D12 | Hỏi đáp khi chưa xác minh hiệu lực | Không chặn. Căn cứ đã kiểm nguồn (đúng tệp, đúng chữ, đúng trang) được giải thích, tóm tắt, tổng hợp kèm cảnh báo hiệu lực |
 | D13 | Tìm toàn diện ≠ tổng hợp toàn diện | Tìm ưu tiên độ bao phủ; tổng hợp xử lý lần lượt các nhóm trong phạm vi, không lấy vài kết quả đại diện rồi coi là toàn bộ |
 | D14 | Thời điểm | Phân biệt ngày tra cứu (`as_of_date`), ngày xác minh, ngày dữ liệu của kho |
-| D15 | Bỏ sót | Danh sách căn cứ bắt buộc tìm thấy theo chủ đề kiểm thử, không xây Gold QA lớn |
+| D15 | Bỏ sót | Danh sách căn cứ bắt buộc tìm thấy theo chủ đề kiểm thử, không xây Gold [Không triển khai – xem ADR-010] QA lớn |
 
 ## 2. Hai lớp kiểm chứng (giải D12)
 
@@ -264,7 +264,7 @@ phiên bản model để tính lại.
 | 13 | Cột vector cố định 768 chiều | G2: chỉ mục theo chiều model |
 | 14 | Kiểm khoản vắt trang ở đường tìm kiếm nóng tốn chi phí | Đường tìm kiếm kiểm đoạn đầu (khoản một trang vẫn kiểm đủ); duyệt và mở trích dẫn kiểm toàn bộ đoạn |
 
-## 12. Kiểm thử (không dựa Gold QA)
+## 12. Kiểm thử (không dựa Gold [Không triển khai – xem ADR-010] QA)
 
 - **Bao phủ (D15):** `evaluation/coverage/` gồm 5–8 chủ đề, mỗi chủ đề vài cách hỏi và danh sách
   căn cứ bắt buộc tìm thấy (số hiệu + Điều/Khoản). Đo tỷ lệ tìm thấy theo từng kênh.

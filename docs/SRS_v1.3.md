@@ -1,4 +1,6 @@
 # VIETNAMESE EVIDENCE RAG AGENT
+
+> **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 ## Đặc tả sản phẩm, kiến trúc, thuật toán và mã nguồn tham khảo — SRS v1.3
 
 > **Cập nhật:** 21/10/2026  
@@ -17,7 +19,7 @@
 | 1.1 | 16/10/2026 | Tiếp thu 16/16 nhóm duyệt; thiết kế lại pipeline, DB, trích dẫn, UI, Model Router, deployment; ưu tiên PDF text từ nguồn chính thức |
 | 1.2 | 16/10/2026 | Tích hợp 19 góp ý Gemini Argon: UX 5, thuật toán 4, nhóm nguồn mở 4, tối ưu hiệu năng 6; bổ sung hợp đồng dữ liệu/API/test |
 | **1.2.1** | **16/10/2026** | **Chỉnh lý 4 điểm: tách amendment-chain closure khỏi BFS retrieval; pre-gate ba nhánh tránh loại nhầm; fail-closed snapshot theo revision; phát ngôn hai pha không suy diễn độ đúng; bổ sung bảng màu Navy/Blue/Light** |
-| **1.3** | **21/10/2026** | Đồng bộ quyết định owner: Windows, 150–200 Gold có reviewer, LLM API/Local không hardcode, desktop USER chung RAG, quyền duyệt, cache, bộ nhớ/xóa/restore, split, budget LLM, chủ trì WP và responsive; v1.2.1 giữ làm lịch sử |
+| **1.3** | **21/10/2026** | Đồng bộ quyết định owner: Windows, 150–200 Gold [Không triển khai – xem ADR-010] có reviewer, LLM API/Local không hardcode, desktop USER chung RAG, quyền duyệt, cache, bộ nhớ/xóa/restore, split, budget LLM, chủ trì WP và responsive; v1.2.1 giữ làm lịch sử |
 
 ---
 
@@ -43,7 +45,7 @@
 | D12 | **PostgreSQL duy nhất** + pgvector, PostgreSQL queue | Không phải bảo trì hai search backend SQLite/Postgres |
 | D13 | Exact vector + ACL SQL mặc định; HNSW chỉ bật sau benchmark | ANN post-filter có rủi ro thiếu top-k trong tập đã lọc |
 | D14 | Core Pack tách Model Pack, inference node tùy chọn | **Gói mẫu <10 GB**, báo riêng data/backup/log; không gói LLM lớn mặc định |
-| D15 | Gold v0 150–200 câu thật từ Sprint 1, con người duyệt | Chia calibration/held-out theo nhóm tình huống, khóa split; regression dùng trong phát triển |
+| D15 | Gold [Không triển khai – xem ADR-010] v0 150–200 câu thật từ Sprint 1, con người duyệt | Chia calibration/held-out theo nhóm tình huống, khóa split; regression dùng trong phát triển |
 | D16 | Repo nguồn mở tích hợp chọn lọc; lock versions + hashes + review licenses | Không cài full RAGFlow, GraphRAG, LiteLLM/LiteLLM Gateway |
 | D17 | Không hardcode PATH/LLM; cài tool/runtime dưới `E:\Programs` qua deployment profile / `EVIDENCE_PROGRAMS_ROOT` | Manifest resolve executable/artifact/cache, kiểm containment, không fallback PATH/global; §25.9 và hồ sơ B.8 |
 
@@ -297,10 +299,10 @@ Document -> DocumentVersion (file PDF gốc, source URL, SHA-256)
 
 - RRF: `RRF(d)=Σ_i weight_i/(k+rank_i(d))`; điểm này **chỉ thể hiện xếp hạng**, không dùng làm ngưỡng tin cậy tuyệt đối.
 - **P0-lite relevance gate:** dùng tỷ lệ phủ thuật ngữ chuyên ngành/định danh/số hiệu (`legal_lexical_coverage`) và **absolute dense cosine** hoặc reranker score sau khi hiệu chuẩn riêng cho mỗi model, danh mục, loại truy vấn; có thể dùng `source_status/required_facts` để đánh giá độc lập. **Không dùng min-max trên danh sách ứng viên trong cùng truy vấn làm ngưỡng không-có-đáp-án** vì luôn nâng top-1 thành điểm cao; không coi cosine giữa các embedding model là so sánh trực tiếp được.
-- `pre_gate` trả trạng thái ba nhánh có giải thích: **`pass`** (bằng chứng đủ rõ → kiểm chứng tiếp), **`uncertain`** (điểm thấp/xung đột nhưng còn khả năng đúng → mở rộng/rerank có hạn mức), **`insufficient_after_check`** (đã kiểm những nhánh bắt buộc vẫn thiếu → abstain). Exact reference được verified không tự đồng nghĩa đủ điều kiện áp dụng; vẫn kiểm thời điểm/ngoại lệ. Không xóa vĩnh viễn candidate chỉ vì một score cosine/coverage thấp; tune thresholds theo precision, false abstention và no-answer gold, tách theo model/query type/category.
+- `pre_gate` trả trạng thái ba nhánh có giải thích: **`pass`** (bằng chứng đủ rõ → kiểm chứng tiếp), **`uncertain`** (điểm thấp/xung đột nhưng còn khả năng đúng → mở rộng/rerank có hạn mức), **`insufficient_after_check`** (đã kiểm những nhánh bắt buộc vẫn thiếu → abstain). Exact reference được verified không tự đồng nghĩa đủ điều kiện áp dụng; vẫn kiểm thời điểm/ngoại lệ. Không xóa vĩnh viễn candidate chỉ vì một score cosine/coverage thấp; tune thresholds theo precision, false abstention và no-answer gold [Không triển khai – xem ADR-010], tách theo model/query type/category.
 - Conditional reranker: baseline top-12 (thử từ top-20 → 12); chạy khi bằng chứng có độ tương đồng gần nhau, nhiều điều khoản cạnh tranh, lexical/dense bất đồng hoặc câu hỏi theo tình huống. Độ lệch top-1/top-5 **không phải điều kiện duy nhất**; cần đo P95 trên CPU.
 - Khi không đạt threshold, tài liệu chưa verified, thiếu điều kiện áp dụng hoặc conflict: `insufficient_evidence`, `conditional` hoặc `conflicting_sources`. Không “ép” top-1 thành khẳng định.
-- Gold v0 từ Sprint 1: B0 exact; B1 word lexical; B2 syllable lexical; B3 dense; B4 lexical fusion; B5 hybrid RRF; B6 reranker; B7 parent-child + temporal. Benchmark weighted RRF/convex combination ở P1, chỉ rollout khi pass non-regression.
+- Gold [Không triển khai – xem ADR-010] v0 từ Sprint 1: B0 exact; B1 word lexical; B2 syllable lexical; B3 dense; B4 lexical fusion; B5 hybrid RRF; B6 reranker; B7 parent-child + temporal. Benchmark weighted RRF/convex combination ở P1, chỉ rollout khi pass non-regression.
 
 ### 5.3a. Conditional reranker và latency budget
 
@@ -364,7 +366,7 @@ Ví dụ dữ liệu ở trên là **hư cấu để minh họa cấu trúc**, k
 5. LLM chỉ được trỏ đến `evidence_ids` allowlist đã cấp, không tự tạo source hay số điều khoản.
 6. **Kiểm tra numeric/date/period/percentage assertions:** bóc tách số và đơn vị trong claim; xác định chúng có trong bằng chứng/metadata/dữ kiện người dùng hoặc là kết quả tính toán được kiểm tra bằng code. Cảnh báo hoặc chặn khi quote nói `15 ngày` còn claim nói `30 ngày`. Không đồng nghĩa pass numeric check là claim đã đúng ngữ nghĩa.
 7. **Polarity & Modality Marker Validator P0:** tokenize/phrase-match (kèm synonym template) các dấu hiệu `không`, `chưa`, `trừ trường hợp`, `chỉ áp dụng đối với`, `không quá`, `ít nhất`, `tối thiểu`, `tối đa`, `phải`, `có thể`, `được`, `không được`, `trong trường hợp`, `nếu` từ `quote_exact`/evidence và claim. Nếu claim xóa hoặc đảo phủ định/ngoại lệ, thay `có thể` bằng `phải`, hoặc đảo ngưỡng => `conditional`/`needs_review`/block tùy rule. Cho phép dạng tương đương đã kiểm thử (`không quá` ≈ `tối đa`), **không chỉ so khớp chuỗi**.
-8. Cross evidence logic: claim có thể cần **nhiều** đoạn văn/điều kiện thuộc `base_rule/exception/transition/...`, verifier phải kiểm tra độ phủ khía cạnh và trạng thái xung đột; các suy diễn ngữ nghĩa khó cần curator/gold evaluation, **không được nói validator code bảo đảm đúng tuyệt đối**.
+8. Cross evidence logic: claim có thể cần **nhiều** đoạn văn/điều kiện thuộc `base_rule/exception/transition/...`, verifier phải kiểm tra độ phủ khía cạnh và trạng thái xung đột; các suy diễn ngữ nghĩa khó cần curator/gold [Không triển khai – xem ADR-010] evaluation, **không được nói validator code bảo đảm đúng tuyệt đối**.
 9. Sau khi validate, trả evidence cards trước rồi stream phần giải thích; mọi citation mở lại phải kiểm tra quyền và policy hiệu lực. Với claim thay đổi theo sự kiện/ngày, hiển thị nhãn `as_of_date` trên thẻ và trong bản in.
 
 ### 6.4. Phân biệt ba lớp nội dung UI
@@ -962,9 +964,9 @@ Mã lỗi: `FACTS_REVISION_CONFLICT`, `FACTS_DIRTY`, `SNAPSHOT_STALE`, `AMENDMEN
 | Qwen3 Embedding/Reranker | https://github.com/QwenLM/Qwen3-Embedding | Test local CPU/quantization, instruction prefixes & context |
 | BGE-M3 | https://github.com/FlagOpen/FlagEmbedding | Benchmark dense/sparse và footprint |
 | VN-MTEB | https://arxiv.org/html/2507.21500v1 | Tham khảo 41 bộ dữ liệu tiếng Việt và phương pháp đánh giá |
-| Vietnamese Legal Retrieval (Zalo) | https://huggingface.co/datasets/GreenNode/zalo-ai-legal-text-retrieval-vn | Kiểm license/split/provenance và leakage, không lấy metric thay gold nội bộ |
+| Vietnamese Legal Retrieval (Zalo) | https://huggingface.co/datasets/GreenNode/zalo-ai-legal-text-retrieval-vn | Kiểm license/split/provenance và leakage, không lấy metric thay gold [Không triển khai – xem ADR-010] nội bộ |
 
-**Không quyết định model bằng số sao hoặc score tự công bố.** Gold set công khai thật + bộ nội bộ do reviewer duyệt là tiêu chí quyết định. Mỗi model weight đi cùng `license + hash + revision + context_length + dimensions + query/passage_prefix`.
+**Không quyết định model bằng số sao hoặc score tự công bố.** Gold [Không triển khai – xem ADR-010] set công khai thật + bộ nội bộ do reviewer duyệt là tiêu chí quyết định. Mỗi model weight đi cùng `license + hash + revision + context_length + dimensions + query/passage_prefix`.
 
 ### 14.4. Những thứ KHÔNG đưa vào dependency mặc định
 
@@ -978,14 +980,14 @@ Full RAGFlow, Microsoft GraphRAG, LightRAG service, LiteLLM **cả SDK lẫn Gat
 
 ---
 
-## 15. Benchmark, Gold Dataset, đo khả năng từ chối đúng
+## 15. Benchmark, Gold [Không triển khai – xem ADR-010] Dataset, đo khả năng từ chối đúng
 
-### 15.1. Gold v0 ngay Sprint 1 — dùng văn bản công khai thật
+### 15.1. Gold [Không triển khai – xem ADR-010] v0 ngay Sprint 1 — dùng văn bản công khai thật
 
-- Tạo **150–200 câu gold v0** từ chính các văn bản công khai đã kiểm tra nguồn chính thức. Mỗi case ghi: question, intent, category, `as_of_date`, required facts, `relevant_node_ids`, required citation spans, effectivity state, expected_answer_type/abstention, reviewer và source URL/hash.
-- Demo UI sử dụng **chỉ dữ liệu hư cấu có nhãn**; benchmark retrieval **phải là văn bản thực** và lưu thành corpus riêng, không dùng `approved` của kho nghiệp vụ để gộp với gold benchmark.
-- Gold coverage: hỏi thẳng Điều/Khoản; hỏi bằng lời thường; câu không dấu/đảo dấu; số hiệu viết tắt; tham chiếu liên văn bản; sửa một khoản; **sửa chồng A→B→C, cross-reference 2 hops, graph cycle/max-token**; chuyển tiếp; văn bản đã bãi bỏ; câu không có đáp án; câu hỏi ngoài ACL; PDF font lỗi/OCR fallback.
-- Bổ sung cặp gold **sửa Fact Chips hàng loạt** (1 request khi nhấn nút), dữ kiện thay đổi sau khi evidence hiển thị, quote cũ có banner, grouped evidence gồm quy định chính/ngoại lệ/chuyển tiếp, claim đảo `không được↔được`, `không quá↔ít nhất`, `có thể↔phải`, và claim đa nguồn (Điều 4 đối tượng + Điều 7 mức hưởng).
+- Tạo **150–200 câu gold [Không triển khai – xem ADR-010] v0** từ chính các văn bản công khai đã kiểm tra nguồn chính thức. Mỗi case ghi: question, intent, category, `as_of_date`, required facts, `relevant_node_ids`, required citation spans, effectivity state, expected_answer_type/abstention, reviewer và source URL/hash.
+- Demo UI sử dụng **chỉ dữ liệu hư cấu có nhãn**; benchmark retrieval **phải là văn bản thực** và lưu thành corpus riêng, không dùng `approved` của kho nghiệp vụ để gộp với gold [Không triển khai – xem ADR-010] benchmark.
+- Gold [Không triển khai – xem ADR-010] coverage: hỏi thẳng Điều/Khoản; hỏi bằng lời thường; câu không dấu/đảo dấu; số hiệu viết tắt; tham chiếu liên văn bản; sửa một khoản; **sửa chồng A→B→C, cross-reference 2 hops, graph cycle/max-token**; chuyển tiếp; văn bản đã bãi bỏ; câu không có đáp án; câu hỏi ngoài ACL; PDF font lỗi/OCR fallback.
+- Bổ sung cặp gold [Không triển khai – xem ADR-010] **sửa Fact Chips hàng loạt** (1 request khi nhấn nút), dữ kiện thay đổi sau khi evidence hiển thị, quote cũ có banner, grouped evidence gồm quy định chính/ngoại lệ/chuyển tiếp, claim đảo `không được↔được`, `không quá↔ít nhất`, `có thể↔phải`, và claim đa nguồn (Điều 4 đối tượng + Điều 7 mức hưởng).
 - Mở rộng 150–300 câu do người có chuyên môn duyệt cho **decision/assessment quality** (đúng trạng thái tham khảo/conditional/abstain, không phải đúng quyết định xử lý). Gợi ý sinh câu từ node được phép, reviewer lọc và viết lại để tránh leak answer.
 
 ### 15.2. Metric tối thiểu
@@ -1008,7 +1010,7 @@ Full RAGFlow, Microsoft GraphRAG, LightRAG service, LiteLLM **cả SDK lẫn Gat
 | LLM Prefill / Decode / API cost | Phân tích chi phí và độ trễ | Mỗi model/profile/backend |
 | Disk/RAM/Concurrency | Tải và đóng gói | Đo sạch/sau 1000 PDF/sau cache |
 
-Không cam kết tỉ lệ chính xác hay P95 trước khi đo. Với câu hỏi pháp lý thực, mục tiêu về trích dẫn là **không hiển thị quote không khớp nguồn như verified**; đây là invariant kiểm thử code, còn đúng diễn giải vẫn cần tập gold con người rà soát.
+Không cam kết tỉ lệ chính xác hay P95 trước khi đo. Với câu hỏi pháp lý thực, mục tiêu về trích dẫn là **không hiển thị quote không khớp nguồn như verified**; đây là invariant kiểm thử code, còn đúng diễn giải vẫn cần tập gold [Không triển khai – xem ADR-010] con người rà soát.
 
 ### 15.3. A/B retrieval B0–B7
 
@@ -1031,7 +1033,7 @@ Sau baseline thử RRF có trọng số, convex fusion, HNSW, ONNX reranker và 
 
 **Hồi quy v1.2.1 bắt buộc:** amendment chain A→B→C→D (vượt 2 hops retrieval nhưng snapshot vẫn đúng); cycle/conflict/missing edge → fail closed; pre-gate score thấp nhưng exact/bổ sung evidence đúng → không chặn sớm; snapshot revision stale + worker failure → `SNAPSHOT_STALE` không dùng cache cũ; skeleton sau evidence source-validation không được khẳng định pháp lý; theme Navy/Blue, text contrast và status non-color-only.
 
-Test: **Fact Chip draft sửa 3 lần mà chỉ 1 lần requery; stale answers không được copy như kết luận mới**; **Sticky Banner** đúng node/time và link đúng văn bản thay thế; **Group Cards** mỗi child quote/ACL riêng; **Split-View** approve permission/shortcut conflict; **Two-Phase skeleton** không stream claim chưa validate; **graph BFS** cycle/depth/token limit; **Polarity** phủ định, ngoại lệ, modal, numeric consistency; **effective snapshot** atomic cutover/rollback/conflicting amendments; **PDF bbox rotation/CropBox**; **model KV cache session isolation**. Kiểm thêm: Local Mode không phát sinh DNS/HTTP ra Internet; endpoint nội bộ theo allowlist; remote denied fail closed; prompt injection qua PDF; RRF không được dùng như absolute score; stale caches khi sửa ACL/as_of_date; model switch embedding index revision; HNSW ACL filtered recall; PDF bbox error; text native bị mojibake; curator thiếu approval; zero answer; cross-scope references; concurrency model queue; tính toàn vẹn SHA256 nguồn chính thức. Mọi bug từ feedback có reproducible gold testcase.
+Test: **Fact Chip draft sửa 3 lần mà chỉ 1 lần requery; stale answers không được copy như kết luận mới**; **Sticky Banner** đúng node/time và link đúng văn bản thay thế; **Group Cards** mỗi child quote/ACL riêng; **Split-View** approve permission/shortcut conflict; **Two-Phase skeleton** không stream claim chưa validate; **graph BFS** cycle/depth/token limit; **Polarity** phủ định, ngoại lệ, modal, numeric consistency; **effective snapshot** atomic cutover/rollback/conflicting amendments; **PDF bbox rotation/CropBox**; **model KV cache session isolation**. Kiểm thêm: Local Mode không phát sinh DNS/HTTP ra Internet; endpoint nội bộ theo allowlist; remote denied fail closed; prompt injection qua PDF; RRF không được dùng như absolute score; stale caches khi sửa ACL/as_of_date; model switch embedding index revision; HNSW ACL filtered recall; PDF bbox error; text native bị mojibake; curator thiếu approval; zero answer; cross-scope references; concurrency model queue; tính toàn vẹn SHA256 nguồn chính thức. Mọi bug từ feedback có reproducible gold [Không triển khai – xem ADR-010] testcase.
 
 ---
 
@@ -1050,7 +1052,7 @@ Test: **Fact Chip draft sửa 3 lần mà chỉ 1 lần requery; stale answers k
 - [ ] L1 segmented word, L2 syllable uni/bi, dense tùy profile; exact-vector + ACL baseline; RRF + relevance gate P0-lite.
 - [ ] Pre-gate **3 nhánh** (`pass/uncertain→expand-or-rerank/insufficient-after-check→abstain`), không hard-drop candidate đúng vì 1 score thấp; không dùng min-max within-query làm ngưỡng no-answer; Grouped RRF và required-aspect coverage có test; contextual prefix off mặc định đến khi POC pass.
 - [ ] Có đủ no-answer/abstention test, conditional rerank policy theo benchmark, không dùng RRF threshold trực tiếp.
-- [ ] Gold v0 150–200 câu **từ Sprint 1**, tài liệu benchmark độc lập và có nguồn công khai thật.
+- [ ] Gold [Không triển khai – xem ADR-010] v0 150–200 câu **từ Sprint 1**, tài liệu benchmark độc lập và có nguồn công khai thật.
 - [ ] Chỉ 2 LLM stages chính Analyze/Generate hoặc extractive template; bounded retrieval fallback; Model Registry/Hybrid Local/API.
 - [ ] Remote fail-closed mặc định trên category/document; Local Mode có network egress test; fallback không vượt quyền.
 - [ ] Backend hydrate `quote_exact` từ `text_original`; output `claims[]` với evidence IDs; rule numeric/date/period consistency có test.
@@ -1067,7 +1069,7 @@ Test: **Fact Chip draft sửa 3 lần mà chỉ 1 lần requery; stale answers k
 
 ### P1 — sau MVP có số đo
 
-- [ ] 150–300 gold cases do reviewer duyệt, `ranx` thống kê, fusion weights/convex tuning.
+- [ ] 150–300 gold [Không triển khai – xem ADR-010] cases do reviewer duyệt, `ranx` thống kê, fusion weights/convex tuning.
 - [ ] Model fine-tune Việt ngữ benchmark riêng, reranker model pack ONNX/GGUF phù hợp thực tế.
 - [ ] PyVi vs Underthesea; re-scoring BM25 top candidates vs FTS; ParadeDB/pg_search license+OS; reranker dynamic windows/ONNX INT8; static prefix KV reuse theo user isolation — chỉ rollout sau không hồi quy độ chính xác/bảo mật.
 - [ ] Viewer diff node-level giữa hai thời điểm; xuất phiếu tham mưu kèm nguồn; feedback dashboard curator.
@@ -1095,7 +1097,7 @@ vietnamese-evidence-agent/
 │   ├── amendments-and-effective-snapshots.md
 │   ├── grouped-evidence-and-claims.md
 │   ├── pdf-anchor-coordinate-contract.md
-│   ├── eval-gold-protocol.md
+│   ├── history/eval-gold-protocol.md
 │   └── footprint-report.md
 ├── src-tauri/                 # shell USER dùng chung frontend/API/RAG
 ├── backend/
@@ -1174,7 +1176,7 @@ vietnamese-evidence-agent/
 └── .github/workflows/
 ```
 
-CI bắt buộc: Python lint/typing/unit/integration; TS strict/test; migration safety; SBOM + dependency lock with hashes; secret scans (không để lọt secret); gold regression benchmark; Windows smoke; measure Core Pack + Model Pack + PostgreSQL + data separately. Repo không commit model weights hoặc PDF nguồn có điều khoản hạn chế chia sẻ.
+CI bắt buộc: Python lint/typing/unit/integration; TS strict/test; migration safety; SBOM + dependency lock with hashes; secret scans (không để lọt secret); gold [Không triển khai – xem ADR-010] regression benchmark; Windows smoke; measure Core Pack + Model Pack + PostgreSQL + data separately. Repo không commit model weights hoặc PDF nguồn có điều khoản hạn chế chia sẻ.
 
 ---
 
@@ -1190,12 +1192,12 @@ Mục F của hồ sơ là WP/gate chi tiết hiện hành; dưới đây là ro
 4. Chứng minh end-to-end minimal SQL ACL, version/hash, source viewer; tạo Model Adapter fake/mock, kiểm network egress.
 5. Benchmark local inference prefill/embedding CPU trên máy mục tiêu, đo dependency footprint (không hứa trước số giây).
 
-### Sprint 1 — Kho tài liệu và Gold Dataset v0 (BẮT BUỘC)
+### Sprint 1 — Kho tài liệu và Gold [Không triển khai – xem ADR-010] Dataset v0 (BẮT BUỘC)
 
 1. Category CRUD/ACL/N–N, upload/URL ingest nguồn chính thức, provenance SHA-256, immutable versions.
 2. Parser PDF text-first, detect mojibake/font, OCR-fallback state, cây nodes + span/page/bbox; REVIEWER approval.
 3. Node-level amendment/effectivity schema và reviewer **Split-View** tối thiểu; approve materialized effectivity intervals/snapshot transaction; citation PDF viewer và Sticky Banner P0.
-4. **150–200 câu gold v0** từ văn bản công khai thật (kèm source URL/hash và answers dạng node IDs), có ca no-answer/temporal và sửa đổi A→B→C→D. Fixture giả chỉ dành demo UI.
+4. **150–200 câu gold [Không triển khai – xem ADR-010] v0** từ văn bản công khai thật (kèm source URL/hash và answers dạng node IDs), có ca no-answer/temporal và sửa đổi A→B→C→D. Fixture giả chỉ dành demo UI.
 5. Định nghĩa **Design Tokens Light theme Navy/Blue** theo §9.5, chốt font/focus/contrast baseline và snapshots giao diện.
 
 ### Sprint 2 — Retrieval + Evidence-first
@@ -1203,7 +1205,7 @@ Mục F của hồ sơ là WP/gate chi tiết hiện hành; dưới đây là ro
 1. NFC/tone+legal number normalization, Underthesea word, syllable uni/bi, PostgreSQL FTS, exact-ref lookup.
 2. Embedding adapter + pgvector exact, fusion **Grouped RRF theo aspects**, parent-child/auto-merge, applicability header, `node_references` precomputed + bounded 2-hop traversal.
 3. Relevance pre-gate calibrated + optional rerank top-12; citation validator quote nguyên văn + numeric/date + polarity/modality checks; test chuyển tiếp và claim đa nguồn.
-4. B0–B7 benchmark ngay trên gold v0, thêm ablation grouped/aspects, feedback triage, viewer click/page/highlight + amendment banner; không dùng LLM để che lỗi retrieval.
+4. B0–B7 benchmark ngay trên gold [Không triển khai – xem ADR-010] v0, thêm ablation grouped/aspects, feedback triage, viewer click/page/highlight + amendment banner; không dùng LLM để che lỗi retrieval.
 5. Kiểm **retrieval BFS 2-hop vs amendment full-chain resolution**, pre-gate ba trạng thái, hiệu lực snapshot stale với worker lỗi; các ca này là release gates, không P1.
 
 ### Sprint 3 — Hybrid Model Router + Claims
@@ -1215,7 +1217,7 @@ Mục F của hồ sơ là WP/gate chi tiết hiện hành; dưới đây là ro
 
 ### Sprint 4 — Hardening, đo benchmark và gói phân phối
 
-1. Review business QA, gold mở 150–300 case khi có nguồn lực, abstention/temporal/polarity/multi-hop/privacy/security regression.
+1. Review business QA, gold [Không triển khai – xem ADR-010] mở 150–300 case khi có nguồn lực, abstention/temporal/polarity/multi-hop/privacy/security regression.
 2. Queue/backpressure/concurrency/worker cancellation, backup/restore/audit, monitoring `evidence_ready_ms`.
 3. Build Core/Model/Data Pack và installer desktop USER Windows; runtime phụ thuộc có gói offline được duyệt, không tự tải trong Local Mode; clean install/disk report demo <10 GB.
 4. Test LAN tải đại diện, vulnerability/license audit, hướng dẫn vận hành offline và API được phép.
@@ -1289,7 +1291,7 @@ OUTPUT VALIDATION: Server áp JSON schema, allowlisted evidence IDs,
 
 **Baseline v1.3:** shell desktop USER Tauri 2 + User/Admin Portal tách layout, chung backend; React/TypeScript **Evidence-first + dirty Fact Chips + Grouped Evidence + Sticky Amendment Banner + Two-Phase Skeleton + Curator Split-View**; PDF.js/react-pdf-highlighter theo native bbox/rotation; FastAPI custom orchestrator; PostgreSQL+pgvector exact SQL scope; pypdfium2 text PDF-first, optional pdfplumber/Docling/OCR; Vietnamese normalization + word/syllable lexical + grouped aspect retrieval RRF + calibrated pre-gate + conditional reranker; bounded reference graph, node-effective snapshots; numeric/polarity/modality/claim validation; Hybrid Registry local/API fail-closed và Core/Model Packs độc lập.
 
-**Khác với SRS v1.0:** bỏ nhánh database SQLite làm official baseline; bỏ LlamaIndex/Haystack làm dependency bắt buộc; bỏ LiteLLM; P0 gồm relevance gate và OCR fallback capability; dùng nguyên văn nguồn PDF chính thức; hiệu lực node-level; Gold v0 Sprint 1; UI evidence-first; core/model tách và extractive private profile.
+**Khác với SRS v1.0:** bỏ nhánh database SQLite làm official baseline; bỏ LlamaIndex/Haystack làm dependency bắt buộc; bỏ LiteLLM; P0 gồm relevance gate và OCR fallback capability; dùng nguyên văn nguồn PDF chính thức; hiệu lực node-level; Gold [Không triển khai – xem ADR-010] v0 Sprint 1; UI evidence-first; core/model tách và extractive private profile.
 
 **Tuyệt đối không:** tự ra quyết định, tạo citation/quote bằng LLM, coi văn bản chính phủ công bố là tự động còn hiệu lực, gửi nguồn nhạy cảm qua API ngoài mà không có phê duyệt, cài stack AI nặng vài chục GB khi MVP chưa cần.
 
@@ -1315,14 +1317,14 @@ OUTPUT VALIDATION: Server áp JSON schema, allowlisted evidence IDs,
 | 12 | Evidence-first UI | §9, §11 | Có |
 | 13 | ACL/security/cache | §5, §8, §12 | Có |
 | 14 | Core Pack / Model Pack | §13, §17 | Có |
-| 15 | Gold Dataset / benchmark | §15, §18 | Có v0 Sprint 1 |
+| 15 | Gold [Không triển khai – xem ADR-010] Dataset / benchmark | §15, §18 | Có v0 Sprint 1 |
 | 16 | Open-source references | §14 | Có danh mục và license review |
 
 **Các gate con người và kỹ thuật phải phân biệt:**
 
 - [ ] AI tự dựng ERD/migration/test DB; người nắm nghiệp vụ duyệt nguyên tắc quan trọng của node/version/amendment và sequence `ingest -> review -> retrieve -> evidence -> claims -> citation-click`.
 - [ ] Admin quản lý allowlist domain qua UI, mặc định chặn URL; mỗi domain xác minh trước bật, tài liệu vẫn phải kiểm nguồn/hiệu lực và REVIEWER duyệt.
-- [ ] Tạo tối thiểu 10–20 PDF thật POC + gold 150–200 câu thật ở Sprint 1; **không** làm pháp lý demo bằng văn bản bịa rồi cho qua benchmark.
+- [ ] Tạo tối thiểu 10–20 PDF thật POC + gold [Không triển khai – xem ADR-010] 150–200 câu thật ở Sprint 1; **không** làm pháp lý demo bằng văn bản bịa rồi cho qua benchmark.
 - [ ] Windows đã chốt; kiểm PostgreSQL/pgvector, dịch vụ, backup/restore trên máy đích, không chọn lại OS.
 - [ ] Có dependency/model manifest: license, versions, SHA-256, footprint, model instruction prefixes, API outbound classifications.
 - [ ] Viết acceptance/integration/security tests theo §16 trước khi tuyên bố MVP hoàn thiện.
@@ -1347,7 +1349,7 @@ OUTPUT VALIDATION: Server áp JSON schema, allowlisted evidence IDs,
 | OSS-02 | §14.1, §13 | P0 POC | Model Việt chạy ONNX thật, CPU latency/quality và RAM/disk measured |
 | OSS-03 | §14.2a, §15 | P1 | BM25 re-score/ParadeDB không mất candidate/ACL; license/OS reviewed |
 | OSS-04 | §4.2, §9, §15 | P0 | Page anchor chuẩn rotation/CropBox/multi-line; fallback trung thực |
-| OPT-01 | §4.2, §15 | P0 design/POC | Context prefix tăng quality trên gold, không tăng missed exceptions |
+| OPT-01 | §4.2, §15 | P0 design/POC | Context prefix tăng quality trên gold [Không triển khai – xem ADR-010], không tăng missed exceptions |
 | OPT-02 | §5.1, §15 | P0 | Regex match đúng+approved+ACL; unmatched/mơ hồ fallback Analyze |
 | OPT-03 | §5.4, §10, §15 | P0 | Snapshot transaction + revision, A→B→C, conflict rejected |
 | OPT-04 | §5.5, §13, §15 | P0 benchmark | Compare parallel/serial/CTE dưới tải; đo evidence p95 thực tế |
@@ -1384,7 +1386,7 @@ OUTPUT VALIDATION: Server áp JSON schema, allowlisted evidence IDs,
 
 ## 25. Hợp đồng bổ sung v1.3 — 8 góp ý và trải nghiệm USER
 
-Mục này cùng hồ sơ B.7 là ràng buộc hiện hành; UX và danh sách WP chi tiết ở hồ sơ D/F. SRS v1.2.1 giữ làm lịch sử, không lấy mode, quy mô Gold hoặc quyền duyệt cũ làm yêu cầu mới. Đây là đặc tả, chưa phải code đã triển khai.
+Mục này cùng hồ sơ B.7 là ràng buộc hiện hành; UX và danh sách WP chi tiết ở hồ sơ D/F. SRS v1.2.1 giữ làm lịch sử, không lấy mode, quy mô Gold [Không triển khai – xem ADR-010] hoặc quyền duyệt cũ làm yêu cầu mới. Đây là đặc tả, chưa phải code đã triển khai.
 
 ### 25.1. Quyền duyệt và tách portal
 
@@ -1421,10 +1423,10 @@ Mục này cùng hồ sơ B.7 là ràng buộc hiện hành; UX và danh sách W
 - Stop không hoàn budget; retry do user tạo run mới, có quota/rate limit. Thiếu model/key: MODEL_NOT_CONFIGURED, answer_generated=false; không phân tích giả.
 - Profile B lexical/extractive chỉ nghiệm thu khả thi lõi offline với giới hạn công khai, không là mode thứ ba và không thay bằng chứng provider/model local thật ở S3.
 
-### 25.5. Gold/trap và độc lập đánh giá
+### 25.5. Gold [Không triển khai – xem ADR-010]/trap và độc lập đánh giá
 
-- Gold v0 150–200 case người nắm nghiệp vụ duyệt; calibration/held-out đề xuất 30/70 theo số case nhưng giữ nguyên nhóm scenario_group_id. Paraphrase/cùng tình huống không chia hai tập; kiểm gần trùng bằng tự động cộng người rà soát, không chỉ case ID.
-- Freeze corpus/Gold/split_revision, protocol và candidate/config trước đợt đánh giá. Calibration/regression dùng khi phát triển; held-out/trap hold-out chỉ đánh giá chốt; hạn chế nội dung/đáp án qua API/UI/log đối với người tune.
+- Gold [Không triển khai – xem ADR-010] v0 150–200 case người nắm nghiệp vụ duyệt; calibration/held-out đề xuất 30/70 theo số case nhưng giữ nguyên nhóm scenario_group_id. Paraphrase/cùng tình huống không chia hai tập; kiểm gần trùng bằng tự động cộng người rà soát, không chỉ case ID.
+- Freeze corpus/Gold [Không triển khai – xem ADR-010]/split_revision, protocol và candidate/config trước đợt đánh giá. Calibration/regression dùng khi phát triển; held-out/trap hold-out chỉ đánh giá chốt; hạn chế nội dung/đáp án qua API/UI/log đối với người tune.
 - Dùng kết quả held-out để quyết định sửa/tune thì đánh dấu tập đã dùng; cần tập chưa xem để báo độc lập ở candidate sau. Không gỡ PDF nguồn khỏi chỉ mục benchmark vì nhầm tách câu đánh giá với tách corpus nguồn.
 - L0–L7 đo tiền đề sai, nhầm văn bản/node, thiếu ngoại lệ, sinh vượt nguồn, hỗ trợ claim, nhãn UI và phản hồi. Semantic entailment P1 không trở thành bảo đảm đúng tuyệt đối P0.
 
@@ -1567,7 +1569,7 @@ cụm từ chỉ khớp xuyên biên breadcrumb/title và nội dung.
 - Chưa có highlight bbox trong PDF, OCR, tìm ngữ nghĩa (dense/RRF/rerank), typeahead,
   lịch sử tìm kiếm, xuất kết quả. Các mục này là WP riêng.
 - Rate limit là sliding window **trong bộ nhớ mỗi process**; chưa hỗ trợ đa worker.
-- Chất lượng search chỉ được báo cáo khi có Gold search được người nắm nghiệp vụ duyệt;
+- Chất lượng search chỉ được báo cáo khi có Gold [Không triển khai – xem ADR-010] search được người nắm nghiệp vụ duyệt;
   trước đó mọi kết quả test chỉ là kiểm chứng kỹ thuật trên fixture HƯ CẤU.
 ### 26.6. Chuẩn hóa, backfill và chỉ số vận hành (bổ sung 31/10/2026)
 
@@ -1601,7 +1603,7 @@ cụm từ chỉ khớp xuyên biên breadcrumb/title và nội dung.
 - Backend: 187 passed với PostgreSQL thật; 171 passed + 16 skipped khi không có DSN.
 - Frontend: 65 test (14 file), build/lint xanh; contrast token thấp nhất 5,21:1; Chrome
   headless E2E với fixture API cùng origin: 0 external http(s) origin.
-- Chưa có Gold/approved data: không tuyên bố chất lượng; các số trên là kỹ thuật/HƯ CẤU.
+- Chưa có Gold [Không triển khai – xem ADR-010]/approved data: không tuyên bố chất lượng; các số trên là kỹ thuật/HƯ CẤU.
 
 ### 26.8. Cập nhật theo chỉ đạo owner (05/11/2026)
 

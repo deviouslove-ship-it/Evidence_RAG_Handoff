@@ -160,7 +160,7 @@ parts/            Bản trích hồ sơ chính (sinh lại từ docs/HOSO_BAN_GI
 5. Tách biệt nhiệm vụ: `CURATOR` lập/gửi nháp; `REVIEWER` khác người mới được duyệt
    (`SELF_APPROVAL_DENIED`).
 6. Bộ nhớ phiên không bao giờ là căn cứ; mặc định chỉ trong RAM.
-7. Gold/trap chỉ được công nhận sau khi người nắm nghiệp vụ duyệt.
+7. Không dùng bộ câu hỏi Gold để chấm AI (ADR-010): AI chỉ hỗ trợ, cán bộ chuyên môn quyết định.
 
 ## License
 Licensed under the Apache License, Version 2.0. See LICENSE and NOTICE. Project history is described in PROJECT_TIMELINE.md ([Tiếng Việt](PROJECT_TIMELINE.vi.md)).

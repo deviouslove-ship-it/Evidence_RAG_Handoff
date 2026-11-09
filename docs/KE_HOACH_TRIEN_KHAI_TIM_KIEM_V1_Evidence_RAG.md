@@ -1,5 +1,7 @@
 # KẾ HOẠCH TRIỂN KHAI — Tìm kiếm văn bản (Search v1)
 
+> **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
+
 Hệ thống: Vietnamese Evidence RAG Agent · Phiên bản tài liệu 1.0 · ngày 31/10/2026
 Người nhận: AI triển khai (đã có mã nguồn và `SRS_v1.3.md` trong repo)
 Trạng thái: **owner đã chốt hướng** (mục 1). Tài liệu này thay thế bản phương án trước; mọi điểm khác biệt đã được ghi ở mục 2.
@@ -24,7 +26,7 @@ Trạng thái: **owner đã chốt hướng** (mục 1). Tài liệu này thay t
 
 | # | Chủ đề | Quyết định |
 |---|---|---|
-| 1 | Phương án | **A:** Search v1 trên PostgreSQL. Phương án B (ngữ nghĩa: tokenizer tiếng Việt + embedding + RRF + pre-gate + rerank) làm **sau**, khi đã có model chạy local và Gold đã duyệt. Phương án C (Elasticsearch/OpenSearch/Meilisearch/ParadeDB) **loại**: nhân đôi ACL, thêm vận hành, vướng quyết định "PostgreSQL là DB duy nhất" |
+| 1 | Phương án | **A:** Search v1 trên PostgreSQL. Phương án B (ngữ nghĩa: tokenizer tiếng Việt + embedding + RRF + pre-gate + rerank) làm **sau**, khi đã có model chạy local và Gold [Không triển khai – xem ADR-010] đã duyệt. Phương án C (Elasticsearch/OpenSearch/Meilisearch/ParadeDB) **loại**: nhân đôi ACL, thêm vận hành, vướng quyết định "PostgreSQL là DB duy nhất" |
 | 2 | Hình thức | **Tích hợp vào app hiện có dưới dạng module riêng**, không làm app độc lập. Tìm kiếm là trang riêng trong User Portal; Chat Agent có nút "Xem tất cả kết quả tìm kiếm". Chat giữ nguyên hành vi hiện tại |
 | 3 | Chế độ cụm từ | Mặc định **tự nhận diện**: người dùng bọc nháy kép thì là cụm từ chính xác; có ô tích "Tìm chính xác cụm từ" cho người không quen nháy |
 | 4 | Dùng chung | Chat và trang tìm kiếm dùng **một** `SearchService`; nâng cấp lên phương án B chỉ cắm thêm kênh, không đổi API và giao diện |
@@ -79,7 +81,7 @@ Trạng thái: **owner đã chốt hướng** (mục 1). Tài liệu này thay t
 - `tsvector` tính lại từng dòng trong truy vấn, không dùng index; bảng `lexical_search_index` + GIN đã có trong migration nhưng không đoạn code nào dùng (`0001_core.sql`).
 - Trần 12 node mỗi lượt, không phân trang, không gộp theo văn bản (`fixed_pipeline.py`, khoảng dòng 127–135).
 - Chỉ tìm node `approved` + provenance `verified`. Theo mô tả, DB hiện **0 node approved** nên mọi truy vấn trả rỗng.
-- Chưa có API search; chưa có Gold/metric đo recall/precision (`eval-gold-protocol.md`).
+- Chưa có API search; chưa có Gold [Không triển khai – xem ADR-010]/metric đo recall/precision ([`history/eval-gold-protocol.md`](history/eval-gold-protocol.md)).
 - `text_indexed` đã chứa breadcrumb + tiêu đề + số hiệu + nhãn + nội dung (`draft.py`); `text_folded` và `text_normalized` sinh lúc ingest.
 - `official_url` đã lưu trong `document_versions` nhưng chưa được expose ở API/UI nào.
 - SRS v1.3 định baseline 3 kênh `L1_WORD` + `L2_SYLLABLE` + `DENSE`, RRF, pre-gate, rerank top-12 (`SRS_v1.3.md`, khoảng dòng 279–303); mã nguồn mới làm được phần rất thô của kênh lexical.
@@ -414,14 +416,14 @@ Phần "CHƯA XONG" không được để trống bằng cách lược bỏ; kh�
 | Refactor làm hỏng chat | Golden test trước khi refactor (SR-0); tham số mới mặc định giữ hành vi cũ |
 | Dữ liệu rỗng làm mọi demo thất bại | Mục 10; fixture "HƯ CẤU" để dev, văn bản thật đã duyệt để đo |
 | OCR kéo dependency/dung lượng nặng | ADR riêng, plugin ngoại lệ, duyệt trước khi bật |
-| Chỉ số "đúng/đủ" bị tuyên bố sớm | Chỉ báo khi có Gold tìm kiếm đã duyệt; mọi số ghi môi trường |
+| Chỉ số "đúng/đủ" bị tuyên bố sớm | Chỉ báo khi có Gold [Không triển khai – xem ADR-010] tìm kiếm đã duyệt; mọi số ghi môi trường |
 | Truy vấn nặng làm chậm hệ thống | Timeout, giới hạn tần suất, giới hạn độ sâu, đo p95 |
 
 ---
 
 ## 14. Mở rộng sau (phương án B) — không làm trong Search v1
 
-Khi đã có model chạy local và Gold đã duyệt: thêm `lexical_search_index` có revision, tokenizer tiếng Việt (Underthesea/PyVi theo SRS v1.3), embedding qua Model Registry (mở rộng registry cho model loại embedding), RRF + pre-gate + rerank, định tuyến văn bản trước node. Mọi bước sau cờ tính năng, chỉ bật khi benchmark không thoái lui; giao diện kênh và hàm hợp nhất ở mục 5.4 đã chừa chỗ để không đổi API và giao diện trang tìm kiếm.
+Khi đã có model chạy local và Gold [Không triển khai – xem ADR-010] đã duyệt: thêm `lexical_search_index` có revision, tokenizer tiếng Việt (Underthesea/PyVi theo SRS v1.3), embedding qua Model Registry (mở rộng registry cho model loại embedding), RRF + pre-gate + rerank, định tuyến văn bản trước node. Mọi bước sau cờ tính năng, chỉ bật khi benchmark không thoái lui; giao diện kênh và hàm hợp nhất ở mục 5.4 đã chừa chỗ để không đổi API và giao diện trang tìm kiếm.
 
 ---
 

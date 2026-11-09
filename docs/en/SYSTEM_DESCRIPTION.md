@@ -156,7 +156,7 @@ Backup creates a snapshot of the database and file store with hashes; restore ve
 
 ## 10. Limits and verification
 
-- There is no basis to conclude that the application passed domain acceptance or that an expert-confirmed Gold set exists. Coverage and quality depend on the store, permissions, metadata, effectivity and questions.
+- There is no basis to conclude that the application passed domain acceptance. No Gold question set is used to score the AI (ADR-010): the AI only assists and the domain staff decide. Coverage and quality depend on the store, permissions, metadata, effectivity and questions.
 - The 11-08 source reports state that scanned-PDF OCR, local Ollama models, the Chrome UI and the test suites were tried; this is historical evidence, not re-testing in this documentation pass. The Model Registry report states that real OpenAI/Gemini were not tried and the Tauri shell was not checked.
 - The Portable report states that moving to another folder/drive on the development machine was tried; moving to another physical Windows machine is not confirmed. Availability of models, runtime and data must be checked in the actual package.
 - OCR can be wrong, especially document numbers and conditions; the reviewer must compare. Automatic interpretation checks do not replace legal review. Retrieval limits, timeouts, concurrency and missing indexes can affect results.

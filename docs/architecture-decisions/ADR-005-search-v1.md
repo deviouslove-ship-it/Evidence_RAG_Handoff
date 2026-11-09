@@ -16,7 +16,7 @@ Trước Search v1, backend chỉ có một kênh lexical thô trong `authorized
 `to_tsvector('simple', ...)` tính lại từng dòng, AND toàn bộ từ rồi fallback OR từng từ,
 không có phrase/adjacency, trần 12 node, không phân trang, không gộp theo văn bản.
 Bảng `lexical_search_index` và `embedding_indices` có trong migration 0001 nhưng
-không đoạn code nào dùng. Chưa có API search, chưa có Gold/metric.
+không đoạn code nào dùng. Chưa có API search, chưa có Gold [Không triển khai – xem ADR-010]/metric.
 
 Yêu cầu owner: bổ sung Search v1 trên PostgreSQL, không dùng search engine ngoài,
 tích hợp vào app hiện có, giữ nguyên hành vi chat, không dùng mô hình AI trong search
@@ -172,7 +172,7 @@ CREATE INDEX document_nodes_search_folded_gin
 
 ### 4.2. Chưa có bằng chứng / còn nợ
 
-- Chưa có Gold search được người nắm nghiệp vụ duyệt; chưa đo recall/precision/
+- Chưa có Gold [Không triển khai – xem ADR-010] search được người nắm nghiệp vụ duyệt; chưa đo recall/precision/
   `wrong_doc_rate`/`wrong_node_rate`/no-result trên văn bản thật. Eval harness mới có
   self-test HƯ CẤU (22 test), `quality_status=not_evaluated`.
 - Chưa đo p50/p95 trên máy Windows đích/quy mô ~100k node; chưa chạy load test.
@@ -186,7 +186,7 @@ CREATE INDEX document_nodes_search_folded_gin
 - `pg_trgm` để ngỏ: nếu benchmark xác minh cần xác minh phrase nhanh hơn, thêm sau với
   quyết định riêng (kèm escape LIKE).
 - Quy ước `phrase_found`/`empty_reason` và cách ẩn T3 khi có T1 cần owner/reviewer xác nhận
-  khi làm Gold.
+  khi làm Gold [Không triển khai – xem ADR-010].
 
 ### 4.3. Rủi ro đã biết
 
@@ -203,7 +203,7 @@ CREATE INDEX document_nodes_search_folded_gin
 
 ## 5. Phương án bị loại
 
-- **B (dense + RRF + reranker)**: chưa có model chạy local + Gold; làm sau, cắm thêm kênh
+- **B (dense + RRF + reranker)**: chưa có model chạy local + Gold [Không triển khai – xem ADR-010]; làm sau, cắm thêm kênh
   qua interface `SearchService` (dự kiến `LexicalChannel`, `DenseChannel`).
 - **C (Elasticsearch/OpenSearch/Meilisearch/ParadeDB)**: loại theo kế hoạch mục 1; nhân đôi
   ACL, thêm vận hành, vướng “PostgreSQL là DB duy nhất”.
@@ -212,7 +212,7 @@ CREATE INDEX document_nodes_search_folded_gin
 
 1. Duyệt 3 văn bản `pending_review` (hoặc nạp corpus thật) và xác minh provenance/span;
    nếu không, Search đúng code nhưng luôn rỗng.
-2. Duyệt bộ Gold search 30–50 truy vấn; khi đó mới được báo metric chất lượng.
+2. Duyệt bộ Gold [Không triển khai – xem ADR-010] search 30–50 truy vấn; khi đó mới được báo metric chất lượng.
 3. Chốt quy ước `exact_phrase_precision` cho ca không có exact phrase, ngưỡng chấp nhận
    p95, và câu chữ `PAGE_TOO_DEEP`.
 4. Quyết định OCR (ADR riêng) và chuẩn hóa `doc_type` khi nhập liệu.
@@ -281,6 +281,6 @@ CREATE INDEX document_nodes_search_folded_gin
 
 ### 7.6. Việc còn nợ
 
-- Gold thật + duyệt văn bản/provenance; chưa đo chất lượng.
+- Gold [Không triển khai – xem ADR-010] thật + duyệt văn bản/provenance; chưa đo chất lượng.
 - PDF bbox highlight, OCR, browser E2E với backend thật/approved data, CI browser runner.
 - Reload `clause_page>1` chưa dựng lại buffer; “xem thêm” chỉ ở clause window hiện tại.

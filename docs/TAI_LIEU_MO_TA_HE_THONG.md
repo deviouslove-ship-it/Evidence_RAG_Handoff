@@ -179,7 +179,7 @@ Backup tạo bản chụp DB và kho tệp kèm hash; restore kiểm bản sao, 
 
 ## 10. Giới hạn và kiểm chứng
 
-- Chưa có cơ sở kết luận ứng dụng đã nghiệm thu nghiệp vụ hay bộ Gold được chuyên gia xác nhận. Mức bao phủ và chất lượng phụ thuộc kho, quyền, metadata, hiệu lực và câu hỏi.
+- Chưa có cơ sở kết luận ứng dụng đã nghiệm thu nghiệp vụ. Dự án không dùng bộ câu hỏi Gold để chấm AI (ADR-010): AI chỉ hỗ trợ, cán bộ chuyên môn quyết định. Mức bao phủ và chất lượng phụ thuộc kho, quyền, metadata, hiệu lực và câu hỏi.
 - Báo cáo source ngày 08/11 ghi đã thử OCR scan, model Ollama local, UI Chrome và bộ kiểm thử; đây là bằng chứng lịch sử, không phải kiểm thử lại trong lần biên soạn này. Báo cáo Model Registry ghi chưa thử OpenAI/Gemini thật và chưa kiểm trong Tauri.
 - Báo cáo Portable ghi đã thử đổi thư mục/ổ trên máy phát triển, chưa xác nhận chuyển sang máy Windows vật lý khác; tính sẵn có của model, runtime và dữ liệu cần kiểm tra gói thực tế.
 - OCR có thể sai, đặc biệt số hiệu và điều kiện; reviewer phải đối chiếu. Kiểm tra diễn giải tự động không thay thế thẩm định pháp lý. Có giới hạn truy xuất, timeout, đồng thời và thiếu chỉ mục có thể ảnh hưởng kết quả.

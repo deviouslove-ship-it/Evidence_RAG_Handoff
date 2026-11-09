@@ -1,5 +1,7 @@
 # Prompt khởi động — đồng bộ hồ sơ 1.1 / SRS v1.3
 
+> **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
+
 Tài liệu dùng để giao việc triển khai sau; việc cập nhật bộ hồ sơ không có nghĩa các WP đã được thực hiện.
 
 ## 1. Prompt chung
@@ -12,9 +14,9 @@ LLM cấu hình API hoặc Local qua Registry/Router từng stage: adapter/provi
 
 Không hardcode PATH hoặc LLM. Toàn bộ công cụ/tool/runtime dự án cài để build/cài/vận hành app phải dưới root `E:\Programs` do owner chốt; root chỉ là giá trị deployment profile `installation.programs_root` / `EVIDENCE_PROGRAMS_ROOT`, không nhúng trong code/script. Resolve executable/model/artifact và cache công cụ từ manifest dưới root, không dùng fallback PATH/global/AppData/Program Files. Thiếu root/dependency thì báo lỗi, không tự đổi ổ. Mỗi máy chỉ cài thành phần theo role; dữ liệu nghiệp vụ/backup có đường dẫn cấu hình riêng, không tự di chuyển. Tuân thủ B.8 và SRS §25.9.
 
-Tuân thủ B.3/B.7/B.8 và SRS §25: CURATOR nháp, REVIEWER duyệt; cache analysis/retrieval OFF đến khi đủ fingerprint và test; incognito chỉ RAM, retention + opt-in mới lưu; xóa dẫn xuất/cache/job, restore áp sổ xóa; Gold 150–200 case người nắm nghiệp vụ duyệt, split theo nhóm tình huống, regression tách held-out; llm_attempt_budget=2 tính cả timeout/retry/fallback, summary P0 bằng code. Scope là SELECTED hoặc ALL_AUTHORIZED, server luôn kiểm ACL; SSE dùng query_id/run_id/revisions/sequence, retry tường minh không trộn lượt.
+Tuân thủ B.3/B.7/B.8 và SRS §25: CURATOR nháp, REVIEWER duyệt; cache analysis/retrieval OFF đến khi đủ fingerprint và test; incognito chỉ RAM, retention + opt-in mới lưu; xóa dẫn xuất/cache/job, restore áp sổ xóa; Gold [Không triển khai – xem ADR-010] 150–200 case người nắm nghiệp vụ duyệt, split theo nhóm tình huống, regression tách held-out; llm_attempt_budget=2 tính cả timeout/retry/fallback, summary P0 bằng code. Scope là SELECTED hoặc ALL_AUTHORIZED, server luôn kiểm ACL; SSE dùng query_id/run_id/revisions/sequence, retry tường minh không trộn lượt.
 
-AI tự dựng ERD/migration/test DB và làm tối đa phần kỹ thuật kiểm chứng được; chỉ cần người quyết các nguyên tắc nghiệp vụ, quyền truy cập, bảo mật và độ đúng căn cứ. Không tự công nhận Gold, không bịa văn bản pháp lý, không thêm dependency bị cấm, không dùng kết quả cũ làm bằng chứng hiện tại. Thiếu key/model/reviewer/thiết bị thì báo đúng gate còn thiếu và làm tiếp việc độc lập. Kết thúc mỗi WP báo cáo F.10, có số đo/môi trường và mục CHƯA XONG.
+AI tự dựng ERD/migration/test DB và làm tối đa phần kỹ thuật kiểm chứng được; chỉ cần người quyết các nguyên tắc nghiệp vụ, quyền truy cập, bảo mật và độ đúng căn cứ. Không tự công nhận Gold [Không triển khai – xem ADR-010], không bịa văn bản pháp lý, không thêm dependency bị cấm, không dùng kết quả cũ làm bằng chứng hiện tại. Thiếu key/model/reviewer/thiết bị thì báo đúng gate còn thiếu và làm tiếp việc độc lập. Kết thúc mỗi WP báo cáo F.10, có số đo/môi trường và mục CHƯA XONG.
 
 ## 2. Prompt theo luồng (chỉ chia nhiều AI khi owner cho phép)
 
@@ -30,7 +32,7 @@ Phụ trách ERD/ACL, curator draft vs reviewer approve, hiệu lực node, Open
 
 Chủ trì WP 0.3, 0.4, 0.6, 1.9, 2.1–2.5, 2.8, 2.10–2.15, 3.8, 3.10–3.13, 4.5–4.6, 4.9.
 
-POC model là kiểm capability/runtime/format, không chốt model cố định. Gold v0 150–200 case PDF thật do con người duyệt, split theo scenario_group_id; khóa split/corpus/protocol/candidate trước đợt đánh giá chốt. Calibration/regression dùng khi phát triển; không tune bằng held-out/trap hold-out rồi tiếp tục báo độc lập. Chủ trì WP 4.9 cho các mục P1 owner chọn, phối hợp backend/frontend; danh sách không chọn ghi rõ. Góp phần WP 4.8, không tự nhận red-team đã qua khi chưa có test.
+POC model là kiểm capability/runtime/format, không chốt model cố định. Gold [Không triển khai – xem ADR-010] v0 150–200 case PDF thật do con người duyệt, split theo scenario_group_id; khóa split/corpus/protocol/candidate trước đợt đánh giá chốt. Calibration/regression dùng khi phát triển; không tune bằng held-out/trap hold-out rồi tiếp tục báo độc lập. Chủ trì WP 4.9 cho các mục P1 owner chọn, phối hợp backend/frontend; danh sách không chọn ghi rõ. Góp phần WP 4.8, không tự nhận red-team đã qua khi chưa có test.
 
 ### Luồng frontend và desktop USER (F)
 

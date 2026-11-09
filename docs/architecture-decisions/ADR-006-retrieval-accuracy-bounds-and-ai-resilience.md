@@ -97,4 +97,4 @@ dùng vẫn băm lại toàn bộ. Hết thời gian kiểm lại trả `QUERY_T
 
 Lưu sẵn tsvector đã hạ chữ khi ingest (giảm chi phí chấm điểm, sửa chữ hoa ở kênh có dấu
 của Search v1), cache thứ tự kết quả theo trang, cộng điểm cụm âm tiết liền nhau, từ điển
-viết tắt pháp lý, kênh embedding khi có model và Gold. Chi tiết ở báo cáo 05/11.
+viết tắt pháp lý, kênh embedding khi có model và Gold [Không triển khai – xem ADR-010]. Chi tiết ở báo cáo 05/11.

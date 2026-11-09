@@ -106,7 +106,7 @@ Exit code:
 
 1. Người nắm nghiệp vụ duyệt từng case và **chỉ khi đó** điền `approved_by` (tên/ID người duyệt) — AI không được tự điền.
 2. Case Gold thật phải dùng corpus/văn bản đã approved, **không** trộn với file `queries_hucau.json`. Tạo file queries riêng (ví dụ `queries_gold_v1.json`) có `label`/`corpus` tương ứng; nếu cần chạy corpus khác, cập nhật hằng số `CORPUS_LABEL`/`LABEL` trong harness theo ADR/quyết định của owner (hiện chỉ hỗ trợ nhãn `HU_CAU`).
-3. Khoá `split_revision` trước khi tune, không tune trên held-out rồi báo lại là đánh giá độc lập ([`docs/eval-gold-protocol.md`](../../docs/eval-gold-protocol.md)).
+3. Khoá `split_revision` trước khi tune, không tune trên held-out rồi báo lại là đánh giá độc lập ([`docs/history/eval-gold-protocol.md`](../../docs/history/eval-gold-protocol.md)).
 4. Chạy harness trên file Gold; báo `official_metrics` kèm môi trường, phiên bản, quy mô dữ liệu và số case duyệt. Không tuyên bố "đúng/đủ" khi chưa có Gold duyệt.
 
 ## Giới hạn / chưa làm

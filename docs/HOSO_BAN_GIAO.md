@@ -1,5 +1,7 @@
 # HỒ SƠ BÀN GIAO TRIỂN KHAI — Vietnamese Evidence RAG Agent
 
+> **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
+
 Phiên bản hồ sơ 1.1 · cập nhật ngày 21/10/2026
 Căn cứ: SRS v1.3 + quyết định của owner ngày 17/10 và 21/10/2026; đối chiếu lịch sử project “Agent tra cuu”, đặc biệt yêu cầu tách portal và ứng dụng USER trên Windows.
 
@@ -64,7 +66,7 @@ Quyền của module RAG là **riêng**, không suy ra từ role của ứng d�
 - PostgreSQL là DB duy nhất; không semantic answer cache; không auto-crawl; không GraphRAG/ColBERT ở MVP.
 - Màu qua design tokens, không hardcode HEX; màu không là tín hiệu duy nhất.
 - **Bộ nhớ không bao giờ là căn cứ**; validator từ chối claim trỏ vào bộ nhớ.
-- **AI không tự công nhận đáp án Gold**; chỉ case do người nắm nghiệp vụ duyệt mới làm chuẩn; tập held-out không dùng để chỉnh ngưỡng.
+- **Không dùng bộ câu hỏi Gold để chấm AI (ADR-010)**: AI chỉ hỗ trợ, cán bộ chuyên môn quyết định. [Không triển khai – xem ADR-010]
 - Mặc định chặn URL tùy ý; chỉ tài liệu đã duyệt vào kho; domain hợp lệ không đồng nghĩa văn bản còn hiệu lực.
 - Windows là OS chính thức; không thêm phụ thuộc bắt buộc vào Linux, WSL hoặc Docker.
 - **Không hardcode quyền, provider, endpoint, model ID, API key, đường dẫn model hoặc đường dẫn máy.** LLM được cấu hình API hoặc Local qua Registry/Router; model POC chỉ là dữ liệu cấu hình thử nghiệm.
@@ -77,7 +79,7 @@ Quyền của module RAG là **riêng**, không suy ra từ role của ứng d�
 |---|---|---|
 | 1 | ERD | AI tự thiết kế toàn bộ ERD, bảng, quan hệ, khóa ngoại, ràng buộc; tự tạo migration và test DB; tự kiểm tra nhất quán, toàn vẹn, phân quyền, lịch sử phiên bản; đặc biệt quan hệ hiệu lực, sửa đổi, bổ sung, bãi bỏ đến từng Điều/Khoản/Điểm. Chỉ trình owner các nguyên tắc nghiệp vụ quan trọng |
 | 2 | Nguồn và domain | Mặc định chặn tải URL tùy ý. Admin thêm/sửa/vô hiệu domain trong giao diện quản trị sau khi xác minh. Cho upload PDF từ máy. Kiểm tra nguồn gốc, cấu trúc file, hash, metadata, nội dung trước khi duyệt; chỉ tài liệu được duyệt vào kho chính thức. Domain hợp lệ không đồng nghĩa còn hiệu lực |
-| 3 | Gold v0 | 150–200 câu từ PDF văn bản chính thức thật. Agent soạn, người nắm nghiệp vụ duyệt; AI không tự công nhận. Calibration dùng chỉnh ngưỡng; held-out độc lập với chỉnh ngưỡng và dữ liệu huấn luyện; chia theo nhóm tình huống/câu diễn đạt lại, không chỉ theo case ID |
+| 3 | Gold [Không triển khai – xem ADR-010] v0 | 150–200 câu từ PDF văn bản chính thức thật. Agent soạn, người nắm nghiệp vụ duyệt; AI không tự công nhận. Calibration dùng chỉnh ngưỡng; held-out độc lập với chỉnh ngưỡng và dữ liệu huấn luyện; chia theo nhóm tình huống/câu diễn đạt lại, không chỉ theo case ID |
 | 4 | Chế độ AI | Kiến trúc Hybrid Multi-LLM nhưng **chỉ hai chế độ vận hành**. **API Mode:** có Internet; LLM qua API; embedding/reranker local hoặc API; chỉ gửi dữ liệu chính sách cho phép; fallback trong phạm vi API được phép. **Local Mode:** ngắt hoàn toàn Internet; LLM, embedding, reranker 100% local; fallback chỉ model nội bộ; model và bản cập nhật vào bằng phương tiện offline |
 | 5 | Hệ điều hành | Windows chính thức: PostgreSQL + pgvector, FastAPI, frontend, worker, local LLM chạy trên Windows; không bắt buộc Linux/WSL/Docker. Sprint 0 chỉ kiểm cài pgvector, hiệu năng, backup/restore, dịch vụ Windows. Nếu pgvector gặp vấn đề, đề xuất cách khắc phục trên Windows trước khi bàn đổi kiến trúc |
 | 6 | Bộ nhớ AI | Bộ nhớ cho truy vấn và ngữ cảnh dài (C.4) |
@@ -100,7 +102,7 @@ Ranh giới tự động/phê duyệt: agent tự làm mọi việc kỹ thuật
 | §9.1 (thanh trên) | Chọn `[Hybrid ▼]` | Hiển thị huy hiệu chế độ chỉ đọc (xem B.6) |
 | §10, §13, §18 Sprint 0, §22 | Postgres Windows hoặc Linux, chọn OS ở Sprint 0 | Windows đã chốt; `deploy/windows` là baseline |
 | §11.2, §12.3 | `import-url` theo allowlist cấu hình | Allowlist là bảng DB do admin quản lý trong giao diện, mặc định chặn |
-| §15.1, §16, §18 Sprint 1 | Gold v0 50–100 câu | 150–200 câu, tách tập calibration và held-out |
+| §15.1, §16, §18 Sprint 1 | Gold [Không triển khai – xem ADR-010] v0 50–100 câu | 150–200 câu, tách tập calibration và held-out |
 | Mục mới | — | Thêm các mục: Bộ nhớ, Chat Agent, Lớp chống ảo giác, Phân tích và gợi ý |
 | §9, §17–18, §25 | Widget trong trình duyệt là mô tả chính | Thêm shell desktop USER theo lịch sử đã được owner duyệt; giữ nguyên backend/RAG; đưa 8 góp ý thành hợp đồng và nghiệm thu |
 
@@ -122,7 +124,7 @@ Không auto-crawl; không semantic answer cache; không GraphRAG, ColBERT, Neo4j
 | Auth | Tài khoản cục bộ + role/ABAC của module RAG | Tích hợp app quản lý cán bộ sau, ánh xạ quyền tường minh |
 | Tokenizer | Underthesea | P1 mới so PyVi |
 | Số lượt hội thoại gần nhất gửi cho LLM | Cấu hình được, đề xuất 3 | Theo benchmark |
-| Chia tập Gold | Đề xuất khoảng 30% calibration / 70% held-out, ghi ADR | Owner chốt |
+| Chia tập Gold [Không triển khai – xem ADR-010] | Đề xuất khoảng 30% calibration / 70% held-out, ghi ADR | Owner chốt |
 | Trap set | Đề xuất 40–60 câu | Owner chốt |
 | Thời hạn lưu bộ nhớ hội thoại | Owner chốt chính sách; trước khi có chính sách được duyệt, lưu hội thoại dài hạn OFF, phiên chỉ dùng RAM với TTL tạm | Bật lưu sau khi có retention và opt-in hợp lệ |
 | Font | `Inter, system-ui, Arial, sans-serif`; chỉ đóng gói Inter sau khi kiểm license, Local Mode không tải font ngoài | — |
@@ -140,7 +142,7 @@ Không auto-crawl; không semantic answer cache; không GraphRAG, ColBERT, Neo4j
 | 2 | Tách embedding/analysis/retrieval cache; analysis OFF; khóa chứa mọi đầu vào ảnh hưởng kết quả | C.7, WP 4.6; cùng câu hỏi nhưng khác user/phiên/facts không dùng nhầm cache |
 | 3 | Incognito chỉ RAM; xóa dữ liệu vận hành và áp lại sổ yêu cầu xóa khi restore | C.4, E, WP 3.7/4.4/4.8; không hồi sinh nội dung đã xóa |
 | 4 | Profile B được nghiệm thu khả thi lõi offline với giới hạn công khai; không thay gate AI thật | C.9, WP 0.4/0.7/3.2; model và API do cấu hình, không hardcode |
-| 5 | Chia Gold theo nhóm tình huống; regression dùng thường xuyên, held-out khóa đến đợt chốt | C.10, S11, WP 1.9/2.8/3.11 |
+| 5 | Chia Gold [Không triển khai – xem ADR-010] theo nhóm tình huống; regression dùng thường xuyên, held-out khóa đến đợt chốt | C.10, S11, WP 1.9/2.8/3.11 |
 | 6 | Tối đa 2 lần thử gọi LLM trong một lượt, tính cả retry/fallback; P0 summary bằng code | C.3/C.4/C.9, WP 3.3; hết budget trả evidence/extractive |
 | 7 | Gán một chủ trì cho mọi WP; backend chủ trì 4.8, retrieval/eval chủ trì 4.9 | F.4, prompt theo luồng; cộng tác không thay người chịu trách nhiệm |
 | 8 | Panel và viewer chỉ cạnh nhau khi đủ chiều rộng; thiếu chỗ thì chuyển một khung | D.4/S3/S14, WP 4.7; kiểm 320/768/1024/1280px, DPI và nhiều màn hình |
@@ -275,7 +277,7 @@ Thêm vào các validator có sẵn (ACL, span, hiệu lực node, allowlist ID,
 | L6. Trung thực giao diện | Nhãn lấy từ trạng thái evidence và validator, không từ "độ tự tin" của LLM; không dùng "chắc chắn"/"đã xác minh" khi chưa đủ | Test UI |
 | L7. Vòng phản hồi | "Sai/thiếu/lỗi hiệu lực" vào hàng đợi curator; case đã duyệt vào regression suite, không vào tập calibration hay held-out | Quy trình có test |
 
-**Trap set** (đề xuất 40–60 câu, tách khỏi Gold v0): agent soạn từ PDF thật, người nắm nghiệp vụ duyệt. Gồm tiền đề sai, Điều không tồn tại, số hiệu gần giống, văn bản hết hiệu lực, hỏi vượt phạm vi, lệnh chèn trong PDF, yêu cầu bỏ qua nguồn, xin tư vấn vượt căn cứ. Ngưỡng chấp nhận do owner chốt sau baseline. Hồ sơ không tuyên bố loại bỏ hoàn toàn ảo giác; mục tiêu là đo được, giảm được và luôn nói rõ khi chưa đủ căn cứ.
+**Trap set** (đề xuất 40–60 câu, tách khỏi Gold [Không triển khai – xem ADR-010] v0): agent soạn từ PDF thật, người nắm nghiệp vụ duyệt. Gồm tiền đề sai, Điều không tồn tại, số hiệu gần giống, văn bản hết hiệu lực, hỏi vượt phạm vi, lệnh chèn trong PDF, yêu cầu bỏ qua nguồn, xin tư vấn vượt căn cứ. Ngưỡng chấp nhận do owner chốt sau baseline. Hồ sơ không tuyên bố loại bỏ hoàn toàn ảo giác; mục tiêu là đo được, giảm được và luôn nói rõ khi chưa đủ căn cứ.
 
 ### C.7 Chính xác và tốc độ
 
@@ -334,8 +336,8 @@ Thêm vào các validator có sẵn (ACL, span, hiệu lực node, allowlist ID,
 
 | Mã | Tính năng | Mô tả hành vi | Ưu tiên |
 |---|---|---|---|
-| Z1 | Gold Dataset v0 | 150–200 câu từ PDF thật, reviewer duyệt. Mỗi case có căn cứ/phiên bản/ngày/source hash, `scenario_group_id` và `split_revision`; các câu diễn đạt lại hoặc cùng tình huống nằm cùng một split | P0 |
-| Z2 | Benchmark B0–B7 và ablation | Chạy trên Gold đã duyệt; `ranx`/bootstrap; pin corpus hash, model/tokenizer revision; báo cáo có khoảng tin cậy | P0 |
+| Z1 | Gold [Không triển khai – xem ADR-010] Dataset v0 | 150–200 câu từ PDF thật, reviewer duyệt. Mỗi case có căn cứ/phiên bản/ngày/source hash, `scenario_group_id` và `split_revision`; các câu diễn đạt lại hoặc cùng tình huống nằm cùng một split | P0 |
+| Z2 | Benchmark B0–B7 và ablation | Chạy trên Gold [Không triển khai – xem ADR-010] đã duyệt; `ranx`/bootstrap; pin corpus hash, model/tokenizer revision; báo cáo có khoảng tin cậy | P0 |
 | Z3 | Trap set và chỉ số chống ảo giác | Xem C.6 | P0 |
 | Z4 | Dashboard chất lượng | `retrieval_ms`, `evidence_ready_ms`, `generation_ms`, tokens, cost, `fallback_reason`, abstention rate, các chỉ số L0–L7; không hiển thị chain-of-thought | P0 |
 | Z5 | Audit | Append-only; ghi truy cập tài liệu, quyết định route, phê duyệt, thay đổi cấu hình, mở citation cũ; thời hạn lưu cấu hình (mặc định 2 năm) | P0 |
@@ -471,7 +473,7 @@ Họ chữ ưu tiên `Inter, system-ui, Arial, sans-serif`; fallback tương th�
 | User Portal | USER hoặc quyền `rag.query` được cấp tường minh + scope tài liệu | Trang chủ Orb · Hỏi đáp/workspace · Lịch sử của tôi · Bộ nhớ của tôi · Theo dõi (P1) |
 | Kho tài liệu | CURATOR, REVIEWER | Tài liệu · Hàng đợi duyệt · Quan hệ sửa đổi · Đề xuất của AI |
 | Quản trị | SYS_ADMIN | Danh mục · Người dùng và quyền · Domain cho phép · Mô hình AI và chế độ · Cấu hình bộ nhớ |
-| Chất lượng | CURATOR, REVIEWER, SYS_ADMIN | Bộ kiểm thử (Gold, trap set) · Chạy benchmark · Dashboard |
+| Chất lượng | CURATOR, REVIEWER, SYS_ADMIN | Bộ kiểm thử (Gold [Không triển khai – xem ADR-010], trap set) · Chạy benchmark · Dashboard |
 | Kiểm toán | AUDITOR | Nhật ký · Bằng chứng truy cập |
 
 - **Chat Agent (launcher góc phải) hiện ở mọi trang Tra cứu và Kho tài liệu (chế độ đọc)**; ẩn ở đăng nhập và thu nhỏ ở Curator Split-View.
@@ -712,7 +714,7 @@ Bảng: **Tên miền · Người xác minh · Ngày xác minh · Ghi chú · Tr
 
 Các khối: **Chế độ không lưu** (công tắc) · **Hội thoại gần đây** (danh sách; xem tóm tắt, xóa từng phiên) · **Sở thích** (opt-in: danh mục mặc định, phạm vi hay dùng) · **Thời hạn lưu** (chỉ đọc, do quản trị đặt) · **Xóa tất cả bộ nhớ**. Văn bản giải thích ngắn: "Bộ nhớ giúp trợ lý hiểu câu hỏi nối tiếp. Câu trả lời luôn lấy căn cứ lại từ kho tài liệu." Xóa tất cả cần xác nhận và là xóa thật.
 
-#### S11. Bộ kiểm thử: duyệt Gold và trap set (REVIEWER/chuyên gia nghiệp vụ)
+#### S11. Bộ kiểm thử: duyệt Gold [Không triển khai – xem ADR-010] và trap set (REVIEWER/chuyên gia nghiệp vụ)
 
 ```text
 ┌ Bộ kiểm thử · Gold v0 · Đã duyệt 62 / 180 · Calibration 54 │ Held-out 126 (khóa) ───┐
@@ -734,7 +736,7 @@ Các khối: **Chế độ không lưu** (công tắc) · **Hội thoại gần 
 
 #### S12. Dashboard chất lượng (SYS_ADMIN, REVIEWER)
 
-Thẻ số liệu và biểu đồ theo thời gian: `retrieval_ms`, `evidence_ready_ms`, `first_claim_ms`, `final_answer_ms` (P50/P95, đường theo thời gian); tỷ lệ từ chối đúng/sai; `unsupported_claim_rate`, `wrong_doc_rate`, `wrong_node_rate`, `false_premise_detection_rate`, `validator_reject_rate`; tiến độ duyệt Gold (đã duyệt/mục tiêu 150–200); lịch sử chạy benchmark với bộ lọc theo model/tokenizer/corpus hash. Mỗi số liệu ghi **môi trường đo và thời điểm**; không hiển thị số khi chưa có dữ liệu (hiện "Chưa có số đo").
+Thẻ số liệu và biểu đồ theo thời gian: `retrieval_ms`, `evidence_ready_ms`, `first_claim_ms`, `final_answer_ms` (P50/P95, đường theo thời gian); tỷ lệ từ chối đúng/sai; `unsupported_claim_rate`, `wrong_doc_rate`, `wrong_node_rate`, `false_premise_detection_rate`, `validator_reject_rate`; tiến độ duyệt Gold [Không triển khai – xem ADR-010] (đã duyệt/mục tiêu 150–200); lịch sử chạy benchmark với bộ lọc theo model/tokenizer/corpus hash. Mỗi số liệu ghi **môi trường đo và thời điểm**; không hiển thị số khi chưa có dữ liệu (hiện "Chưa có số đo").
 
 #### S13. Đăng nhập, quyền và trang lỗi
 
@@ -838,7 +840,7 @@ Mỗi mục có 3 trạng thái: **Đạt** (check) · **Chưa đạt** (x) · *
 
 API hiện hành dùng các tên checklist ở bảng trên và enum `passed / failed / unknown`; không dùng boolean để ép “chưa xác minh” thành false. `effective_status_checked`/`node_effective_checked` là tên cũ, không phát từ API v1.3. `claim_supported=passed` đòi hỏi đủ kiểm tra hỗ trợ đã định nghĩa; chỉ pass số liệu/phủ định không được coi là chứng minh ngữ nghĩa của nhận định.
 
-**Công việc ingest:** Chờ · Đang đọc trang · Phân tích cấu trúc · Cần duyệt · Lỗi · Đã hủy · Xong. **Đề xuất AI:** Đề xuất · Đã chấp nhận · Đã từ chối · Hết hạn. **Gold case:** Nháp · Đã duyệt · Cần sửa · Loại bỏ.
+**Công việc ingest:** Chờ · Đang đọc trang · Phân tích cấu trúc · Cần duyệt · Lỗi · Đã hủy · Xong. **Đề xuất AI:** Đề xuất · Đã chấp nhận · Đã từ chối · Hết hạn. **Gold [Không triển khai – xem ADR-010] case:** Nháp · Đã duyệt · Cần sửa · Loại bỏ.
 
 ### D.8 Nội dung giao diện (microcopy)
 
@@ -894,7 +896,7 @@ Cấm dùng trong giao diện: "Đã khóa X căn cứ xác thực", "Đã xác 
 
 - Launcher gần như không tốn tải trang: bundle panel, PDF viewer, biểu đồ **tải lười** (code-splitting); prefetch khi hover launcher hoặc khi nhập vào ô hỏi.
 - PDF viewer dựng theo trang (virtualized), chỉ render trang đang xem và lân cận; prefetch trang được trích khi hover `[n]`.
-- Danh sách dài (tài liệu, hàng đợi, case Gold) dùng phân trang hoặc cuộn ảo.
+- Danh sách dài (tài liệu, hàng đợi, case Gold [Không triển khai – xem ADR-010]) dùng phân trang hoặc cuộn ảo.
 - Local Mode: không tải tài nguyên từ bên ngoài (CDN, font, analytics, telemetry).
 - Ngân sách tải trang đo trước/sau khi thêm widget (WP 4.7); không tuyên bố số trước khi đo.
 
@@ -924,7 +926,7 @@ SRS §11 giữ nguyên các API gốc (`/query/analyze`, `/query/requery`, `/que
 | Nguồn và so sánh | `GET /api/v1/nodes/{id}/notes` (A4) · `GET /api/v1/nodes/{id}/diff?as_of=…` (A5) · `GET /api/v1/nodes/{id}/related` (A6) | Điểm cần lưu ý, so sánh phiên bản, văn bản liên quan |
 | Đề xuất AI cho curator | `GET /api/v1/admin/ai-suggestions` · `POST /api/v1/admin/ai-suggestions/{id}/accept` · `…/reject` · `…/edit` | Hàng đợi đề xuất; chấp nhận là hành động của curator, có audit |
 | Domain nguồn | `GET/POST /api/v1/admin/source-domains` · `PATCH /api/v1/admin/source-domains/{id}` | Quản lý allowlist |
-| Bộ kiểm thử | `GET /api/v1/admin/evaluation/cases` · `POST /api/v1/admin/evaluation/cases/{id}/review` · `GET /api/v1/admin/evaluation/splits` | Duyệt Gold/trap set; xem tách calibration/held-out |
+| Bộ kiểm thử | `GET /api/v1/admin/evaluation/cases` · `POST /api/v1/admin/evaluation/cases/{id}/review` · `GET /api/v1/admin/evaluation/splits` | Duyệt Gold [Không triển khai – xem ADR-010]/trap set; xem tách calibration/held-out |
 | Theo dõi (P1) | `POST /api/v1/watches` · `GET /api/v1/notifications` | A9 |
 
 **Sự kiện SSE bổ sung:** `retrieval_started`, `evidence_verified`, `evidence_complete`, `analysis_ready`, `answer_complete`, `explanation_unavailable`, `understood_as`, `clarify_needed`, `analysis_item`, `followup_suggestions`, `memory_state_changed`, `turn_cancelled` và `turn_error` (kèm mã lỗi: `SESSION_EXPIRED`, `MEMORY_CAPACITY_EXCEEDED`, `QUERY_FAILED`). Bổ sung vào danh sách event gốc ở SRS §11.4; frontend không tự đoán tiến trình.
@@ -946,7 +948,7 @@ SRS §11 giữ nguyên các API gốc (`/query/analyze`, `/query/requery`, `/que
 | Upload/import, sửa node, accept/edit/reject đề xuất AI | CURATOR + scope tài liệu | Chỉ tạo/sửa draft; accept không publish |
 | Approve tài liệu/version/amendment/hiệu lực | REVIEWER + scope + If-Match | Ghi approved revision rồi build/publish snapshot nguyên tử |
 | Cấu hình account/role/provider/route/domain | SYS_ADMIN + quyền cấu hình tương ứng | Audit; không cấp quyền đọc nội dung theo mặc định |
-| Duyệt Gold/trap | REVIEWER/chuyên gia được chỉ định | Chỉ xác nhận case đã đọc nguồn; không cấp quyền tune held-out |
+| Duyệt Gold [Không triển khai – xem ADR-010]/trap | REVIEWER/chuyên gia được chỉ định | Chỉ xác nhận case đã đọc nguồn; không cấp quyền tune held-out |
 | Đọc audit | AUDITOR + audit scope | Đọc metadata/bằng chứng trong quyền, không sửa |
 
 Role không tự suy ra từ tiền tố `/admin`. Với CURATOR-only, gọi approve phải bị từ chối và snapshot không đổi; tài khoản nhiều role chỉ có quyền đã được cấp tường minh. Các service ghi session/audit không trở thành tool cho LLM tự gọi.
@@ -967,7 +969,7 @@ Role không tự suy ra từ tiền tố `/admin`. Với CURATOR-only, gọi app
 | Sprint | Mục tiêu | Gate |
 |---|---|---|
 | 0 | POC trên Windows thật: pgvector, PDF anchor, model, Local Mode offline, ADR-000/001/002 | ADR chốt; SRS v1.3; footprint đo thật; pgvector, backup/restore, dịch vụ Windows chạy được trên máy đích |
-| 1 | Kho tài liệu, hiệu lực node, ERD (kể cả bộ nhớ), frontend nền, Gold v0 | Import → parse → review → approve → snapshot chạy trên PDF thật; resolver qua đủ ca; Gold v0 (150–200 câu) được người nắm nghiệp vụ duyệt; tokens + contrast test xanh |
+| 1 | Kho tài liệu, hiệu lực node, ERD (kể cả bộ nhớ), frontend nền, Gold [Không triển khai – xem ADR-010] v0 | Import → parse → review → approve → snapshot chạy trên PDF thật; resolver qua đủ ca; Gold v0 (150–200 câu) được người nắm nghiệp vụ duyệt; tokens + contrast test xanh |
 | 2 | Retrieval, evidence-first, chống truy xuất sai, A4–A6, baseline hiệu năng | BFS 2-hop vs full-chain; pre-gate 3 trạng thái; stale snapshot; B0–B7 có số đo thật; `wrong_doc_rate`/`wrong_node_rate`; baseline hiệu năng; C1 tầng quy tắc |
 | 3 | Model Router, Local/API Mode, claims, UI hai pha, Chat Agent, bộ nhớ, phân tích và gợi ý P0 | Hai chế độ API/Local chạy được (Local kiểm trên máy ngắt Internet thật); regression polarity/numeric/temporal xanh; widget, bộ nhớ, trap set đạt ngưỡng owner chốt; A1–A3 |
 | 4 | Hardening, hiệu năng, đóng gói Windows, P1 owner chọn | Red-team (bộ nhớ, prompt injection, rò rỉ ACL); hồi quy hiệu năng; restore thành công trên máy sạch; footprint trong trần demo |
@@ -982,7 +984,7 @@ Bảy luồng: **A** DB/ACL/hiệu lực · **B** Ingestion/Parsing · **C** Ret
 
 - Sprint 0 kiểm khả thi trên Windows và các cấu hình đại diện; POC chọn thư viện/runtime tương thích, không cố định provider/model. Profile B chỉ chứng minh lõi offline; các gate AI/local model còn thiếu phải được báo riêng.
 - A (schema) chặn B, C, D. B (nodes + span) chặn C và hiển thị viewer. Resolver hiệu lực (A) chặn validator hiệu lực (D).
-- Gold v0 (C) chạy song song từ đầu Sprint 1 nhưng cần PDF thật từ Sprint 0 và người duyệt.
+- Gold [Không triển khai – xem ADR-010] v0 (C) chạy song song từ đầu Sprint 1 nhưng cần PDF thật từ Sprint 0 và người duyệt.
 - F bắt đầu design tokens, viewer, split-view khi OpenAPI/schema ổn định (cuối Sprint 1); trước đó dùng mock server.
 - E (router) độc lập retrieval; chỉ cần schema `providers/model_profiles/stage_routes`.
 - Widget và desktop USER (WP 3.9) cần SSE contract có run_id (WP 3.4), EvidenceCards (WP 2.9), auth/ACL và POC shell ở WP 0.5. Frontend/native không tạo workflow/backend riêng.
@@ -1003,7 +1005,7 @@ Bảy luồng: **A** DB/ACL/hiệu lực · **B** Ingestion/Parsing · **C** Ret
 
 **Gate S0:** ADR-000/001/002, SRS v1.3, footprint và pgvector/backup/restore/dịch vụ Windows có bằng chứng trên máy đích; POC shell USER có báo cáo; PDF và hash trong `evaluation/corpus_public_real`. Có thể đạt phần khả thi lõi theo profile B khi model chưa sẵn sàng, nhưng báo riêng các capability AI chưa kiểm và không công nhận chúng đã đạt. Lỗi nền tảng ⇒ ghi ADR phương án phù hợp Windows; không đổi yêu cầu hoặc hạ gate AI S3.
 
-### F.6 Sprint 1 — Kho tài liệu, hiệu lực node, Gold v0
+### F.6 Sprint 1 — Kho tài liệu, hiệu lực node, Gold [Không triển khai – xem ADR-010] v0
 
 **Luồng A/B (nền dữ liệu)**
 
@@ -1028,9 +1030,9 @@ Bảy luồng: **A** DB/ACL/hiệu lực · **B** Ingestion/Parsing · **C** Ret
 
 | WP | Việc | Nghiệm thu |
 |---|---|---|
-| 1.9 | **Gold v0 150–200 câu** (thay chỉ tiêu 50–100) từ PDF văn bản chính thức thật. Agent tự đọc PDF, soạn câu hỏi, đáp án tham chiếu và căn cứ; mỗi câu có số hiệu văn bản, điều/khoản/điểm, đoạn trích, phiên bản, thời điểm áp dụng khi liên quan, source URL/hash. Phủ: hỏi trực tiếp, tình huống nhiều điều kiện, ngoại lệ, văn bản sửa đổi (kể cả chuỗi A→B→C→D), chuyển tiếp, văn bản bãi bỏ, không đủ căn cứ, ngoài ACL, lời thường, không dấu, số hiệu viết tắt, PDF font lỗi. Agent tự kiểm cấu trúc, trích dẫn (quote khớp `text_original`) và phát hiện trùng lặp. Tách calibration và held-out theo scenario_group_id; các câu diễn đạt lại/cùng tình huống không chia sang hai tập; tỷ lệ đề xuất khoảng 30/70 là theo số case nhưng không phá nhóm. Regression vận hành tách khỏi held-out; manifest/corpus/split revision được khóa trước tuning. Màn hình duyệt S11 | Mỗi case có trạng thái draft → reviewed bởi người nắm nghiệp vụ; **chỉ case đã duyệt được dùng làm chuẩn**; AI không tự công nhận đáp án; báo cáo trùng lặp và kiểm trích dẫn đạt trên mọi case; script kiểm case ID, scenario_group_id, paraphrase/tình huống gần trùng giữa calibration và held-out; freeze split_revision trước tuning; corpus tách khỏi kho nghiệp vụ; fixture UI ở `synthetic_ui_fixtures` |
+| 1.9 | **Gold [Không triển khai – xem ADR-010] v0 150–200 câu** (thay chỉ tiêu 50–100) từ PDF văn bản chính thức thật. Agent tự đọc PDF, soạn câu hỏi, đáp án tham chiếu và căn cứ; mỗi câu có số hiệu văn bản, điều/khoản/điểm, đoạn trích, phiên bản, thời điểm áp dụng khi liên quan, source URL/hash. Phủ: hỏi trực tiếp, tình huống nhiều điều kiện, ngoại lệ, văn bản sửa đổi (kể cả chuỗi A→B→C→D), chuyển tiếp, văn bản bãi bỏ, không đủ căn cứ, ngoài ACL, lời thường, không dấu, số hiệu viết tắt, PDF font lỗi. Agent tự kiểm cấu trúc, trích dẫn (quote khớp `text_original`) và phát hiện trùng lặp. Tách calibration và held-out theo scenario_group_id; các câu diễn đạt lại/cùng tình huống không chia sang hai tập; tỷ lệ đề xuất khoảng 30/70 là theo số case nhưng không phá nhóm. Regression vận hành tách khỏi held-out; manifest/corpus/split revision được khóa trước tuning. Màn hình duyệt S11 | Mỗi case có trạng thái draft → reviewed bởi người nắm nghiệp vụ; **chỉ case đã duyệt được dùng làm chuẩn**; AI không tự công nhận đáp án; báo cáo trùng lặp và kiểm trích dẫn đạt trên mọi case; script kiểm case ID, scenario_group_id, paraphrase/tình huống gần trùng giữa calibration và held-out; freeze split_revision trước tuning; corpus tách khỏi kho nghiệp vụ; fixture UI ở `synthetic_ui_fixtures` |
 
-**Gate S1:** import → parse → review → approve → snapshot chạy thông trên PDF thật; resolver qua đủ ca ở WP 1.7; Gold v0 (150–200 câu) đã được người nắm nghiệp vụ duyệt; tokens + contrast test xanh.
+**Gate S1:** import → parse → review → approve → snapshot chạy thông trên PDF thật; resolver qua đủ ca ở WP 1.7; Gold [Không triển khai – xem ADR-010] v0 (150–200 câu) đã được người nắm nghiệp vụ duyệt; tokens + contrast test xanh.
 
 ### F.7 Sprint 2 — Retrieval và Evidence-first
 
@@ -1046,13 +1048,13 @@ Bảy luồng: **A** DB/ACL/hiệu lực · **B** Ingestion/Parsing · **C** Ret
 | 2.8 | Benchmark B0–B7 + ablation trên calibration/regression; pin corpus, split, model/tokenizer/prompt/config revision, giao thức và candidate trước đánh giá chốt | Báo khoảng tin cậy, missed-exception, false abstention, over-expansion và ACL leakage; held-out chỉ chạy đợt chốt theo protocol, không tune sau khi nhìn kết quả rồi báo cùng tập là độc lập |
 | 2.9 | API `/query/evidence`, `/citations/*`; `EvidenceCards`, `NodeToc`, click mở đúng PDF/version/anchor, feedback 4 loại vào hàng chờ curator | Click đúng trang; banner đúng node/`as_of_date`; link tới văn bản sửa đổi đã duyệt |
 | 2.10 | Dịch vụ phiên + viết lại câu nối tiếp + hiển thị "Đang hiểu là" + hỏi lại một câu | Câu nối tiếp trỏ đúng đối tượng; thiếu điều kiện ⇒ hỏi lại, không đoán |
-| 2.11 | Định tuyến văn bản, lọc metadata, khử trùng phiên bản, `retrieval_diagnostics` (L0–L2) | Đo `wrong_doc_rate`/`wrong_node_rate` trên Gold; có ablation |
+| 2.11 | Định tuyến văn bản, lọc metadata, khử trùng phiên bản, `retrieval_diagnostics` (L0–L2) | Đo `wrong_doc_rate`/`wrong_node_rate` trên Gold [Không triển khai – xem ADR-010]; có ablation |
 | 2.12 | Retrieval hints do curator duyệt + alias expansion có audit | Gợi ý chưa duyệt không ảnh hưởng xếp hạng |
 | 2.13 | Baseline hiệu năng, tính trước lúc index, connection pool | Báo cáo P50/P95 theo stage trên máy đích |
 | 2.14 | Quy tắc điểm cần lưu ý (A4), diff xác định (A5), đồ thị liên quan (A6) | Test trên PDF thật; diff khớp text đã duyệt; A6 không lộ node ngoài ACL |
 | 2.15 | Bộ phát hiện đề xuất cho curator tầng quy tắc: quan hệ sửa đổi, tham chiếu chưa giải, node bất thường (C1 a, b, d) | Precision/recall trên tập nhãn lấy từ PDF thật, curator duyệt tập nhãn |
 
-**Gate S2 (release-gate, không phải P1):** BFS 2-hop vs full-chain resolver; pre-gate 3 trạng thái; snapshot stale + worker lỗi; Gold v0 chạy B0–B7 (chỉ case đã duyệt; đánh giá cuối trên held-out) có số đo thật; baseline hiệu năng; `wrong_doc_rate`/`wrong_node_rate`; A4–A6 và C1 tầng quy tắc.
+**Gate S2 (release-gate, không phải P1):** BFS 2-hop vs full-chain resolver; pre-gate 3 trạng thái; snapshot stale + worker lỗi; Gold [Không triển khai – xem ADR-010] v0 chạy B0–B7 (chỉ case đã duyệt; đánh giá cuối trên held-out) có số đo thật; baseline hiệu năng; `wrong_doc_rate`/`wrong_node_rate`; A4–A6 và C1 tầng quy tắc.
 
 ### F.8 Sprint 3 — Model Router, Claims, Chat Agent, bộ nhớ, phân tích
 
@@ -1079,11 +1081,11 @@ Bảy luồng: **A** DB/ACL/hiệu lực · **B** Ingestion/Parsing · **C** Ret
 
 | WP | Việc | Nghiệm thu |
 |---|---|---|
-| 4.1 | Bộ test bảo mật/hồi quy: ACL qua cache và `as_of_date`, cross-scope, prompt injection, XSS từ PDF, CSP, KV cache isolation (nếu có local LLM), PDF mojibake, curator thiếu approval, zero-answer | Mọi bug từ feedback có gold test tái hiện |
+| 4.1 | Bộ test bảo mật/hồi quy: ACL qua cache và `as_of_date`, cross-scope, prompt injection, XSS từ PDF, CSP, KV cache isolation (nếu có local LLM), PDF mojibake, curator thiếu approval, zero-answer | Mọi bug từ feedback có gold [Không triển khai – xem ADR-010] test tái hiện |
 | 4.2 | Tải và backpressure: concurrency gate cho CPU LLM, job position, cancel; test 30–60 session; đo `evidence_ready_ms` P50/P95 tách khỏi `final_answer_ms`; so parallel vs serial vs CTE dưới tải | Số đo ghi kèm môi trường; evidence-first vẫn hiện khi inference kẹt |
 | 4.3 | Đóng gói cho Windows (installer, dịch vụ Windows): Core Pack, Model Pack manifest (id, sha256, license, revision, dimension, RAM/disk), Data Pack; demo cài sạch **< 10 GB** kiểm trong CI; báo dung lượng Core/Model/PostgreSQL/data riêng; installer đặt mọi công cụ/tool/runtime cần cài dưới `E:\Programs` bằng cấu hình triển khai, gồm cache/store do dự án quản lý | `measure-footprint` chạy trong CI; không PyTorch/full ML extras mặc định; preflight root/quyền/dung lượng; inventory real path đúng root; không PATH/LLM hardcode, không cài global/AppData/Program Files hoặc âm thầm đổi ổ |
 | 4.4 | Backup mã hóa + restore máy sạch; retention audit/bộ nhớ/backup, sổ yêu cầu xóa mới nhất, SBOM/license/runbook offline/API và client desktop; runbook ghi root cài, dependency-manifest và cách nạp cấu hình; dữ liệu/backup theo cấu hình riêng | Restore có dữ liệu mẫu đã xóa: áp sổ xóa trước mở dịch vụ, không phục hồi nội dung vào history/cache; thiếu đối soát thì chưa mở truy cập. Cấu hình endpoint/path qua môi trường triển khai; secret do người vận hành nhập/khôi phục theo chính sách, không chép secret từ máy cũ; restore/reinstall giữ đúng root cài công cụ; không chép đường dẫn máy cũ vào source hoặc tự di chuyển dữ liệu |
-| 4.5 | Gold mở rộng vượt v0 (150–200 câu) **khi có reviewer**; P1 (PyVi, BM25 re-score, ParadeDB, HNSW, ONNX INT8, KV prefix) chỉ mở nếu benchmark/ADR chứng minh | Không bật mặc định khi chưa qua non-regression |
+| 4.5 | Gold [Không triển khai – xem ADR-010] mở rộng vượt v0 (150–200 câu) **khi có reviewer**; P1 (PyVi, BM25 re-score, ParadeDB, HNSW, ONNX INT8, KV prefix) chỉ mở nếu benchmark/ADR chứng minh | Không bật mặc định khi chưa qua non-regression |
 | 4.6 | Tối ưu và cache riêng embedding/analysis/retrieval theo C.7; analysis/retrieval OFF cho đến khi đủ fingerprint và invalidation; đo hồi quy | Test cùng câu hỏi khác user/phiên/facts/memory/scope/as_of_date/ACL/policy/index/model; incognito không cache bền; không thoái lui độ chính xác, số đo kèm môi trường |
 | 4.7 | Kiểm widget và desktop W1–W8/S14: auth, Orb toggle, login/panel nền đục, vùng kéo, resize, tray, workspace/viewer, stop/retry, logout; responsive 320/768/1024/1280px, DPI 100/125/150/200%, nhiều màn hình, keyboard/contrast/reduced-motion; kiểm native sau cài tại root B.8 với tool ngoài manifest không hiện diện trong PATH của tiến trình thử | Có ảnh/log trên Windows đích; không overlap hai vùng tương tác, không nền vuông/bóng mờ dư/console, không mất nội dung khi thu/mở; đo tải trang trước/sau; unit/build không thay nghiệm thu native thực tế; Orb/chat/viewer vẫn chạy bằng dependency đã khai báo; lỗi root/tool thiếu hiển thị rõ, không fallback đường dẫn |
 | 4.8 | Backend/dữ liệu chủ trì red-team: prompt injection, memory poisoning, cross-user leak, cache ngữ cảnh, incognito persistence, xóa/restore và job cũ; retrieval/frontend phối hợp | Không rò rỉ; nội dung đã xóa không hồi sinh; phản hồi chưa duyệt không đổi xếp hạng. Báo cáo có chủ trì, ca test, dữ liệu và phần chưa kiểm |
@@ -1109,11 +1111,11 @@ Phần "CHƯA XONG" không được để trống bằng cách lược bỏ; kh�
 ### F.11 Việc cần con người (agent không tự thay được)
 
 - **Nghiệp vụ:** duyệt các nguyên tắc nghiệp vụ quan trọng trong ERD (quan hệ hiệu lực, sửa đổi, bổ sung, bãi bỏ đến Điều/Khoản/Điểm; trạng thái node) và sequence `ingest → review → retrieve → evidence → claims → citation-click`, đầu Sprint 1. Không cần duyệt từng chi tiết kỹ thuật.
-- **Độ đúng của căn cứ:** người nắm nghiệp vụ duyệt đáp án mẫu Gold v0 (150–200 câu) và trap set trước khi dùng làm chuẩn; CURATOR xử lý nháp/hints; REVIEWER phê duyệt tài liệu, metadata hiệu lực và quan hệ sửa đổi có tác động đến căn cứ.
+- **Độ đúng của căn cứ:** người nắm nghiệp vụ duyệt đáp án mẫu Gold [Không triển khai – xem ADR-010] v0 (150–200 câu) và trap set trước khi dùng làm chuẩn; CURATOR xử lý nháp/hints; REVIEWER phê duyệt tài liệu, metadata hiệu lực và quan hệ sửa đổi có tác động đến căn cứ.
 - **Quyền truy cập:** phê duyệt chính sách remote AI theo từng category (API Mode); ai được thấy Chat Agent theo role; ánh xạ quyền với app quản lý cán bộ nếu tích hợp.
 - **Bảo mật và riêng tư:** admin xác minh và duyệt từng domain đưa vào allowlist; xác nhận cấu hình Local Mode và việc ngắt Internet ở hạ tầng mạng; chốt thời hạn lưu mặc định của bộ nhớ hội thoại và loại dữ liệu được phép lưu.
 - **Ngưỡng chấp nhận:** owner chốt ngưỡng cho các chỉ số chống ảo giác và mục tiêu độ trễ sau khi có baseline; chọn tính năng P1 nào làm trước (C.5); curator quyết định chấp nhận hoặc từ chối từng đề xuất của AI.
-- **Xác nhận giả định ở B.6**, đặc biệt: người dùng có được tự chọn chế độ hay không, tỷ lệ chia Gold, kích thước trap set.
+- **Xác nhận giả định ở B.6**, đặc biệt: người dùng có được tự chọn chế độ hay không, tỷ lệ chia Gold [Không triển khai – xem ADR-010], kích thước trap set.
 - **Cung cấp (không phải phê duyệt):** máy Windows đích để đo footprint, latency, backup/restore.
 
 ### F.12 Rủi ro chính
@@ -1125,8 +1127,8 @@ Phần "CHƯA XONG" không được để trống bằng cách lược bỏ; kh�
 | Model embedding/reranker Việt không chạy ONNX hoặc vướng license | WP 0.4; profile B không cần LLM/dense |
 | PDF cũ lỗi font, bbox lệch khi xoay/CropBox | WP 0.3, 1.5; fallback trang + quote, không tô sai |
 | Chuỗi sửa đổi thiếu văn bản trong kho | Resolver báo `temporal_unknown`, không khẳng định "không sót sửa đổi" |
-| Gold 150–200 câu cần nhiều thời gian duyệt của người nắm nghiệp vụ | Agent soạn đủ trích dẫn và tự kiểm trước; duyệt theo lô; case chưa duyệt không tính vào chuẩn; báo rõ số case đã duyệt |
-| Dùng lẫn Gold với chỉnh ngưỡng gây đánh giá thiên lệch | Tách calibration và held-out, script kiểm không giao nhau |
+| Gold [Không triển khai – xem ADR-010] 150–200 câu cần nhiều thời gian duyệt của người nắm nghiệp vụ | Agent soạn đủ trích dẫn và tự kiểm trước; duyệt theo lô; case chưa duyệt không tính vào chuẩn; báo rõ số case đã duyệt |
+| Dùng lẫn Gold [Không triển khai – xem ADR-010] với chỉnh ngưỡng gây đánh giá thiên lệch | Tách calibration và held-out, script kiểm không giao nhau |
 | CPU local LLM nghẽn khi 30–60 session | Evidence tách khỏi generate; queue + backpressure; template extractive |
 | Phình dependency và dung lượng | Manifest + CI đo footprint, trần demo < 10 GB |
 | Bộ nhớ cũ sau khi snapshot đổi | Gắn revision + nhãn "cần kiểm lại" |
@@ -1148,7 +1150,7 @@ Phần "CHƯA XONG" không được để trống bằng cách lược bỏ; kh�
 - LLM cấu hình API/Local, không provider/model/endpoint/key/path cố định; thử thay hai cấu hình đại diện trong adapter được hỗ trợ; đếm cả retry/fallback trong budget.
 - PATH/cài đặt: mọi tool/runtime dự án cài và cache/store tương ứng ở `E:\Programs` qua cấu hình, kiểm real path trong root; không hardcode PATH/LLM hoặc dựa vào tool global; missing-root/dependency không fallback đường dẫn.
 - Desktop: tách User/Admin, Orb tròn toggle, login/panel không trong suốt, không console/bóng dư, drag/resize không đè nội dung, thu/mở/PDF/workspace giữ phiên, tray/logout/exit đúng.
-- Gold: kiểm split theo nhóm tình huống, nội dung held-out không được dùng để tune; ghi candidate/config/corpus/split revision.
+- Gold [Không triển khai – xem ADR-010]: kiểm split theo nhóm tình huống, nội dung held-out không được dùng để tune; ghi candidate/config/corpus/split revision.
 
 ---
 
@@ -1164,9 +1166,9 @@ Phần "CHƯA XONG" không được để trống bằng cách lược bỏ; kh�
 > 
 > Không hardcode PATH hoặc LLM. Toàn bộ công cụ/tool/runtime dự án cài để build/cài/vận hành app phải dưới root `E:\Programs` do owner chốt; root chỉ là giá trị deployment profile `installation.programs_root` / `EVIDENCE_PROGRAMS_ROOT`, không nhúng trong code/script. Resolve executable/model/artifact và cache công cụ từ manifest dưới root, không dùng fallback PATH/global/AppData/Program Files. Thiếu root/dependency thì báo lỗi, không tự đổi ổ. Mỗi máy chỉ cài thành phần theo role; dữ liệu nghiệp vụ/backup có đường dẫn cấu hình riêng, không tự di chuyển. Tuân thủ B.8 và SRS §25.9.
 > 
-> Tuân thủ B.3/B.7/B.8 và SRS §25: CURATOR nháp, REVIEWER duyệt; cache analysis/retrieval OFF đến khi đủ fingerprint và test; incognito chỉ RAM, retention + opt-in mới lưu; xóa dẫn xuất/cache/job, restore áp sổ xóa; Gold 150–200 case người nắm nghiệp vụ duyệt, split theo nhóm tình huống, regression tách held-out; llm_attempt_budget=2 tính cả timeout/retry/fallback, summary P0 bằng code. Scope là SELECTED hoặc ALL_AUTHORIZED, server luôn kiểm ACL; SSE dùng query_id/run_id/revisions/sequence, retry tường minh không trộn lượt.
+> Tuân thủ B.3/B.7/B.8 và SRS §25: CURATOR nháp, REVIEWER duyệt; cache analysis/retrieval OFF đến khi đủ fingerprint và test; incognito chỉ RAM, retention + opt-in mới lưu; xóa dẫn xuất/cache/job, restore áp sổ xóa; Gold [Không triển khai – xem ADR-010] 150–200 case người nắm nghiệp vụ duyệt, split theo nhóm tình huống, regression tách held-out; llm_attempt_budget=2 tính cả timeout/retry/fallback, summary P0 bằng code. Scope là SELECTED hoặc ALL_AUTHORIZED, server luôn kiểm ACL; SSE dùng query_id/run_id/revisions/sequence, retry tường minh không trộn lượt.
 > 
-> AI tự dựng ERD/migration/test DB và làm tối đa phần kỹ thuật kiểm chứng được; chỉ cần người quyết các nguyên tắc nghiệp vụ, quyền truy cập, bảo mật và độ đúng căn cứ. Không tự công nhận Gold, không bịa văn bản pháp lý, không thêm dependency bị cấm, không dùng kết quả cũ làm bằng chứng hiện tại. Thiếu key/model/reviewer/thiết bị thì báo đúng gate còn thiếu và làm tiếp việc độc lập. Kết thúc mỗi WP báo cáo F.10, có số đo/môi trường và mục CHƯA XONG.
+> AI tự dựng ERD/migration/test DB và làm tối đa phần kỹ thuật kiểm chứng được; chỉ cần người quyết các nguyên tắc nghiệp vụ, quyền truy cập, bảo mật và độ đúng căn cứ. Không tự công nhận Gold [Không triển khai – xem ADR-010], không bịa văn bản pháp lý, không thêm dependency bị cấm, không dùng kết quả cũ làm bằng chứng hiện tại. Thiếu key/model/reviewer/thiết bị thì báo đúng gate còn thiếu và làm tiếp việc độc lập. Kết thúc mỗi WP báo cáo F.10, có số đo/môi trường và mục CHƯA XONG.
 
 ### G.2 Danh sách file bàn giao
 

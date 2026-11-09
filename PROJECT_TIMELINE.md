@@ -33,7 +33,7 @@ Notes:
 - Statistics of the stored logs: 257 of 471 counted product files in Git (code, documents, configuration) have at least one Kiro write/edit command; 194 of them come from the historical logs of 2026-11-05 to 2026-11-09 17:19 and 63 were first touched in the current record-review turn (specs, steering, hooks, bilingual documents). 208 files have a whole-file write (`fs_write`). File counts are a lower bound and line counts an upper bound; they exclude the second machine and the period without logs. Only input legal documents, lock files, third-party assets and generated schemas are excluded; Markdown written to develop the project counts. Method and per-file list: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md) section 8 and [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md).
 
 ## Not verified
-Domain acceptance of search results, expert-confirmed gold sets, running the portable package on a second physical Windows machine, and real OpenAI/Gemini connections are not verified. See `KIRO_WORK_SUMMARY.en.md` section 9 and `docs/implementation-status.md`.
+Domain acceptance of search results, running the portable package on a second physical Windows machine, and real OpenAI/Gemini connections are not verified; no Gold question set is used to score the AI (ADR-010). See `KIRO_WORK_SUMMARY.en.md` section 9 and `docs/implementation-status.md`.
 
 ## License
 Licensed under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.

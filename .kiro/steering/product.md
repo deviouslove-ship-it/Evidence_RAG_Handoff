@@ -35,8 +35,8 @@ Grounded lookup of Vietnamese legal documents. Users ask or search an approved, 
 6. Machine-proposed effectivity is never shown as verified. "In force + verified" comes only from a human attestation.
 7. Session memory is in RAM, is never evidence, and is not a backup.
 8. Sending data outside is blocked by default; `LOCAL` mode refuses `public` profiles.
-9. Gold and trap test cases count only after a domain owner approves them.
+9. No Gold question set is used to score the AI (ADR-010): the AI only assists, the domain staff decide.
 
 ## Honest scope
 
-No domain acceptance or expert-confirmed gold set exists. Test figures in `docs/evidence/` are historical reports, not guarantees. Do not add claims about accuracy, coverage or deployment readiness that a report in the repository does not support.
+No domain acceptance exists, and no Gold question set is planned (ADR-010). Test figures in `docs/evidence/` are historical reports, not guarantees. Do not add claims about accuracy, coverage or deployment readiness that a report in the repository does not support.

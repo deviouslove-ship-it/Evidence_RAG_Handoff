@@ -33,8 +33,8 @@ Tra cứu văn bản pháp lý tiếng Việt có căn cứ. Người dùng hỏ
 6. Hiệu lực do máy đề xuất không bao giờ được hiển thị là đã xác minh. "Còn hiệu lực + Đã xác minh" chỉ đến từ xác nhận của người.
 7. Bộ nhớ phiên nằm trong RAM, không bao giờ là căn cứ, và không phải sao lưu.
 8. Gửi dữ liệu ra ngoài bị chặn mặc định; chế độ `LOCAL` từ chối hồ sơ `public`.
-9. Ca Gold và trap chỉ được công nhận sau khi người nắm nghiệp vụ duyệt.
+9. Không dùng bộ câu hỏi Gold để chấm AI (ADR-010): AI chỉ hỗ trợ, cán bộ chuyên môn quyết định.
 
 ## Phạm vi trung thực
 
-Chưa có nghiệm thu nghiệp vụ hay bộ Gold được chuyên gia xác nhận. Số liệu kiểm thử trong `docs/evidence/` là báo cáo lịch sử, không phải bảo đảm. Không thêm khẳng định về độ chính xác, độ bao phủ hay mức sẵn sàng triển khai mà báo cáo trong repository không hỗ trợ.
+Chưa có nghiệm thu nghiệp vụ, và không có kế hoạch xây bộ câu hỏi Gold (ADR-010). Số liệu kiểm thử trong `docs/evidence/` là báo cáo lịch sử, không phải bảo đảm. Không thêm khẳng định về độ chính xác, độ bao phủ hay mức sẵn sàng triển khai mà báo cáo trong repository không hỗ trợ.
