@@ -411,6 +411,7 @@ class PdfDraftListItem(BaseModel):
     sha256: str
     page_count: int
     open_review_tasks: int
+    source_review_revision: int | None = None
     # G1: dates read by rule, confirmed by the reviewer together with the source.
     detected_issue_date: date | None = None
     detected_effective_from: date | None = None

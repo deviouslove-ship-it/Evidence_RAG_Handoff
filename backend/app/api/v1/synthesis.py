@@ -10,9 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ...audit import append_audit
 from ...auth_acl.policy import Permission, Principal
+from ...storage.search import SearchQueryError
 from ...synthesis.service import SynthesisService, load_settings, save_settings
 from ...vietnamese_nlp.unicode_norm import fold_text
-from .dependencies import get_principal
+from .dependencies import get_principal, no_store
 from .errors import api_error
 from .guards import database_pool, require_admin, require_reviewer
 from .user import require_user
@@ -77,19 +78,28 @@ def _service(request: Request) -> SynthesisService:
     return cast(SynthesisService, service)
 
 
-@router.post("/synthesis")
+@router.post("/synthesis", dependencies=[Depends(no_store)])
 async def synthesize(
     request: Request, body: SynthesisRequest,
     principal: Annotated[Principal, Depends(require_user)],
 ) -> dict[str, Any]:
     search = getattr(request.app.state, "comprehensive_search", None)
-    result = search.store.get(body.result_set_id, principal.id) if search else None
+    if search is None:
+        raise api_error(status.HTTP_410_GONE, "RESULT_SET_EXPIRED")
+    result = search.store.get(body.result_set_id, principal.id)
     if result is None:
         raise api_error(status.HTTP_410_GONE, "RESULT_SET_EXPIRED")
-    return await _service(request).run(
-        UUID(principal.id), result, restart=body.restart, deep_analysis=body.deep_analysis,
-        expand=body.expand, only_relevant=body.only_relevant,
-    )
+    principal_id = UUID(principal.id)
+    try:
+        await search.assert_current(principal_id, result)
+        response = await _service(request).run(
+            principal_id, result, restart=body.restart, deep_analysis=body.deep_analysis,
+            expand=body.expand, only_relevant=body.only_relevant,
+        )
+        await search.assert_current(principal_id, result)
+        return response
+    except SearchQueryError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
 
 
 def _admin_or_doc_staff(principal: Annotated[Principal, Depends(get_principal)]) -> Principal:

@@ -74,7 +74,9 @@ quyền hay trạng thái duyệt.
 - **Tìm kiếm văn bản** (một trang, trên tìm toàn diện G2): theo nghĩa, đủ các từ, chính xác
   cụm từ; lọc danh mục, loại văn bản, hiệu lực, thời gian; gộp theo văn bản, phân trang; kết
   quả chỉ khớp một phần ở nhóm riêng.
-- **Admin Portal**: tài liệu & duyệt nguồn (tách biệt người tạo/người duyệt), danh mục,
+- **Admin Portal**: [Quản lý văn bản](docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md#quản-lý-văn-bản)
+  hỗ trợ tìm/lọc, chi tiết, lịch sử phiên bản, sửa OCR, tạm ngừng và xóa mềm theo quyền.
+  Cổng quản trị còn có tài liệu & duyệt nguồn, danh mục,
   tài khoản RBAC/ABAC, mô hình AI (hồ sơ, định tuyến giai đoạn chọn căn cứ, kiểm tra kết
   nối), nhật ký kiểm toán chuỗi băm.
 - **Nạp tài liệu**: PDF, Word (`.docx`, `.doc`) và TXT. Word/TXT được vẽ thành một PDF có

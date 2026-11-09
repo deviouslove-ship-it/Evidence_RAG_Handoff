@@ -24,7 +24,7 @@ from ...effectivity.service import (
     revoke_attestation,
 )
 from ...effectivity.store import publish_snapshot
-from .dependencies import get_principal
+from .dependencies import get_principal, no_store
 from .errors import api_error
 from .guards import database_pool, require_document_reviewer, require_reviewer
 from .user import require_user
@@ -235,7 +235,7 @@ async def post_publish(
     return result
 
 
-@router.get("/effectivity/documents/{document_id}")
+@router.get("/effectivity/documents/{document_id}", dependencies=[Depends(no_store)])
 async def get_document_effectivity(
     request: Request, document_id: UUID,
     principal: Annotated[Principal, Depends(require_user)],

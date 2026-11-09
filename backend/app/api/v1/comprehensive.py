@@ -14,6 +14,7 @@ from ...auth_acl.policy import Principal
 from ...storage.comprehensive import ComprehensiveRequest, ComprehensiveSearch
 from ...storage.search import SearchQueryError
 from ...vietnamese_nlp.unicode_norm import fold_text
+from .dependencies import no_store
 from .errors import api_error
 from .guards import database_pool, require_document_reviewer, require_reviewer
 from .user import _check_search_rate, require_user
@@ -72,7 +73,7 @@ def _service(request: Request) -> ComprehensiveSearch:
     return cast(ComprehensiveSearch, service)
 
 
-@router.post("/search/comprehensive")
+@router.post("/search/comprehensive", dependencies=[Depends(no_store)])
 async def comprehensive_search(
     http_request: Request, body: ComprehensiveSearchRequest,
     principal: Annotated[Principal, Depends(require_user)],
@@ -103,7 +104,7 @@ TierName = Literal["direct", "related", "weak", "unscored"]
 SectionName = Literal["verified_active", "unverified", "terminated", "all"]
 
 
-@router.get("/search/comprehensive/{result_set_id}")
+@router.get("/search/comprehensive/{result_set_id}", dependencies=[Depends(no_store)])
 async def comprehensive_page(
     http_request: Request, result_set_id: str,
     principal: Annotated[Principal, Depends(require_user)],
@@ -130,7 +131,10 @@ async def comprehensive_page(
         raise api_error(exc.status_code, exc.code) from exc
 
 
-@router.get("/search/comprehensive/{result_set_id}/documents/{document_id}")
+@router.get(
+    "/search/comprehensive/{result_set_id}/documents/{document_id}",
+    dependencies=[Depends(no_store)],
+)
 async def comprehensive_document_clauses(
     http_request: Request, result_set_id: str, document_id: UUID,
     principal: Annotated[Principal, Depends(require_user)],

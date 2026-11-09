@@ -26,6 +26,7 @@ import type {
   UserInfo,
 } from "../types";
 import { DraftReviewPanel } from "../components/DraftReviewPanel";
+import { AdminDocumentManager } from "../components/AdminDocumentManager";
 import { EffectivityReviewPanel } from "../components/EffectivityReviewPanel";
 import { AssignmentsPanel } from "../components/ai/AssignmentsPanel";
 import { ModelProfilesPanel } from "../components/ai/ModelProfilesPanel";
@@ -105,7 +106,7 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
   const isSysAdmin = currentUser.roles.includes("SYS_ADMIN");
   const isAuditor = currentUser.roles.includes("AUDITOR") || isSysAdmin;
 
-  const [tab, setTab] = useState<"documents" | "effectivity" | "categories" | "users" | "ai_audit">(
+  const [tab, setTab] = useState<"manage_documents" | "documents" | "effectivity" | "categories" | "users" | "ai_audit">(
     canCurate || canReview ? "documents" : isSysAdmin ? "categories" : "ai_audit",
   );
   const [drafts, setDrafts] = useState<PdfDraftListItem[]>([]);
@@ -316,17 +317,18 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
     }
   }
 
-  async function handleApproveDraft(versionId: string) {
+  async function handleApproveDraft(item: PdfDraftListItem) {
     setErrorMsg(undefined);
     if (reviewCategoryIds.length === 0) {
       setErrorMsg("Chọn ít nhất một danh mục thẩm định trước khi phê duyệt.");
       return;
     }
     try {
-      const res = await approveAdminDraft(accessToken, versionId, {
+      const res = await approveAdminDraft(accessToken, item.document_version_id, {
         category_ids: reviewCategoryIds,
         review_note: reviewNote,
         resolve_all_tasks: false,
+        revision: item.source_review_revision,
       });
       setStatusMsg(`Đã phê duyệt nguồn (${res.approved_nodes} điều/khoản có hiệu lực tra cứu).`);
       await refreshAll();
@@ -335,10 +337,11 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
     }
   }
 
-  async function handleRejectDraft(versionId: string) {
+  async function handleRejectDraft(item: PdfDraftListItem) {
     setErrorMsg(undefined);
     try {
-      await rejectAdminDraft(accessToken, versionId, reviewNote || "Không đạt yêu cầu kiểm định.");
+      await rejectAdminDraft(accessToken, item.document_version_id,
+        reviewNote || "Không đạt yêu cầu kiểm định.", item.source_review_revision);
       setStatusMsg("Đã từ chối phiên bản tài liệu.");
       await refreshAll();
     } catch (caught) {
@@ -506,6 +509,16 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
           <p>Quản lý kho văn bản nguồn, danh mục phân quyền, tài khoản và nhật ký kiểm toán chuỗi băm.</p>
         </div>
         <nav className="admin-subnav" aria-label="Phân khu quản trị">
+          {(canCurate || canReview || isSysAdmin) && (
+            <button
+              className={tab === "manage_documents" ? "primary-button" : "secondary-button"}
+              aria-current={tab === "manage_documents" ? "page" : undefined}
+              onClick={() => setTab("manage_documents")}
+              type="button"
+            >
+              Quản lý văn bản
+            </button>
+          )}
           {(canCurate || canReview) && (
             <button
               className={tab === "documents" ? "primary-button" : "secondary-button"}
@@ -564,6 +577,10 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
           {errorMsg}
         </p>
       )}
+
+      {tab === "manage_documents" && (canCurate || canReview || isSysAdmin) &&
+        <AdminDocumentManager key={accessToken} accessToken={accessToken} categories={categories}
+          canCurate={canCurate} isSysAdmin={isSysAdmin} onChanged={refreshAll} />}
 
       {tab === "documents" && (
         <div className="admin-grid">
@@ -745,14 +762,14 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
                         <button
                           className="primary-button"
                           disabled={busy || reviewCategoryIds.length === 0 || item.open_review_tasks > 0 || !reviewNote.trim()}
-                          onClick={() => void runMutation(() => handleApproveDraft(item.document_version_id))}
+                          onClick={() => void runMutation(() => handleApproveDraft(item))}
                           type="button"
                         >
                           Phê duyệt & Phát hành
                         </button>
                         <button
                           className="secondary-button"
-                          onClick={() => void runMutation(() => handleRejectDraft(item.document_version_id))}
+                          onClick={() => void runMutation(() => handleRejectDraft(item))}
                           type="button"
                         >
                           Từ chối

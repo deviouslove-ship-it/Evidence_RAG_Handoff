@@ -1,6 +1,8 @@
 import { useState } from "react";
 
-import { runSynthesis, type SynthesisPoint, type SynthesisResult } from "../api/client";
+import {
+  ApiRequestError, runSynthesis, type SynthesisPoint, type SynthesisResult,
+} from "../api/client";
 import { AiAnswerView } from "./AiAnswerView";
 import { EffectivityBadges } from "./EffectivityBadges";
 
@@ -9,8 +11,9 @@ import { EffectivityBadges } from "./EffectivityBadges";
  * evidence and passed the code checks), Gợi ý tham khảo (what to read next).  The
  * panel never states a business conclusion; it reports "N trong M căn cứ".
  */
-export function SynthesisPanel({ accessToken, resultSetId, onlyRelevant = false }: {
+export function SynthesisPanel({ accessToken, resultSetId, onlyRelevant = false, onExpired }: {
   accessToken: string; resultSetId: string;
+  onExpired: (resultSetId: string) => void;
   /** Summarise only clauses relevant to the query (not the partial matches). */
   onlyRelevant?: boolean;
 }) {
@@ -26,7 +29,11 @@ export function SynthesisPanel({ accessToken, resultSetId, onlyRelevant = false 
         result_set_id: resultSetId, ...options, ...(onlyRelevant ? { only_relevant: true } : {}),
       }));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không tổng hợp được.");
+      if (caught instanceof ApiRequestError && caught.code === "RESULT_SET_EXPIRED") {
+        onExpired(resultSetId);
+      } else {
+        setError(caught instanceof Error ? caught.message : "Không tổng hợp được.");
+      }
     } finally {
       setBusy(false);
     }

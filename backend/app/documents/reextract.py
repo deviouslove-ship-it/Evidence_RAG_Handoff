@@ -7,6 +7,7 @@ from uuid import UUID
 from ..audit import append_audit
 from .deduplication import content_fingerprint, find_content_matches
 from .draft import PreparedDraft
+from .management_access import lock_review_version
 from .node_writer import delete_version_nodes, write_nodes
 from .review import ReviewError
 
@@ -15,12 +16,11 @@ async def apply_reextracted_draft(
     pool: Any, *, prepared: PreparedDraft, version_id: UUID, curator_id: UUID,
 ) -> dict[str, int | str]:
     async with pool.acquire() as conn, conn.transaction():
-        version = await conn.fetchrow(
-            """SELECT id, review_status, original_file_sha256, native_text_fingerprint_v1
-               FROM document_versions WHERE id=$1 FOR UPDATE""", version_id,
-        )
+        version = await lock_review_version(conn, version_id)
         if version is None:
             raise ReviewError("DRAFT_NOT_FOUND", 404)
+        if version["admin_metadata"] is not None:
+            raise ReviewError("DOCUMENT_REPROCESS_REQUIRED", 409)
         if version["review_status"] not in {"draft", "pending_review"}:
             raise ReviewError("INVALID_REVIEW_STATE", 409)
         if version["original_file_sha256"] != prepared.sha256:

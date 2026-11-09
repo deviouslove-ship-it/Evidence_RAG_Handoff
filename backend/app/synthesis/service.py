@@ -25,7 +25,9 @@ from uuid import UUID
 from ..audit import append_audit
 from ..effectivity.store import clause_view
 from ..storage.comprehensive import _HYDRATE_SQL, ResultSet
+from ..storage.lookup_visibility import lookup_revision
 from ..storage.relevance import analyze_terms, word_plan
+from ..storage.search import SearchQueryError
 from . import focused
 from .checks import check_point
 from .focus import analyze_question
@@ -124,7 +126,8 @@ class SynthesisService:
                    FROM document_versions dv
                    JOIN source_provenance p ON p.document_version_id = dv.id
                     AND p.verified_at IS NOT NULL
-                   WHERE dv.review_status = 'approved' AND dv.document_id = ANY($1::uuid[])
+                   WHERE dv.review_status = 'approved' AND dv.retired_at IS NULL
+                     AND dv.document_id = ANY($1::uuid[])
                    ORDER BY dv.document_id, dv.version_number DESC""",
                 allowed,
             )] if allowed else []
@@ -164,6 +167,7 @@ class SynthesisService:
             cost = _estimate_tokens(members, evidence)
             if spent and spent + cost > budget:
                 break
+            await self._check_revision(result_set)
             await self._summarize_batch(state, name, members, evidence, principal_id,
                                         deep_analysis)
             state.used.update(members)
@@ -211,7 +215,10 @@ class SynthesisService:
                 break
             if done and time.monotonic() - started > RUN_SECONDS:
                 break  # answer now; "Diễn giải tiếp" continues with the next batch
-            await self._interpret_batch(state, evidence_ids, principal_id, deep_analysis)
+            await self.retrieval.comprehensive.assert_current(principal_id, result_set)
+            await self._interpret_batch(
+                state, evidence_ids, principal_id, deep_analysis, result_set,
+            )
             state.position += 1
             spent += cost
             done += 1
@@ -261,7 +268,8 @@ class SynthesisService:
                            for row in await connection.fetch(ALLOWED_DOCUMENTS_SQL)]
                 readable = [row["id"] for row in await connection.fetch(
                     """SELECT DISTINCT ON (document_id) id FROM document_versions
-                       WHERE review_status = 'approved' AND document_id = ANY($1::uuid[])
+                       WHERE review_status = 'approved' AND retired_at IS NULL
+                         AND document_id = ANY($1::uuid[])
                        ORDER BY document_id, version_number DESC""", allowed)]
                 weights = await unit_weights(connection, readable or versions, subject_terms)
                 subject_plan = word_plan(subject_terms, weights)
@@ -269,13 +277,18 @@ class SynthesisService:
         documents = {view["document_id"] for view, _ in items}
         return focused.build_plan(
             focus, classified, rules=await self.retrieval.rules(),
-            relations=await self.retrieval.relations(documents), as_of=result_set.as_of,
+            relations=await self.retrieval.relations(principal_id, documents),
+            as_of=result_set.as_of,
             max_per_batch=max_per_batch, ocr_nodes=ocr_nodes,
         )
 
+    async def _check_revision(self, result_set: ResultSet) -> None:
+        if await lookup_revision(self.pool) != result_set.lookup_revision:
+            raise SearchQueryError("RESULT_SET_EXPIRED", 410)
+
     async def _interpret_batch(
         self, state: focused.FocusState, evidence_ids: list[str], principal_id: UUID,
-        deep_analysis: bool,
+        deep_analysis: bool, result_set: ResultSet,
     ) -> None:
         if self.runtime is None or not evidence_ids:
             return
@@ -305,6 +318,7 @@ class SynthesisService:
         if summary is None and not points and rejected:
             # Nothing passed: ask once more, telling the model what the checks rejected
             # (a miscopied date or number is the usual cause with small models).
+            await self._check_revision(result_set)
             repair = focused.repair_messages(messages, rejected)
             retry_seen: dict[str, Any] = {}
             outcome = await self.runtime.generate(

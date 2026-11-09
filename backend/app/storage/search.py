@@ -331,7 +331,7 @@ SELECT sv.version_id
 FROM (
     SELECT DISTINCT ON (dv.document_id) dv.document_id, dv.id AS version_id
     FROM document_versions dv
-    WHERE dv.review_status = 'approved'
+    WHERE dv.review_status = 'approved' AND dv.retired_at IS NULL
       AND dv.document_id = ANY($1::uuid[])
       AND (dv.valid_from IS NULL OR dv.valid_from <= $2::date)
       AND (dv.valid_to IS NULL OR dv.valid_to > $2::date)
@@ -355,7 +355,8 @@ WITH base AS (
            COALESCE(eff.status, 'unknown') AS amendment_state
     FROM document_nodes n
     JOIN document_versions sv ON sv.id = n.document_version_id
-    JOIN documents d ON d.id = n.document_id AND d.deleted_at IS NULL
+    JOIN documents d ON d.id = n.document_id
+      AND d.deleted_at IS NULL AND d.suspended_at IS NULL
     JOIN source_spans ss
       ON ss.id = n.source_span_id AND (ss.text_original = n.text_original
           OR (n.page_end > n.page_start
@@ -369,6 +370,7 @@ WITH base AS (
     ) eff ON TRUE
     WHERE n.document_version_id = ANY($11::uuid[])
       AND n.review_status = 'approved'
+      AND sv.review_status = 'approved' AND sv.retired_at IS NULL
       AND ($4::uuid[] IS NULL OR EXISTS (
               SELECT 1 FROM document_categories dc
               WHERE dc.document_id = n.document_id

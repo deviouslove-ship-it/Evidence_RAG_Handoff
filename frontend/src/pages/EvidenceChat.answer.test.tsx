@@ -150,3 +150,21 @@ it("never turns numbers from the evidence into facts and starts a new question w
   expect(JSON.parse(String(turns[2].body)).facts).toEqual([]);
   expect(screen.queryByRole("textbox", { name: "Sửa Số hiệu văn bản" })).not.toBeInTheDocument();
 });
+
+it("removes a cached answer when AI reports that its evidence set expired", async () => {
+  const fetcher = routes(BODY, []);
+  const fallback = fetcher.getMockImplementation()!;
+  fetcher.mockImplementation((url: string, init?: RequestInit) =>
+    url.endsWith("/api/v1/synthesis")
+      ? Promise.resolve(new Response(JSON.stringify({ code: "RESULT_SET_EXPIRED" }), { status: 410 }))
+      : fallback(url, init));
+  vi.stubGlobal("fetch", fetcher);
+  render(<EvidenceChat accessToken="token" />);
+  const question = "Thủ tục bổ nhiệm, miễn nhiệm trong Công an nhân dân";
+  await ask(question);
+  fireEvent.click(screen.getByRole("button", { name: "Diễn giải AI" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Hãy tra cứu lại");
+  expect(screen.queryByRole("region", { name: "Câu trả lời" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Văn bản liên quan" })).not.toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Câu hỏi tra cứu" })).toHaveValue(question);
+});

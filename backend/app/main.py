@@ -22,6 +22,7 @@ from .admin_services import list_authorized_categories
 from .api.v1.admin import router as admin_router
 from .api.v1.auth import router as auth_router
 from .api.v1.comprehensive import router as comprehensive_router
+from .api.v1.dependencies import no_store
 from .api.v1.effectivity import router as effectivity_router
 from .api.v1.errors import api_error, api_error_handler
 from .api.v1.execution import QueryExecution
@@ -65,9 +66,10 @@ from .storage.citations import (
 from .storage.comprehensive import ComprehensiveSearch
 from .storage.cross_encoder import CrossEncoderClient
 from .storage.embedding_jobs import EmbeddingWorker
+from .storage.lookup_visibility import lookup_revision
 from .storage.normalization import normalization_status
 from .storage.postgres import create_pool
-from .storage.search import SearchService, SlidingWindowRateLimiter
+from .storage.search import SearchQueryError, SearchService, SlidingWindowRateLimiter
 from .synthesis.service import SynthesisService
 from .workflow.ai_selection import ConfiguredSelection
 from .workflow.fixed_pipeline import FixedPipeline, PipelineDependencies
@@ -363,6 +365,8 @@ def create_app() -> FastAPI:
         async def events() -> AsyncIterator[str]:
             yield _sse("retrieval_started", {**base, "event_sequence": 1})
             try:
+                pool = getattr(app.state, "db_pool", None)
+                revision = await lookup_revision(pool) if pool is not None else None
                 result = await app.state.execution.run(
                     http_request,
                     lambda: app.state.pipeline.execute(
@@ -374,7 +378,7 @@ def create_app() -> FastAPI:
                     timeout=app.state.settings.query_timeout_seconds, watch_disconnect=False,
                     cancelled=lambda: turn.status != "running",
                 )
-                stored_events = _build_turn_events(result)
+                stored_events = _build_turn_events(result, lookup_revision=revision)
                 await _validate_replay_evidence(app, principal.id, stored_events)
                 active = app.state.memory.get_turn(session_id, principal.id, turn.turn_id)
                 if active.status == "cancelled":
@@ -394,12 +398,13 @@ def create_app() -> FastAPI:
                 yield _sse("turn_error", {
                     **base, "event_sequence": 2, "code": "MEMORY_CAPACITY_EXCEEDED",
                 })
-            except HTTPException as exc:
+            except (HTTPException, SearchQueryError) as exc:
                 with suppress(KeyError):
                     app.state.memory.fail_turn(session_id, principal.id, turn.turn_id)
-                cancelled = exc.detail in {"TURN_CANCELLED", "REQUEST_CANCELLED"}
+                code = exc.code if isinstance(exc, SearchQueryError) else exc.detail
+                cancelled = code in {"TURN_CANCELLED", "REQUEST_CANCELLED"}
                 yield _sse("turn_cancelled" if cancelled else "turn_error", {
-                    **base, "event_sequence": 2, "code": exc.detail,
+                    **base, "event_sequence": 2, "code": code,
                 })
             except TimeoutError:
                 # Evidence retrieval hit its database budget; tell the user to retry
@@ -485,6 +490,8 @@ def create_app() -> FastAPI:
                 "run_id": retry_turn_state.run_id,
             }
         try:
+            pool = getattr(app.state, "db_pool", None)
+            revision = await lookup_revision(pool) if pool is not None else None
             result = await app.state.execution.run(
                 http_request,
                 lambda: app.state.pipeline.execute(
@@ -497,8 +504,12 @@ def create_app() -> FastAPI:
                 timeout=app.state.settings.query_timeout_seconds,
                 cancelled=lambda: retry_turn_state.status != "running",
             )
-            events = _build_turn_events(result)
+            events = _build_turn_events(result, lookup_revision=revision)
             await _validate_replay_evidence(app, principal.id, events)
+        except SearchQueryError as exc:
+            with suppress(KeyError):
+                app.state.memory.fail_turn(session_id, principal.id, retry_turn_state.turn_id)
+            raise api_error(exc.status_code, exc.code) from exc
         except TimeoutError as exc:
             # Evidence retrieval hit its database budget.
             with suppress(KeyError):
@@ -674,7 +685,10 @@ def create_app() -> FastAPI:
             raise api_error(404, "CITATION_INVALID")
         return found
 
-    @app.get("/api/v1/citations/{citation_id}", response_model=CitationResponse)
+    @app.get(
+        "/api/v1/citations/{citation_id}", response_model=CitationResponse,
+        dependencies=[Depends(no_store)],
+    )
     async def citation(
         citation_id: str,
         principal: Annotated[Principal, Depends(require_user)],
@@ -905,6 +919,9 @@ async def _validate_replay_evidence(
                             max_bytes=app.state.settings.max_upload_bytes,
                         )
                         checked_files.add(current.source_hash)
+            if events and events[0].lookup_revision is not None:
+                if await lookup_revision(pool) != events[0].lookup_revision:
+                    raise ValueError("CITATION_INVALID")
     except ValueError as exc:
         raise api_error(403, "CITATION_INVALID") from exc
     except TimeoutError as exc:
@@ -969,7 +986,7 @@ def _sse(event: str, data: dict[str, object]) -> str:
     return f"id: {event_id}\nevent: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def _build_turn_events(result: Any) -> list[StoredEvent]:
+def _build_turn_events(result: Any, *, lookup_revision: int | None = None) -> list[StoredEvent]:
     base = {
         "query_id": result.query_id,
         "run_id": result.run_id,
@@ -977,7 +994,7 @@ def _build_turn_events(result: Any) -> list[StoredEvent]:
         "snapshot_revision": result.snapshot_revision,
     }
     events: list[StoredEvent] = [
-        StoredEvent("retrieval_started", {**base, "event_sequence": 1}),
+        StoredEvent("retrieval_started", {**base, "event_sequence": 1}, lookup_revision),
         StoredEvent(
             "evidence_verified",
             {

@@ -1,5 +1,9 @@
 import type { ModelCheckResult, ModelProfilePayload } from "../components/ai/aiConfig";
 import type {
+  AdminDocumentAction,
+  AdminDocumentDetail,
+  AdminDocumentList,
+  AdminDocumentPatch,
   AdminUserItem,
   AnswerDocument,
   AuditEventsResponse,
@@ -85,8 +89,9 @@ function createTimeoutController(
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   const timeoutMs = path.startsWith("/api/v1/query/") || path.endsWith("/retry") ? queryTimeoutMs
-    : (path === "/api/v1/admin/documents/drafts" || path.endsWith("/reextract")) &&
-        init.method === "POST" ? pdfWorkTimeoutMs
+    : ((path === "/api/v1/admin/documents/drafts" || path.endsWith("/reextract") ||
+        path.endsWith("/reprocess")) && init.method === "POST") ||
+        (path.startsWith("/api/v1/admin/documents/") && init.method === "PATCH") ? pdfWorkTimeoutMs
       : path.endsWith("/probe") ? 35000
         // A model check lists models and sends one request; a cold local model may load first.
         : path.endsWith("/model-registry/test") || /\/model-registry\/[^/]+\/test$/.test(path) ? 100000
@@ -580,6 +585,7 @@ async function fetchSourcePdf(
       headers: bearerHeader(options.accessToken),
       signal,
       redirect: "error",
+      cache: "no-store",
     });
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as {
@@ -638,13 +644,20 @@ export async function fetchOriginalFile(
   if (!ORIGINAL_SOURCE_PATH.test(originalUrl)) {
     throw new ApiRequestError("Đường dẫn tệp gốc không hợp lệ.", 400, "SOURCE_URL_INVALID");
   }
+  return fetchSourceFile(originalUrl, options);
+}
+
+async function fetchSourceFile(
+  path: string, options: { accessToken?: string; signal?: AbortSignal },
+): Promise<OriginalFile> {
   const { signal, cleanup } = createTimeoutController(options.signal, 60000);
   try {
-    const response = await fetch(`${API_BASE}${originalUrl}`, {
+    const response = await fetch(`${API_BASE}${path}`, {
       method: "GET",
       headers: bearerHeader(options.accessToken),
       signal,
       redirect: "error",
+      cache: "no-store",
     });
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as {
@@ -786,7 +799,7 @@ export function reextractAdminDraft(accessToken: string, versionId: string): Pro
 export function approveAdminDraft(
   accessToken: string,
   versionId: string,
-  payload: { category_ids: string[]; review_note: string; resolve_all_tasks: boolean },
+  payload: { category_ids: string[]; review_note: string; resolve_all_tasks: boolean; revision?: number },
 ): Promise<{ document_id: string; document_version_id: string; status: string; approved_nodes: number }> {
   return request(`/api/v1/admin/documents/drafts/${versionId}/approve`, {
     method: "POST",
@@ -799,11 +812,86 @@ export function rejectAdminDraft(
   accessToken: string,
   versionId: string,
   reviewNote: string,
+  revision?: number,
 ): Promise<{ document_version_id: string; status: string }> {
   return request(`/api/v1/admin/documents/drafts/${versionId}/reject`, {
     method: "POST",
     headers: bearerHeader(accessToken),
-    body: JSON.stringify({ review_note: reviewNote }),
+    body: JSON.stringify({ review_note: reviewNote, revision }),
+  });
+}
+
+const ADMIN_DOCUMENTS_PATH = "/api/v1/admin/documents";
+
+function adminVersionPath(id: string, versionId: string): string {
+  return `${ADMIN_DOCUMENTS_PATH}/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`;
+}
+
+export function listAdminDocuments(
+  accessToken: string, filters: Record<string, string>, page: number, signal?: AbortSignal,
+): Promise<AdminDocumentList> {
+  const params = new URLSearchParams({ page: String(page), page_size: "20" });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value.trim()) params.set(key, value.trim());
+  }
+  return request(`${ADMIN_DOCUMENTS_PATH}?${params}`, {
+    headers: bearerHeader(accessToken), signal, cache: "no-store",
+  });
+}
+
+export function getAdminDocument(
+  accessToken: string, id: string, versionId: string, pageNumber: number, nodePage: number,
+  signal?: AbortSignal,
+): Promise<AdminDocumentDetail> {
+  const params = new URLSearchParams({
+    page_number: String(pageNumber), node_page: String(nodePage),
+  });
+  if (versionId) params.set("version_id", versionId);
+  return request(`${ADMIN_DOCUMENTS_PATH}/${encodeURIComponent(id)}?${params}`, {
+    headers: bearerHeader(accessToken), signal, cache: "no-store",
+  });
+}
+
+export function fetchAdminDocumentOriginal(
+  accessToken: string, id: string, versionId: string, signal?: AbortSignal,
+): Promise<OriginalFile> {
+  return fetchSourceFile(`${adminVersionPath(id, versionId)}/original`, { accessToken, signal });
+}
+
+export function fetchAdminDocumentPdf(
+  accessToken: string, id: string, versionId: string, signal?: AbortSignal,
+): Promise<Blob> {
+  return fetchSourcePdf(`${adminVersionPath(id, versionId)}/original?pdf=true`, { accessToken, signal });
+}
+
+interface AdminDocumentMutation {
+  version_id: string;
+  revision: number;
+  status: string;
+}
+
+export function patchAdminDocument(
+  accessToken: string, id: string, versionId: string, patch: AdminDocumentPatch,
+): Promise<AdminDocumentMutation> {
+  return request(adminVersionPath(id, versionId), {
+    method: "PATCH", headers: bearerHeader(accessToken), body: JSON.stringify(patch),
+  });
+}
+
+export function reprocessAdminDocument(
+  accessToken: string, id: string, versionId: string, revision: number,
+): Promise<AdminDocumentMutation> {
+  return request(`${adminVersionPath(id, versionId)}/reprocess`, {
+    method: "POST", headers: bearerHeader(accessToken), body: JSON.stringify({ revision }),
+  });
+}
+
+export function changeAdminDocumentAvailability(
+  accessToken: string, documentIds: string[], action: AdminDocumentAction, reason: string,
+): Promise<{ updated: number }> {
+  return request(`${ADMIN_DOCUMENTS_PATH}/actions`, {
+    method: "POST", headers: bearerHeader(accessToken),
+    body: JSON.stringify({ document_ids: documentIds, action, reason, confirmed: true }),
   });
 }
 

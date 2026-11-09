@@ -31,6 +31,7 @@ CLAUSE_LEVEL_WARNING = (
 NOTE_PARTIAL_UNMAPPED = (
     "Văn bản đã được sửa đổi một phần; chưa xác định khoản này có bị ảnh hưởng."
 )
+NOTE_SOURCE_UNAVAILABLE = "Một căn cứ xác định hiệu lực hiện không mở được trong kho."
 _TERMINAL = {"repealed", "replaced", "suspended"}
 # SQL twin of ``extract.number_key`` (accents folded, spaces removed, lower case).
 NUMBER_KEY_SQL = (
@@ -85,6 +86,7 @@ async def match_target(
         JOIN LATERAL (
             SELECT publication_date, effective_from FROM document_versions v
             WHERE v.document_id = d.id AND v.review_status = 'approved'
+              AND v.retired_at IS NULL
             ORDER BY v.version_number DESC LIMIT 1) dv ON TRUE
         WHERE d.deleted_at IS NULL AND d.document_number IS NOT NULL
           AND ({_number_key_sql('d.document_number')} = $1
@@ -138,7 +140,13 @@ async def detect_and_store_dates(connection: Any, version_id: UUID) -> dict[str,
     """Read issue/effective dates by rule and keep them for the source reviewer."""
 
     meta = await connection.fetchrow(
-        """SELECT d.id, d.doc_type, d.title, d.document_number
+        """SELECT d.id,
+                  CASE WHEN dv.admin_metadata IS NULL THEN d.doc_type
+                       ELSE dv.admin_metadata->>'doc_type' END AS doc_type,
+                  CASE WHEN dv.admin_metadata IS NULL THEN d.title
+                       ELSE dv.admin_metadata->>'title' END AS title,
+                  CASE WHEN dv.admin_metadata IS NULL THEN d.document_number
+                       ELSE dv.admin_metadata->>'document_number' END AS document_number
            FROM document_versions dv JOIN documents d ON d.id = dv.document_id
            WHERE dv.id = $1""",
         version_id,
@@ -202,7 +210,7 @@ async def extract_version_relations(connection: Any, version_id: UUID) -> dict[s
     meta = await connection.fetchrow(
         """SELECT d.id, d.doc_type, d.title, d.document_number, dv.effective_from
            FROM document_versions dv JOIN documents d ON d.id = dv.document_id
-           WHERE dv.id = $1 AND dv.review_status = 'approved'""",
+           WHERE dv.id = $1 AND dv.review_status = 'approved' AND dv.retired_at IS NULL""",
         version_id,
     )
     counts = {"relations": 0, "references": 0, "node_dates": 0, "ai_candidates": 0}
@@ -333,7 +341,7 @@ async def _resolve_node_path(connection: Any, document_id: UUID, path: str) -> U
     rows = await connection.fetch(
         """SELECT n.id FROM document_nodes n
            JOIN document_versions dv ON dv.id = n.document_version_id
-           WHERE n.document_id = $1 AND dv.review_status = 'approved'
+           WHERE n.document_id = $1 AND dv.review_status = 'approved' AND dv.retired_at IS NULL
              AND n.path ~ $2
            ORDER BY dv.version_number DESC, length(n.path) LIMIT 2""",
         document_id, parsed[0],
@@ -413,6 +421,7 @@ async def publish_snapshot(connection: Any, *, actor_id: UUID | None) -> dict[st
            JOIN LATERAL (
              SELECT effective_from, reviewed_at FROM document_versions v
              WHERE v.document_id = d.id AND v.review_status = 'approved'
+               AND v.retired_at IS NULL
              ORDER BY v.version_number DESC LIMIT 1) dv ON TRUE
            WHERE d.deleted_at IS NULL"""
     )
@@ -422,8 +431,12 @@ async def publish_snapshot(connection: Any, *, actor_id: UUID | None) -> dict[st
                   COALESCE(sd.document_number, sd.title) AS source_label,
                   a.reviewed_by::text AS reviewer, a.reviewed_at
            FROM node_amendments a
+           JOIN document_nodes sn ON sn.id = a.source_node_id
+           JOIN document_versions sv ON sv.id = sn.document_version_id
            LEFT JOIN documents sd ON sd.id = a.source_document_id
            WHERE a.target_document_id IS NOT NULL AND a.superseded_by IS NULL
+             AND sn.review_status = 'approved'
+             AND sv.review_status = 'approved' AND sv.retired_at IS NULL
              AND a.review_status IN ('draft', 'pending_review', 'approved')"""
     )
     attestations = await connection.fetch(
@@ -599,19 +612,32 @@ async def load_effectivity(
              AND dei.valid_from <= $3 AND (dei.valid_to IS NULL OR dei.valid_to > $3)""",
         snapshot["id"] if snapshot else None, doc_list, as_of,
     ) if snapshot else []
-    pending = {
-        row["target_document_id"]: int(row["count"])
-        for row in await connection.fetch(
-            """SELECT target_document_id, count(*) FROM node_amendments
-               WHERE target_document_id = ANY($1::uuid[]) AND superseded_by IS NULL
-                 AND review_status IN ('draft', 'pending_review')
-               GROUP BY target_document_id""",
-            doc_list,
-        )
-    }
+    source_state = await connection.fetch(
+        """SELECT target_document_id,
+                  count(*) FILTER (WHERE available AND superseded_by IS NULL
+                                    AND review_status IN ('draft', 'pending_review')) AS pending,
+                  bool_or(NOT available AND review_status = 'approved') AS redact
+           FROM (
+               SELECT a.target_document_id, a.review_status, a.superseded_by,
+                      (d.deleted_at IS NULL AND d.suspended_at IS NULL
+                       AND v.review_status = 'approved' AND v.retired_at IS NULL
+                       AND n.review_status = 'approved') AS available
+               FROM node_amendments a
+               JOIN document_nodes n ON n.id = a.source_node_id
+               JOIN document_versions v ON v.id = n.document_version_id
+               JOIN documents d ON d.id = n.document_id
+               WHERE a.target_document_id = ANY($1::uuid[])
+           ) sources GROUP BY target_document_id""",
+        doc_list,
+    )
+    pending = {row["target_document_id"]: int(row["pending"]) for row in source_state}
+    # A snapshot also carries free-text notes about future relations. Suppress the
+    # notes when any related source is unavailable, while preserving legal status.
+    redacted = {row["target_document_id"] for row in source_state if row["redact"]}
     reviewed = await clause_level_reviewed(connection, doc_list)
     for row in doc_rows:
-        notes = _json_list(row["notes"])
+        notes = ([NOTE_SOURCE_UNAVAILABLE] if row["document_id"] in redacted
+                 else _json_list(row["notes"]))
         verification, extra = cap_verification(
             row["effective_status"], row["verification_state"], row["verification_source"],
             as_of=as_of, data_date=data_date,
@@ -651,7 +677,9 @@ async def load_effectivity(
             nodes[str(row["id"])] = EffectivityView(
                 status=AmendmentStatus(row["status"]),
                 verification=VerificationState(row["verification_state"]), level="node",
-                as_of_date=as_of, notes=_json_list(row["notes"]),
+                as_of_date=as_of, notes=([NOTE_SOURCE_UNAVAILABLE]
+                                         if row["document_id"] in redacted
+                                         else _json_list(row["notes"])),
                 pending_proposals=parent.pending_proposals if parent else 0,
                 clause_level_reviewed=parent.clause_level_reviewed if parent else False,
                 data_date=data_date,

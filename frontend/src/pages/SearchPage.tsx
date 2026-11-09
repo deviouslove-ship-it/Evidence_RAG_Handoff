@@ -56,7 +56,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   RATE_LIMITED: "Bạn tìm kiếm quá nhanh. Thử lại sau vài giây.",
   SEARCH_TIMEOUT: "Tìm kiếm mất quá nhiều thời gian. Thu hẹp bộ lọc rồi thử lại.",
   CLIENT_TIMEOUT: "Tìm kiếm mất quá nhiều thời gian. Thu hẹp bộ lọc rồi thử lại.",
-  RESULT_SET_EXPIRED: "Kết quả đã hết hạn lưu tạm. Hãy tìm lại.",
+  RESULT_SET_EXPIRED: "Kết quả đã hết hạn hoặc kho văn bản đã thay đổi. Hãy tìm lại.",
   QUERY_EMPTY: "Hãy nhập nội dung cần tìm.",
 };
 
@@ -136,6 +136,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
   const [loadingDocument, setLoadingDocument] = useState<string>();
   const [error, setError] = useState<string>();
   const autoRun = useRef(false);
+  const currentResultId = useRef<string>();
 
   useEffect(() => {
     if (!accessToken) {
@@ -156,6 +157,25 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
     tier: tiers, status: status || undefined, verification: verification || undefined,
     view: "documents" as const, pageSize: PAGE_SIZE, clausesPerDocument: 3,
   }), [statusFilter, verificationFilter]);
+
+  const expireResults = useCallback((resultSetId = currentResultId.current) => {
+    if (resultSetId !== currentResultId.current) return;
+    currentResultId.current = undefined;
+    setResult(undefined);
+    setDocuments([]);
+    setWeak(undefined);
+    setWeakOpen(false);
+    setError(ERROR_MESSAGES.RESULT_SET_EXPIRED);
+  }, []);
+
+  const reportError = useCallback((caught: unknown, resultSetId = currentResultId.current) => {
+    if (resultSetId !== currentResultId.current) return;
+    if (caught instanceof ApiRequestError && caught.code === "RESULT_SET_EXPIRED") {
+      expireResults(resultSetId);
+    } else {
+      setError(errorMessage(caught));
+    }
+  }, [expireResults]);
 
   const search = useCallback(async (next: SearchForm = form, nextExcluded = excluded) => {
     const q = next.q.trim();
@@ -180,14 +200,15 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
       });
       setStatusFilter("");
       setVerificationFilter("");
+      currentResultId.current = response.result_set_id;
       setResult(response);
       setDocuments((response.documents ?? []).map(fromSearchDocument));
     } catch (caught) {
-      setError(errorMessage(caught));
+      reportError(caught);
     } finally {
       setBusy(false);
     }
-  }, [accessToken, excluded, form]);
+  }, [accessToken, excluded, form, reportError]);
 
   const initialForm = useRef(form);
   useEffect(() => {
@@ -213,16 +234,18 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
 
   async function goTo(page: number, status = statusFilter, verification = verificationFilter) {
     if (!accessToken || !result) return;
+    const resultSetId = result.result_set_id;
     setBusy(true);
     setError(undefined);
     try {
-      const response = await getComprehensivePage(accessToken, result.result_set_id, page,
+      const response = await getComprehensivePage(accessToken, resultSetId, page,
                                                    pageFilters(RELEVANT_TIERS, status, verification));
+      if (resultSetId !== currentResultId.current) return;
       setResult(response);
       setDocuments((response.documents ?? []).map(fromSearchDocument));
       if (weakOpen) await loadWeak(1, status, verification);
     } catch (caught) {
-      setError(errorMessage(caught));
+      reportError(caught, resultSetId);
     } finally {
       setBusy(false);
     }
@@ -230,23 +253,28 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
 
   async function loadWeak(page = 1, status = statusFilter, verification = verificationFilter) {
     if (!accessToken || !result) return;
+    const resultSetId = result.result_set_id;
     try {
-      setWeak(await getComprehensivePage(accessToken, result.result_set_id, page,
-                                         pageFilters(["weak"], status, verification)));
+      const response = await getComprehensivePage(
+        accessToken, resultSetId, page, pageFilters(["weak"], status, verification),
+      );
+      if (resultSetId === currentResultId.current) setWeak(response);
     } catch (caught) {
-      setError(errorMessage(caught));
+      reportError(caught, resultSetId);
     }
   }
 
   async function loadMore(documentId: string, weakList = false) {
     if (!accessToken || !result) return;
+    const resultSetId = result.result_set_id;
     setLoadingDocument(documentId);
     try {
       const response = await getComprehensiveDocumentClauses(
-        accessToken, result.result_set_id, documentId, {
+        accessToken, resultSetId, documentId, {
           tier: weakList ? ["weak"] : RELEVANT_TIERS,
           status: statusFilter || undefined, verification: verificationFilter || undefined,
         });
+      if (resultSetId !== currentResultId.current) return;
       const replace = (items: DocView[]) => items.map((document) => document.key === documentId
         ? { ...document, clauses: response.clauses.map(fromSearchItem), moreClauses: 0 }
         : document);
@@ -261,7 +289,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
         setDocuments((current) => replace(current));
       }
     } catch (caught) {
-      setError(errorMessage(caught));
+      reportError(caught, resultSetId);
     } finally {
       setLoadingDocument(undefined);
     }
@@ -597,8 +625,10 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
           </details>
 
           {accessToken && (
-            <SynthesisPanel accessToken={accessToken} onlyRelevant
-                            resultSetId={result.result_set_id} />
+            <SynthesisPanel
+              accessToken={accessToken} key={result.result_set_id} onlyRelevant
+              onExpired={expireResults} resultSetId={result.result_set_id}
+            />
           )}
         </section>
       )}

@@ -46,10 +46,11 @@ async def attach_effectivity(connection: Any, refs: list[EvidenceRef], as_of: da
 ALLOWED_DOCUMENTS_SQL = """
 SELECT DISTINCT d.id AS document_id
 FROM documents d
-WHERE d.deleted_at IS NULL
+WHERE d.deleted_at IS NULL AND d.suspended_at IS NULL
   AND EXISTS (
       SELECT 1 FROM document_versions dv
       WHERE dv.document_id = d.id AND dv.review_status = 'approved'
+        AND dv.retired_at IS NULL
   )
   AND (
       EXISTS (
@@ -164,7 +165,7 @@ latest AS (
     FROM document_versions dv
     JOIN allowed a ON a.document_id = dv.document_id
     JOIN documents d ON d.id = dv.document_id AND d.deleted_at IS NULL
-    WHERE dv.review_status = 'approved'
+    WHERE dv.review_status = 'approved' AND dv.retired_at IS NULL
       AND (dv.valid_from IS NULL OR dv.valid_from <= $1::date)
       AND (dv.valid_to IS NULL OR dv.valid_to > $1::date)
       AND ($2::uuid[] IS NULL OR EXISTS (
@@ -299,7 +300,8 @@ WITH number_docs AS MATERIALIZED (
     FROM candidate_ids ci
     JOIN document_nodes n ON n.id = ci.node_id
     JOIN document_versions dv ON dv.id = n.document_version_id
-    JOIN documents d ON d.id = n.document_id AND d.deleted_at IS NULL
+    JOIN documents d ON d.id = n.document_id
+      AND d.deleted_at IS NULL AND d.suspended_at IS NULL
     -- Per-candidate span/page verification; LIMIT keeps it a keyed lookup.
     CROSS JOIN LATERAL (
         SELECT sp.page_number
@@ -327,6 +329,7 @@ WITH number_docs AS MATERIALIZED (
     LEFT JOIN LATERAL ({EFFECTIVE_STATUS_LATERAL.format(as_of="$2")}
     ) eff ON TRUE
     WHERE n.review_status = 'approved' AND dv.id = ANY($1::uuid[])
+      AND dv.review_status = 'approved' AND dv.retired_at IS NULL
 ), ranked AS (
     SELECT * FROM scored
     ORDER BY (number_match AND article_match) DESC, number_match DESC,

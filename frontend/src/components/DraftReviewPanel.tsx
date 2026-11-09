@@ -8,6 +8,8 @@ const REVIEW_REASON_LABELS: Record<string, string> = {
   source_revalidation_required: "Cần đối chiếu lại dữ liệu trích xuất với PDF gốc",
   source_reextraction_review: "Cần rà soát lại kết quả trích xuất từ PDF gốc",
   metadata_and_source_verification: "Cần xác minh thông tin và nguồn công bố",
+  metadata_changed: "Cần kiểm tra lại thông tin văn bản đã chỉnh sửa",
+  document_reprocessed: "Cần rà soát lại kết quả xử lý từ tệp gốc",
   document_number_not_in_ocr_text: "Không thấy số hiệu đã khai báo trong chữ OCR hai trang đầu; đối chiếu số hiệu trên bản scan",
 };
 

@@ -219,7 +219,98 @@ export interface PdfDraftListItem {
   sha256: string;
   page_count: number;
   open_review_tasks: number;
+  source_review_revision?: number;
 }
+
+export type AdminDocumentAvailability = "active" | "suspended" | "deleted";
+export type AdminDocumentAction = "suspend" | "resume" | "delete" | "restore";
+
+export interface AdminDocumentSummary {
+  id: string;
+  title: string;
+  doc_type: string;
+  document_number: string | null;
+  issuing_body: string | null;
+  publication_date: string | null;
+  review_status: "draft" | "pending_review" | "approved" | "rejected";
+  effectivity: AmendmentState | null;
+  availability: AdminDocumentAvailability;
+  version_id: string;
+  version_number: number;
+  can_read: boolean;
+  can_edit: boolean;
+}
+
+export interface AdminDocumentList {
+  items: AdminDocumentSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface AdminDocumentMetadata {
+  title: string;
+  doc_type: string;
+  document_number: string | null;
+  issuing_body: string | null;
+  publication_date: string | null;
+  effective_from: string | null;
+  official_url: string | null;
+}
+
+export interface AdminDocumentDetail {
+  document: AdminDocumentSummary;
+  versions: Array<{
+    id: string;
+    version_number: number;
+    review_status: AdminDocumentSummary["review_status"];
+    publication_date: string | null;
+    source_format: string | null;
+    original_filename: string | null;
+    retired: boolean;
+  }>;
+  categories: Array<Pick<AuthorizedCategory, "id" | "name">>;
+  page_count: number;
+  node_count: number;
+  node_page_size: number;
+  nodes: Array<{
+    id: string;
+    parent_id: string | null;
+    node_type: string;
+    label: string | null;
+    path: string;
+    text: string;
+    page_start: number | null;
+    page_end: number | null;
+  }>;
+  page: {
+    page_number: number;
+    text: string | null;
+    extraction_method: string;
+    text_quality: string;
+    reviewed: boolean;
+    diagnostics?: { flags?: string[] } | null;
+  } | null;
+  embedding: { indexed_nodes: number; total_nodes: number; index_ready: boolean };
+  history: Array<{
+    action: string;
+    occurred_at: string;
+    actor: string | null;
+    metadata: Record<string, unknown>;
+  }>;
+  revision: number;
+  official_url: string | null;
+  effective_from: string | null;
+  original_filename: string | null;
+  open_review_tasks: number;
+  can_submit: boolean;
+  can_review: boolean;
+}
+
+export type AdminDocumentPatch = Partial<AdminDocumentMetadata> & {
+  revision: number;
+  ocr_page?: { page_number: number; text: string };
+};
 
 export interface AdminUserItem {
   id: string;

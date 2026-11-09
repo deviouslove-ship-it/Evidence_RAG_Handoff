@@ -13,7 +13,8 @@ import re
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
-from typing import Annotated, Any, TypeVar, cast
+from typing import Annotated, Any, Literal, TypeVar, cast
+from urllib.parse import quote
 from uuid import UUID
 
 import asyncpg
@@ -43,8 +44,13 @@ from ...audit import append_audit
 from ...auth_acl.policy import Permission, Principal
 from ...documents.convert import PDF_MAGIC, ConvertedSource, convert_to_pdf
 from ...documents.deduplication import find_content_matches
-from ...documents.draft import persist_draft, prepare_draft
+from ...documents.draft import new_original_base, persist_draft, prepare_draft
 from ...documents.draft_read import list_document_drafts, load_draft_pdf
+from ...documents.management_access import scope_params, version_scope
+from ...documents.management_read import detail as managed_document_detail
+from ...documents.management_read import list_documents
+from ...documents.management_read import original as managed_document_original
+from ...documents.management_write import DocumentAction, change_availability, change_version
 from ...documents.ocr import configured_ocr_engine
 from ...documents.preview import inspect_pdf_preview
 from ...documents.provenance import sha256_bytes
@@ -63,6 +69,7 @@ from ...model_registry.runtime import EndpointPolicy, RegistryRuntime
 from ...model_registry.secret_store import SecretStoreError
 from ...model_registry.stages import STAGES
 from ...schemas import (
+    AmendmentStatus,
     ModelProfileRequest,
     PdfContentDuplicates,
     PdfDraftListItem,
@@ -80,7 +87,7 @@ from ...storage.embedding_jobs import (
     embedding_overview,
     preflight,
 )
-from .dependencies import get_principal
+from .dependencies import get_principal, no_store
 from .errors import api_error
 from .guards import (
     database_pool,
@@ -180,12 +187,14 @@ class VersionApproveRequest(BaseModel):
     # Dates read by rule are confirmed with the approval; these correct them.
     publication_date: date | None = None
     effective_from: date | None = None
+    revision: int | None = Field(default=None, ge=1)
 
 
 class VersionRejectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     review_note: str = Field(min_length=1, max_length=2000)
+    revision: int | None = Field(default=None, ge=1)
 
 
 class StageRouteUpsertRequest(BaseModel):
@@ -265,6 +274,8 @@ async def create_document_draft(
     issuing_body: Annotated[str | None, Form(max_length=300)] = None,
     publication_date: Annotated[date | None, Form()] = None,
     official_url: Annotated[str | None, Form(max_length=2000)] = None,
+    document_id: Annotated[UUID | None, Form()] = None,
+    revision: Annotated[int | None, Form(ge=1)] = None,
 ) -> PdfDraftResponse:
     settings = request.app.state.settings
     pool = getattr(request.app.state, "db_pool", None)
@@ -274,6 +285,16 @@ async def create_document_draft(
     doc_type = doc_type.strip()
     if not title or not doc_type:
         raise api_error(status.HTTP_422_UNPROCESSABLE_ENTITY, "INVALID_DOCUMENT_METADATA")
+    existing_document = None
+    if document_id is not None:
+        if revision is None:
+            raise api_error(422, "INVALID_REQUEST")
+        try:
+            async with pool.acquire() as connection:
+                await new_original_base(connection, principal, document_id, revision)
+        except ReviewError as exc:
+            raise api_error(exc.status_code, exc.code) from exc
+        existing_document = (document_id, revision, principal)
     upload = await _read_bounded_pdf(file, settings.max_upload_bytes)
     try:
         converted = await _convert_upload(
@@ -318,7 +339,10 @@ async def create_document_draft(
             official_url=official_url,
             submitted_by=UUID(principal.id),
             converted=converted if converted.source_format != "pdf" else None,
+            existing_document=existing_document,
         )
+    except ReviewError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
     except asyncpg.UniqueViolationError as exc:
         raise api_error(status.HTTP_409_CONFLICT, "DUPLICATE_PDF_HASH") from exc
     except pdfium.PdfiumError as exc:
@@ -350,7 +374,8 @@ async def reextract_document_draft(
     try:
         content = await load_draft_pdf(
             pool, store_root=Path(settings.document_store_root), version_id=version_id,
-            max_bytes=settings.max_upload_bytes,
+            max_bytes=settings.max_upload_bytes, staff=scope_params(principal),
+            legacy_reextract=True,
         )
         prepared = await _run_pdf_work(
             request, prepare_draft, content, max_pages=settings.max_preview_pages,
@@ -395,6 +420,11 @@ async def get_draft_content_duplicates(
         )
         if row is None:
             raise api_error(404, "DRAFT_NOT_FOUND")
+        actor, curator, reviewer = scope_params(principal)
+        scope = await version_scope(connection, version_id, actor, curator=curator,
+                                    reviewer=reviewer)
+        if scope is None or (scope["managed"] and not scope["can_read"]):
+            raise api_error(404, "DRAFT_NOT_FOUND")
         fingerprint = row["native_text_fingerprint_v1"]
         matches = await find_content_matches(
             connection, fingerprint=fingerprint, viewer_id=UUID(principal.id),
@@ -408,21 +438,22 @@ async def get_draft_content_duplicates(
 @router.get("/documents/drafts", response_model=list[PdfDraftListItem])
 async def list_drafts(
     request: Request,
-    _principal: Annotated[Principal, Depends(require_document_reviewer)],
+    principal: Annotated[Principal, Depends(require_document_reviewer)],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[PdfDraftListItem]:
     pool = getattr(request.app.state, "db_pool", None)
     if pool is None:
         raise api_error(status.HTTP_503_SERVICE_UNAVAILABLE, "DRAFT_STORE_NOT_CONFIGURED")
-    return await list_document_drafts(pool, limit=limit, offset=offset)
+    return await list_document_drafts(pool, limit=limit, offset=offset,
+                                      staff=scope_params(principal))
 
 
 @router.get("/documents/drafts/{version_id}/pdf")
 async def draft_pdf(
     request: Request,
     version_id: UUID,
-    _principal: Annotated[Principal, Depends(require_document_reviewer)],
+    principal: Annotated[Principal, Depends(require_document_reviewer)],
 ) -> Response:
     settings = request.app.state.settings
     pool = getattr(request.app.state, "db_pool", None)
@@ -432,6 +463,7 @@ async def draft_pdf(
         content = await load_draft_pdf(
             pool, store_root=Path(settings.document_store_root),
             version_id=version_id, max_bytes=settings.max_upload_bytes,
+            staff=scope_params(principal),
         )
     except KeyError as exc:
         raise api_error(status.HTTP_404_NOT_FOUND, "DRAFT_NOT_FOUND") from exc
@@ -465,12 +497,13 @@ async def submit_draft(
 @router.get("/documents/review-tasks")
 async def get_review_tasks(
     request: Request,
-    _principal: Annotated[Principal, Depends(require_document_reviewer)],
+    principal: Annotated[Principal, Depends(require_document_reviewer)],
     version_id: UUID | None = None,
     status_filter: Annotated[str | None, Query(alias="status")] = None,
 ) -> list[dict[str, Any]]:
     return await list_review_tasks(
-        database_pool(request), version_id=version_id, status_filter=status_filter
+        database_pool(request), version_id=version_id, status_filter=status_filter,
+        staff=scope_params(principal),
     )
 
 
@@ -515,6 +548,7 @@ async def approve_version(
             resolve_all_tasks=body.resolve_all_tasks,
             publication_date=body.publication_date,
             effective_from=body.effective_from,
+            revision=body.revision,
         )
     except ReviewError as exc:
         raise api_error(exc.status_code, exc.code) from exc
@@ -533,6 +567,7 @@ async def reject_version(
             version_id=version_id,
             reviewer_id=UUID(principal.id),
             review_note=body.review_note,
+            revision=body.revision,
         )
     except ReviewError as exc:
         raise api_error(exc.status_code, exc.code) from exc
@@ -989,3 +1024,203 @@ async def get_audit_events(
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> dict[str, Any]:
     return await list_audit_events(database_pool(request), limit=limit)
+
+
+class DocumentOcrEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    page_number: int = Field(ge=1, le=100_000)
+    text: str = Field(max_length=50_000)
+
+
+class DocumentRevisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int = Field(ge=1, le=9_223_372_036_854_775_807)
+
+
+class DocumentEditRequest(DocumentRevisionRequest):
+    title: str | None = Field(default=None, max_length=500)
+    doc_type: str | None = Field(default=None, max_length=80)
+    document_number: str | None = Field(default=None, max_length=120)
+    issuing_body: str | None = Field(default=None, max_length=300)
+    publication_date: date | None = None
+    effective_from: date | None = None
+    official_url: str | None = Field(default=None, max_length=2048)
+    ocr_page: DocumentOcrEdit | None = None
+
+
+class DocumentActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document_ids: list[UUID] = Field(min_length=1, max_length=100)
+    action: DocumentAction
+    reason: str = Field(min_length=1, max_length=2000)
+    confirmed: Literal[True]
+
+
+@router.get("/documents", dependencies=[Depends(no_store)])
+async def admin_documents(
+    request: Request,
+    principal: Annotated[Principal, Depends(require_admin_or_doc_staff)],
+    q: Annotated[str, Query(max_length=500)] = "",
+    document_number: Annotated[str, Query(max_length=120)] = "",
+    title: Annotated[str, Query(max_length=500)] = "",
+    doc_type: Annotated[str | None, Query(max_length=80)] = None,
+    issuing_body: Annotated[str, Query(max_length=300)] = "",
+    date_from: date | None = None,
+    date_to: date | None = None,
+    review_status: Literal["draft", "pending_review", "approved", "rejected"] | None = None,
+    effectivity: AmendmentStatus | None = None,
+    availability: Literal["active", "suspended", "deleted"] | None = None,
+    page: Annotated[int, Query(ge=1, le=1_000_000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> dict[str, Any]:
+    if date_from and date_to and date_from > date_to:
+        raise api_error(422, "INVALID_REQUEST")
+    return await list_documents(
+        database_pool(request), principal, q=q, document_number=document_number,
+        title=title, doc_type=doc_type, issuing_body=issuing_body, date_from=date_from,
+        date_to=date_to, review_status=review_status, effectivity=effectivity,
+        availability=availability, page=page, page_size=page_size, as_of=date.today(),
+    )
+
+
+@router.post("/documents/actions")
+async def admin_document_actions(
+    request: Request, body: DocumentActionRequest,
+    principal: Annotated[Principal, Depends(require_admin)],
+) -> dict[str, int]:
+    if not body.reason.strip():
+        raise api_error(422, "INVALID_REQUEST")
+    try:
+        updated = await change_availability(
+            database_pool(request), actor_id=UUID(principal.id),
+            document_ids=body.document_ids, action=body.action, reason=body.reason.strip(),
+        )
+    except ReviewError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
+    return {"updated": updated}
+
+
+@router.get("/documents/{document_id}", dependencies=[Depends(no_store)])
+async def admin_document_detail(
+    request: Request, document_id: UUID,
+    principal: Annotated[Principal, Depends(require_admin_or_doc_staff)],
+    version_id: UUID | None = None,
+    page_number: Annotated[int, Query(ge=1, le=100_000)] = 1,
+    node_page: Annotated[int, Query(ge=1, le=100_000)] = 1,
+) -> dict[str, Any]:
+    try:
+        return await managed_document_detail(
+            database_pool(request), principal, document_id, version_id=version_id,
+            page_number=page_number, node_page=node_page, as_of=date.today(),
+        )
+    except ReviewError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
+
+
+_MANAGED_VERSION = "/documents/{document_id}/versions/{version_id}"
+_SOURCE_MIME = {
+    "pdf": "application/pdf",
+    "txt": "text/plain",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+
+@router.get(_MANAGED_VERSION + "/original")
+async def admin_document_original(
+    request: Request, document_id: UUID, version_id: UUID,
+    principal: Annotated[Principal, Depends(require_admin_or_doc_staff)],
+    pdf: bool = False,
+) -> Response:
+    settings = request.app.state.settings
+    if not settings.document_store_root:
+        raise api_error(503, "DOCUMENT_STORE_NOT_CONFIGURED")
+    try:
+        content, source_format, filename = await managed_document_original(
+            database_pool(request), principal, document_id=document_id, version_id=version_id,
+            as_of=date.today(), store_root=Path(settings.document_store_root),
+            max_bytes=settings.max_upload_bytes, pdf=pdf,
+        )
+    except ReviewError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
+    disposition = "inline" if pdf else "attachment"
+    safe_name = quote(filename, safe="")
+    return Response(content, media_type=_SOURCE_MIME[source_format], headers={
+        "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": f"{disposition}; filename*=UTF-8''{safe_name}",
+    })
+
+
+@router.patch(_MANAGED_VERSION)
+async def admin_edit_document(
+    request: Request, document_id: UUID, version_id: UUID, body: DocumentEditRequest,
+    principal: Annotated[Principal, Depends(require_curator)],
+) -> dict[str, Any]:
+    changes = body.model_dump(exclude_unset=True, exclude={"revision", "ocr_page"})
+    for key, value in changes.items():
+        if isinstance(value, str):
+            changes[key] = value.strip() or None
+    if any(key in changes and not changes[key] for key in ("title", "doc_type")):
+        raise api_error(422, "INVALID_DOCUMENT_METADATA")
+    if not changes and body.ocr_page is None:
+        raise api_error(422, "INVALID_REQUEST")
+    ocr_page = (body.ocr_page.page_number, body.ocr_page.text) if body.ocr_page else None
+    if any(isinstance(value, str) and "\x00" in value for value in changes.values()) or (
+        ocr_page is not None and "\x00" in ocr_page[1]
+    ):
+        raise api_error(422, "INVALID_REQUEST")
+    try:
+        return await change_version(
+            database_pool(request), principal, document_id, version_id, revision=body.revision,
+            changes=changes, ocr_page=ocr_page, prepared=None, as_of=date.today(),
+        )
+    except ReviewError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
+    except ValueError as exc:
+        if str(exc) == "INVALID_SOURCE_URL":
+            raise api_error(422, "INVALID_SOURCE_URL") from exc
+        raise
+
+
+@router.post(_MANAGED_VERSION + "/reprocess")
+async def admin_reprocess_document(
+    request: Request, document_id: UUID, version_id: UUID, body: DocumentRevisionRequest,
+    principal: Annotated[Principal, Depends(require_curator)],
+) -> dict[str, Any]:
+    settings = request.app.state.settings
+    if not settings.document_store_root:
+        raise api_error(503, "DOCUMENT_STORE_NOT_CONFIGURED")
+    pool = database_pool(request)
+    root = Path(settings.document_store_root)
+    as_of = date.today()
+    try:
+        content, _, _ = await managed_document_original(
+            pool, principal, document_id=document_id, version_id=version_id,
+            as_of=as_of, store_root=root, max_bytes=settings.max_upload_bytes,
+            pdf=True, for_edit=True,
+        )
+        prepared = await _run_pdf_work(
+            request, prepare_draft, content, max_pages=settings.max_preview_pages,
+            ocr_engine=configured_ocr_engine(), temporary_root=root, isolate=True,
+            timeout_seconds=settings.pdf_timeout_seconds,
+        )
+        return await change_version(
+            pool, principal, document_id, version_id, revision=body.revision,
+            changes={}, ocr_page=None, prepared=prepared, as_of=as_of,
+        )
+    except ReviewError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
+    except ValueError as exc:
+        code = str(exc)
+        if code == "PDF_PARSE_TIMEOUT":
+            raise api_error(504, code) from exc
+        if code in {"PDF_PAGE_LIMIT_EXCEEDED", "PDF_RESOURCE_LIMIT_EXCEEDED"}:
+            raise api_error(413, code) from exc
+        if code in {"INVALID_PDF_MAGIC", "INVALID_PDF_STRUCTURE", "PDF_PARSE_FAILED"}:
+            raise api_error(422, code) from exc
+        raise
+    except pdfium.PdfiumError as exc:
+        raise api_error(422, "PDF_PARSE_FAILED") from exc

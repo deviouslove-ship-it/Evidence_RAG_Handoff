@@ -1,8 +1,20 @@
 # Trạng thái triển khai
 
-Cập nhật 07/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành**; diễn biến từng đợt nằm
+Cập nhật 09/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành**; diễn biến từng đợt nằm
 trong các báo cáo ở mục “Lịch sử”. Không coi ứng dụng là đã nghiệm thu: chưa có văn bản
 nghiệp vụ được duyệt, chưa có Gold; model thật mới chỉ được thử trên DB tạm (G1–G5).
+
+## Quản lý văn bản (09/11/2026)
+
+- Admin Portal có danh sách lọc và phân trang, chi tiết phiên bản, sửa metadata/OCR,
+  xử lý lại, gửi duyệt và quản lý trạng thái tra cứu theo quyền. Xem
+  [hướng dẫn quản lý văn bản](HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md#quản-lý-văn-bản).
+- Migration `0016` giữ dữ liệu cũ và thêm trạng thái tạm ngừng, phiên bản hiệu chỉnh,
+  nhật ký OCR và bộ đếm vô hiệu hóa cache tra cứu. Kiểm thử với PostgreSQL 18.6 và
+  pgvector 0.8.7 trên dữ liệu hư cấu, gồm nâng cấp giữ nguyên hash và vector cũ.
+- `verify.ps1` đạt 12/12 bước, backend 295 kiểm thử và frontend 94 kiểm thử đạt.
+  Chrome kiểm tra cổng Admin tại 360, 768 và 1280 px. Chưa đo chất lượng truy xuất
+  trên bộ dữ liệu và model AI của máy nhà.
 
 ## Diễn giải AI và PDF scan OCR (08/11/2026)
 

@@ -52,8 +52,13 @@ function page(extra: Record<string, unknown> = {}) {
   };
 }
 
-function install() {
+function install(expiredPath?: string) {
   const fetcher = vi.fn().mockImplementation((url: string) => {
+    if (expiredPath && url.includes(expiredPath)) {
+      return Promise.resolve(new Response(JSON.stringify({ code: "RESULT_SET_EXPIRED" }), {
+        status: 410,
+      }));
+    }
     if (url.endsWith("/api/v1/categories")) return Promise.resolve(new Response("[]", { status: 200 }));
     if (url.endsWith("/api/v1/search/comprehensive")) {
       return Promise.resolve(new Response(JSON.stringify(page()), { status: 200 }));
@@ -144,4 +149,18 @@ it("asks to log in before searching", () => {
   render(<SearchPage />);
   expect(screen.getByText("Đăng nhập để tìm kiếm trong văn bản đã duyệt.")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Tìm kiếm" })).toBeDisabled();
+});
+
+it.each([
+  ["/documents/d1", /Xem thêm 2 điều khoản khớp/],
+  ["/api/v1/synthesis", /Diễn giải AI/],
+])("clears visible results when %s reports expiration", async (path, button) => {
+  install(path);
+  render(<SearchPage accessToken="token" />);
+  await searchFor("báo cáo định kỳ");
+  expect(screen.getByRole("article", { name: "10/2014/TT-BCA" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: button }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Hãy tìm lại");
+  expect(screen.queryByRole("region", { name: "Kết quả tìm kiếm" })).not.toBeInTheDocument();
+  expect(screen.getByRole("searchbox", { name: "Nội dung cần tìm" })).toHaveValue("báo cáo định kỳ");
 });

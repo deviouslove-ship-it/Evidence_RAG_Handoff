@@ -60,6 +60,19 @@ export const DOC_TYPE_LABELS: Record<string, string> = {
   other: "Văn bản khác",
 };
 
+export const DOCUMENT_REVIEW_LABELS = {
+  draft: "Bản nháp",
+  pending_review: "Chờ thẩm định",
+  approved: "Đã phê duyệt",
+  rejected: "Đã từ chối",
+};
+
+export const DOCUMENT_AVAILABILITY_LABELS = {
+  active: "Cho phép tra cứu bản đã duyệt",
+  suspended: "Tạm ngừng tra cứu",
+  deleted: "Đã xóa mềm",
+};
+
 export const MATCH_LABELS: Record<string, string> = {
   phrase: "Khớp đúng cụm từ",
   terms: "Khớp đủ từ khóa",

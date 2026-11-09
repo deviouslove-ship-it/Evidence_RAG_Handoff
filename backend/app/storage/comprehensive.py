@@ -37,6 +37,7 @@ from ..workflow.chat_answer import display_title, kind_label
 from . import search as search_module
 from .cross_encoder import CrossEncoderClient, CrossEncoderError
 from .embeddings import active_index, missing_vectors, semantic_candidates
+from .lookup_visibility import lookup_revision
 from .relevance import TIER_ORDER, QueryTerms, analyze_terms, assess, unit_weights, word_plan
 from .search import SearchQuery, SearchQueryError, SearchService, parse_search_query
 from .search_paging import (
@@ -55,6 +56,29 @@ RELATION_DOCUMENTS = 20
 RELATION_CLAUSES_PER_DOCUMENT = 30
 MAX_EXPANSIONS = 6
 TERMINAL = {"repealed", "replaced", "suspended"}
+
+# Shared by relation retrieval and group display. A reviewed relation cannot expose
+# text or metadata from a version that is no longer available for lookup.
+_LIVE_RELATIONS = """
+live_amendments AS NOT MATERIALIZED (
+    SELECT a.*
+    FROM node_amendments a
+    JOIN document_nodes n ON n.id = a.source_node_id AND n.review_status = 'approved'
+    JOIN document_versions v ON v.id = n.document_version_id
+      AND v.review_status = 'approved' AND v.retired_at IS NULL
+    JOIN documents d ON d.id = n.document_id
+      AND d.deleted_at IS NULL AND d.suspended_at IS NULL
+    WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
+), live_references AS NOT MATERIALIZED (
+    SELECT r.*
+    FROM node_references r
+    JOIN document_nodes n ON n.id = r.source_node_id AND n.review_status = 'approved'
+    JOIN document_versions v ON v.id = n.document_version_id
+      AND v.review_status = 'approved' AND v.retired_at IS NULL
+    JOIN documents d ON d.id = n.document_id
+      AND d.deleted_at IS NULL AND d.suspended_at IS NULL
+)
+"""
 SECTION_LABELS = {
     "verified_active": "Còn hiệu lực (đã xác minh)",
     "unverified": "Chưa xác minh hiệu lực",
@@ -98,6 +122,8 @@ class ResultSet:
     node_effectivity: dict[str, EffectivityView]
     groups: dict[str, list[dict[str, Any]]]
     summary: dict[str, Any]
+    lookup_revision: int
+    allowed_documents: frozenset[UUID]
 
 
 class ResultSetStore:
@@ -200,6 +226,7 @@ class ComprehensiveSearch:
                 (request.semantic_query or request.query)[:2000], principal_id)
         concepts = await self._concepts(parsed, request, channels, principal_id)
         async with self._connection(principal_id) as connection:
+            revision = await lookup_revision(connection)
             allowed = await self.search._allowed_document_ids(connection)
             versions = (
                 await self.search._selected_version_ids(connection, allowed, as_of)
@@ -270,6 +297,7 @@ class ComprehensiveSearch:
                                         set(map(str, allowed)))
             assessed = await self._assess(connection, terms, fused, versions, concepts,
                                           number_key=parsed.document_number)
+        await self._check_revision(self.search._pool, revision)
         rerank_started = time.perf_counter()
         ranking = await self._rerank(parsed.original, fused, principal_id, request.rerank)
         ranking["backend"] = "cross_encoder" if self.cross_encoder is not None else "llm"
@@ -327,7 +355,7 @@ class ComprehensiveSearch:
             id=f"rs_{uuid4().hex}", principal_id=str(principal_id), created=now,
             expires=now + self.store.ttl, query=parsed.original, as_of=as_of, display=display,
             candidates=fused, effectivity=documents, node_effectivity=nodes, groups=groups,
-            summary=summary,
+            summary=summary, lookup_revision=revision, allowed_documents=frozenset(allowed),
         )
         self.store.put(result)
         await self._audit(principal_id, parsed, summary)
@@ -432,19 +460,38 @@ class ComprehensiveSearch:
     ) -> dict[str, Any]:
         """Rows of ``window`` the principal may still read (ACL and source re-checked)."""
 
-        if not window:
-            return {}
         async with self._connection(principal_id) as connection:
-            allowed = await self.search._allowed_document_ids(connection)
+            allowed = await self._check_current(connection, result_set)
             versions = (
                 await self.search._selected_version_ids(connection, allowed, result_set.as_of)
-                if allowed else []
+                if allowed and window else []
             )
-            return {
+            rows = {
                 row["node_id"]: row for row in await connection.fetch(
                     _HYDRATE_SQL, [UUID(item.node_id) for item in window], versions,
                 )
-            }
+            } if versions else {}
+            await self._check_revision(connection, result_set.lookup_revision)
+            return rows
+
+    async def assert_current(self, principal_id: UUID, result_set: ResultSet) -> None:
+        """Reject stale counts, effectivity and synthesis plans, including on other workers."""
+
+        async with self._connection(principal_id) as connection:
+            await self._check_current(connection, result_set)
+            await self._check_revision(connection, result_set.lookup_revision)
+
+    async def _check_current(self, connection: Any, result_set: ResultSet) -> list[UUID]:
+        await self._check_revision(connection, result_set.lookup_revision)
+        allowed = await self.search._allowed_document_ids(connection)
+        if frozenset(allowed) != result_set.allowed_documents:
+            raise SearchQueryError("RESULT_SET_EXPIRED", 410)
+        return allowed
+
+    @staticmethod
+    async def _check_revision(connection: Any, expected: int) -> None:
+        if await lookup_revision(connection) != expected:
+            raise SearchQueryError("RESULT_SET_EXPIRED", 410)
 
     def item_view(self, result_set: ResultSet, item: Candidate, row: Any,
                   position: int) -> dict[str, Any]:
@@ -770,22 +817,20 @@ class ComprehensiveSearch:
         if not document_ids:
             return []
         rows = await connection.fetch(
-            f"""WITH seeds AS (SELECT unnest($1::uuid[]) AS id),
+            f"""WITH seeds AS (SELECT unnest($1::uuid[]) AS id), {_LIVE_RELATIONS},
             related AS (
               SELECT a.source_document_id AS doc, a.source_node_id AS node
-              FROM node_amendments a JOIN seeds s ON s.id = a.target_document_id
-              WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
+              FROM live_amendments a JOIN seeds s ON s.id = a.target_document_id
               UNION
-              SELECT a.target_document_id, NULL FROM node_amendments a
+              SELECT a.target_document_id, NULL FROM live_amendments a
               JOIN seeds s ON s.id = a.source_document_id
-              WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
-                AND a.target_document_id IS NOT NULL
+              WHERE a.target_document_id IS NOT NULL
               UNION
-              SELECT r.source_document_id, NULL FROM node_references r
+              SELECT r.source_document_id, NULL FROM live_references r
               JOIN seeds s ON s.id = r.target_document_id
               WHERE r.reference_kind IN ('consolidation', 'guidance')
               UNION
-              SELECT r.target_document_id, NULL FROM node_references r
+              SELECT r.target_document_id, NULL FROM live_references r
               JOIN seeds s ON s.id = r.source_document_id
               WHERE r.reference_kind IN ('consolidation', 'guidance')
                 AND r.target_document_id IS NOT NULL
@@ -793,7 +838,7 @@ class ComprehensiveSearch:
             SELECT found.node_id, found.document_id FROM (
               SELECT n.id::text AS node_id, n.document_id::text AS document_id, 0 AS rank
               FROM related r JOIN document_nodes n ON n.id = r.node
-              WHERE n.document_version_id = ANY($2::uuid[])
+              WHERE n.document_version_id = ANY($2::uuid[]) AND n.review_status = 'approved'
               UNION ALL
               SELECT x.node_id, x.document_id, x.rank FROM related r
               CROSS JOIN LATERAL (
@@ -828,21 +873,20 @@ class ComprehensiveSearch:
         if not documents:
             return {}
         rows = await connection.fetch(
-            """SELECT a.source_document_id::text AS member, a.target_document_id::text AS root,
+            f"""WITH {_LIVE_RELATIONS}
+               SELECT a.source_document_id::text AS member, a.target_document_id::text AS root,
                       a.action AS role
-               FROM node_amendments a
-               WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
-                 AND a.scope = 'document' AND a.target_document_id IS NOT NULL
+               FROM live_amendments a
+               WHERE a.scope = 'document' AND a.target_document_id IS NOT NULL
                  AND a.action IN ('modify', 'add', 'repeal_partial')
                  AND a.source_document_id = ANY($1::uuid[])
                UNION
                SELECT a.target_document_id::text, a.source_document_id::text, 'replaced_by'
-               FROM node_amendments a
-               WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
-                 AND a.action = 'replace' AND a.target_document_id = ANY($1::uuid[])
+               FROM live_amendments a
+               WHERE a.action = 'replace' AND a.target_document_id = ANY($1::uuid[])
                UNION
                SELECT r.source_document_id::text, r.target_document_id::text, 'consolidation'
-               FROM node_references r
+               FROM live_references r
                WHERE r.reference_kind = 'consolidation' AND r.target_document_id IS NOT NULL
                  AND r.source_document_id = ANY($1::uuid[])""",
             [UUID(item) for item in documents],
@@ -850,18 +894,23 @@ class ComprehensiveSearch:
         roots = {row["root"] for row in rows}
         names = {
             str(row["id"]): row for row in await connection.fetch(
-                "SELECT id, document_number, title FROM documents WHERE id = ANY($1::uuid[])",
+                """SELECT d.id, d.document_number, d.title FROM documents d
+                   WHERE d.id = ANY($1::uuid[])
+                     AND d.deleted_at IS NULL AND d.suspended_at IS NULL
+                     AND EXISTS (SELECT 1 FROM document_versions v WHERE v.document_id = d.id
+                                 AND v.review_status = 'approved' AND v.retired_at IS NULL)""",
                 [UUID(item) for item in roots],
             )
         } if roots else {}
         groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for row in rows:
+            root = names.get(row["root"])
+            if root is None:
+                continue
             if row["root"] in allowed:
-                root = names.get(row["root"])
                 groups[row["member"]].append({
                     "root_document_id": row["root"], "role": row["role"],
-                    "root_number": root["document_number"] if root else None,
-                    "root_title": root["title"] if root else None,
+                    "root_number": root["document_number"], "root_title": root["title"],
                 })
             else:
                 groups[row["member"]].append({
@@ -941,7 +990,10 @@ class ComprehensiveSearch:
                     """SELECT n.id, COALESCE(n.citation_label, n.label_original) AS label,
                               d.document_number, n.text_original
                        FROM document_nodes n JOIN documents d ON d.id = n.document_id
-                       WHERE n.id = ANY($1::uuid[])""",
+                       JOIN document_versions v ON v.id = n.document_version_id
+                       WHERE n.id = ANY($1::uuid[]) AND n.review_status = 'approved'
+                         AND d.deleted_at IS NULL AND d.suspended_at IS NULL
+                         AND v.review_status = 'approved' AND v.retired_at IS NULL""",
                     [UUID(item.node_id) for item in head],
                 )
             }
@@ -1071,7 +1123,9 @@ SELECT n.id::text AS node_id, n.document_version_id, d.document_number, d.title,
        p2.label_original AS parent2
 FROM document_nodes n
 JOIN document_versions dv ON dv.id = n.document_version_id
-JOIN documents d ON d.id = n.document_id AND d.deleted_at IS NULL
+  AND dv.review_status = 'approved' AND dv.retired_at IS NULL
+JOIN documents d ON d.id = n.document_id
+  AND d.deleted_at IS NULL AND d.suspended_at IS NULL
 LEFT JOIN document_nodes p1 ON p1.id = n.parent_id AND p1.document_version_id = dv.id
 LEFT JOIN document_nodes p2 ON p2.id = p1.parent_id AND p2.document_version_id = dv.id
 JOIN source_spans ss

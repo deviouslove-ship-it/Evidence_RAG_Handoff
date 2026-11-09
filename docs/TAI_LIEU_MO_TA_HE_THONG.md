@@ -71,6 +71,31 @@ Với trang PDF scan, OCR chạy khi runtime được cấu hình, có chẩn đ
 
 Parser tạo cây Chương/Mục/Điều/Khoản/Điểm khi nhận diện được, lưu nhãn trích dẫn, quan hệ cha và các span nguồn theo trang; khoản dài hoặc qua nhiều trang có thể có nhiều đoạn neo. Các trường hợp mơ hồ cần rà soát. Tệp nguồn bất biến theo hash; khi mở, backend kiểm lại quyền, phiên bản, nguồn và SHA-256 thay vì tin đường dẫn do trình duyệt cung cấp.
 
+### Quản lý văn bản
+
+Admin Portal có danh sách văn bản phân trang, tìm theo số hiệu hoặc trích yếu và lọc theo cơ
+quan, loại, ngày ban hành, trạng thái duyệt, hiệu lực và trạng thái tra cứu. SYS_ADMIN quản lý
+danh sách và trạng thái tra cứu toàn kho. Quyền xem tệp nguồn, OCR và cây Điều/Khoản/Điểm
+được kiểm riêng. Với văn bản đã gán phạm vi, hệ thống dùng ACL danh mục hoặc ACL văn bản.
+REVIEWER duyệt bản sửa trong các danh mục được giao quyền duyệt. CURATOR sửa bản nháp
+của mình, gửi lại để một người khác duyệt.
+
+Biên tập metadata hoặc chữ OCR trên bản đã duyệt tạo bản nháp mới dùng chung tệp gốc bất
+biến. Sau khi phê duyệt bản hiệu chỉnh, phiên bản trước của cùng tệp được rút khỏi tra cứu và
+giữ trong lịch sử. Tệp mới có thể nhập vào cùng văn bản qua luồng nhập hiện có. Phiên bản
+từ tệp mới có thể tra cứu từ ngày ban hành đã xác nhận hoặc ngày duyệt nếu thiếu ngày ban
+hành. Chữ OCR sửa tay phải xác nhận lại từng trang bị sửa. Các quan hệ hiệu lực cấp nút trỏ
+tới phiên bản vừa rút được đưa lại vào hàng đợi duyệt. Bản xác nhận cấp nút cũ được đánh dấu
+cần xác minh lại. Lịch sử metadata và thao tác dùng audit log chuỗi băm. Chữ OCR trước và
+sau khi sửa được lưu riêng trong PostgreSQL.
+
+Tạm ngừng tra cứu và xóa mềm giữ tệp nguồn, vector, danh mục và lịch sử. Sau khi khôi phục
+văn bản đã xóa, cờ tạm ngừng trước đó vẫn có hiệu lực. Trạng thái tra cứu độc lập với hiệu lực
+pháp lý. Migration `0016` bổ sung các trường quản lý và bộ đếm phiên bản tra cứu trong
+PostgreSQL. Hỏi đáp, tìm kiếm, Diễn giải AI và API trích dẫn kiểm lại khả năng truy cập.
+Các bộ kết quả cũ hết hạn khi bộ đếm thay đổi giữa các tiến trình backend. Chỉ mục và model
+embedding tiếp tục do luồng Model Registry hiện có quản lý.
+
 ## 5. Hỏi đáp, tìm kiếm và diễn giải
 
 ### Hỏi đáp có căn cứ

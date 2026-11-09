@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { runSynthesis, type SynthesisResult } from "../api/client";
+import { ApiRequestError, runSynthesis, type SynthesisResult } from "../api/client";
 import { AiAnswerView } from "./AiAnswerView";
 
 interface AiInterpretationProps {
   accessToken?: string;
   resultSetId?: string | null;
   deepAnalysis?: boolean;
+  onExpired: () => void;
 }
 
 /**
@@ -15,11 +16,16 @@ interface AiInterpretationProps {
  * statement passes the code checks before it is shown.  "Diễn giải tiếp" interprets
  * the next documents only.
  */
-export function AiInterpretation({ accessToken, resultSetId, deepAnalysis = false }:
+export function AiInterpretation({ accessToken, resultSetId, deepAnalysis = false, onExpired }:
   AiInterpretationProps) {
   const [result, setResult] = useState<SynthesisResult>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const active = useRef(false);
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
   if (!resultSetId || !accessToken) return null;
 
   async function run(next: boolean) {
@@ -32,7 +38,12 @@ export function AiInterpretation({ accessToken, resultSetId, deepAnalysis = fals
         ...(deepAnalysis ? { deep_analysis: true } : {}),
       }));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không diễn giải được lúc này.");
+      if (active.current && caught instanceof ApiRequestError &&
+          caught.code === "RESULT_SET_EXPIRED") {
+        onExpired();
+      } else {
+        setError(caught instanceof Error ? caught.message : "Không diễn giải được lúc này.");
+      }
     } finally {
       setBusy(false);
     }

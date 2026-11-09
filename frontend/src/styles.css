@@ -2260,6 +2260,134 @@ body.orb-window #root {
   border-top: 1px solid var(--color-border);
 }
 
+.document-filter-grid,
+.document-metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--space-3);
+}
+
+.document-bulk-toolbar,
+.document-confirmation,
+.document-detail-section {
+  margin-block: var(--space-3);
+}
+
+.document-bulk-toolbar p,
+.document-confirmation p {
+  margin-block: 0 var(--space-2);
+}
+
+.document-confirmation {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+}
+
+.document-records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.document-record {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.document-record > .compact-admin-main {
+  flex: 1;
+}
+
+.document-record > input,
+.document-bulk-toolbar input {
+  inline-size: 1rem;
+  block-size: 1rem;
+  accent-color: var(--color-action);
+  flex-shrink: 0;
+}
+
+.document-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
+
+.admin-document-detail {
+  overflow-wrap: anywhere;
+}
+
+.document-detail-header,
+.document-detail-section {
+  border-bottom: 1px solid var(--color-border);
+  padding-block: var(--space-3);
+}
+
+.document-detail-header > p {
+  margin: 0;
+}
+
+.document-version {
+  max-width: 26rem;
+  margin-block: var(--space-3);
+}
+
+.document-metadata dt {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.document-metadata dd {
+  margin: 0;
+}
+
+.document-source-preview {
+  margin-block: var(--space-2);
+  height: min(55vh, 36rem);
+}
+
+.document-detail-section textarea {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  resize: vertical;
+}
+
+.document-detail-section details {
+  margin-block: var(--space-2);
+}
+
+.document-detail-section summary {
+  cursor: pointer;
+}
+
+.document-detail-section summary:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 3px;
+}
+
+.document-node--clause { padding-inline-start: 1rem; }
+.document-node--point { padding-inline-start: 2rem; }
+
+@media (max-width: 420px) {
+  .document-record {
+    flex-wrap: wrap;
+  }
+  .document-record > .compact-admin-main {
+    flex-basis: calc(100% - 2.5rem);
+  }
+}
+
 .compact-admin-main {
   min-width: 0;
   display: flex;

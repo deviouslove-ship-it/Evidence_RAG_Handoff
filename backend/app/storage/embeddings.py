@@ -48,6 +48,7 @@ ELIGIBLE_NODES_SQL = """
     JOIN LATERAL (
       SELECT v.id FROM document_versions v
       WHERE v.document_id = n.document_id AND v.review_status = 'approved'
+        AND v.retired_at IS NULL
       ORDER BY v.version_number DESC LIMIT 1) latest
       ON latest.id = n.document_version_id
     WHERE n.review_status = 'approved'"""
@@ -456,7 +457,10 @@ async def semantic_candidates(
                    1 - (e.embedding::{cast} <=> $1::{cast}) AS similarity
             FROM node_embeddings e
             JOIN document_nodes n ON n.id = e.document_node_id
-            JOIN documents d ON d.id = n.document_id AND d.deleted_at IS NULL
+            JOIN documents d ON d.id = n.document_id
+              AND d.deleted_at IS NULL AND d.suspended_at IS NULL
+            JOIN document_versions dv ON dv.id = n.document_version_id
+              AND dv.review_status = 'approved' AND dv.retired_at IS NULL
             WHERE e.embedding_index_id = '{index_id}'
               AND n.document_version_id = ANY($2::uuid[]) AND n.review_status = 'approved'
               AND ($3::uuid[] IS NULL OR EXISTS (

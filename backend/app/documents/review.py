@@ -19,6 +19,7 @@ from uuid import UUID
 
 from ..audit import append_audit
 from ..effectivity.store import confirm_dates, detect_and_store_dates, process_approved_version
+from .management_access import lock_review_version, managed_read_sql, version_scope
 from .provenance import read_immutable_pdf
 
 _LOG = logging.getLogger(__name__)
@@ -53,28 +54,34 @@ def _page_view(row: Any) -> dict[str, Any] | None:
 
 
 async def list_review_tasks(
-    pool: Any, *, version_id: UUID | None = None, status_filter: str | None = None
+    pool: Any, *, version_id: UUID | None = None, status_filter: str | None = None,
+    staff: tuple[UUID, bool, bool] | None = None,
 ) -> list[dict[str, Any]]:
+    join, allowed = managed_read_sql(4) if staff else ('', '')
     async with pool.acquire() as connection:
         rows = await connection.fetch(
-            """SELECT t.id, t.document_version_id, t.node_id, t.reason, t.risk,
+            f"""SELECT t.id, t.document_version_id, t.node_id, t.reason, t.risk,
                       t.status, t.created_at, t.resolved_by, t.resolved_at,
-                      t.resolution_note, d.title, d.document_number,
+                      t.resolution_note, COALESCE(v.admin_metadata->>'title', d.title) AS title,
+                      CASE WHEN v.admin_metadata IS NULL THEN d.document_number
+                           ELSE v.admin_metadata->>'document_number' END AS document_number,
                       sp.page_number, sp.extraction_method, sp.text_quality,
                       sp.extraction_error, sp.ocr_diagnostics,
                       sp.text_original AS page_text, sp.reviewed_at AS page_reviewed_at
                FROM curator_review_tasks t
-               JOIN document_versions dv ON dv.id = t.document_version_id
-               JOIN documents d ON d.id = dv.document_id
+               JOIN document_versions v ON v.id = t.document_version_id
+               JOIN documents d ON d.id = v.document_id
+               {join}
                LEFT JOIN source_pages sp ON sp.document_version_id = t.document_version_id
                 AND t.reason ~ $3
                 AND sp.page_number = substring(t.reason FROM '^page_([0-9]+)_')::int
                WHERE ($1::uuid IS NULL OR t.document_version_id = $1)
                  AND ($2::text IS NULL OR t.status = $2)
+                 AND d.deleted_at IS NULL {allowed}
                ORDER BY t.created_at ASC, t.id ASC""",
             version_id,
             status_filter,
-            PAGE_TASK_SQL,
+            PAGE_TASK_SQL, *(staff or ()),
         )
     return [
         {
@@ -100,15 +107,16 @@ async def submit_draft_for_review(
     pool: Any, *, version_id: UUID, curator_id: UUID
 ) -> dict[str, Any]:
     async with pool.acquire() as connection, connection.transaction():
-        row = await connection.fetchrow(
-            """SELECT id, review_status FROM document_versions
-               WHERE id = $1 FOR UPDATE""",
-            version_id,
-        )
+        row = await lock_review_version(connection, version_id)
         if row is None:
             raise ReviewError("DRAFT_NOT_FOUND", 404)
         if row["review_status"] not in {"draft", "pending_review"}:
             raise ReviewError("INVALID_REQUEST", 409)
+        if row["admin_metadata"] is not None:
+            scope = await version_scope(connection, version_id, curator_id,
+                                        curator=True, reviewer=False)
+            if not scope["can_read"] or row["submitted_by"] != curator_id:
+                raise ReviewError("DOCUMENT_EDIT_DENIED", 403)
         await connection.execute(
             """UPDATE document_versions
                SET review_status = 'pending_review', submitted_by = COALESCE(submitted_by, $2)
@@ -136,16 +144,12 @@ async def resolve_review_task(
         version_id = await connection.fetchval(
             "SELECT document_version_id FROM curator_review_tasks WHERE id = $1", task_id
         )
-        version = await connection.fetchrow(
-            "SELECT review_status, submitted_by FROM document_versions WHERE id = $1 FOR UPDATE",
-            version_id,
-        )
+        version = await lock_review_version(connection, version_id)
         if version is None:
             raise ReviewError("DRAFT_NOT_FOUND", 404)
         if version["review_status"] != "pending_review":
             raise ReviewError("INVALID_REVIEW_STATE", 409)
-        if version["submitted_by"] == reviewer_id:
-            raise ReviewError("SELF_APPROVAL_DENIED", 403)
+        await _check_reviewer(connection, version, reviewer_id)
         row = await connection.fetchrow(
             "SELECT id, document_version_id, status, reason "
             "FROM curator_review_tasks WHERE id = $1 FOR UPDATE",
@@ -215,6 +219,7 @@ async def approve_document_version(
     resolve_all_tasks: bool = False,
     publication_date: date | None = None,
     effective_from: date | None = None,
+    revision: int | None = None,
 ) -> dict[str, Any]:
     if not category_ids:
         raise ReviewError("CATEGORY_REQUIRED", 422)
@@ -223,21 +228,21 @@ async def approve_document_version(
         raise ReviewError("INVALID_DOCUMENT_METADATA", 422)
     now = datetime.now(UTC)
     async with pool.acquire() as connection, connection.transaction():
-        row = await connection.fetchrow(
-            """SELECT dv.id, dv.document_id, dv.original_file_path, dv.original_file_sha256,
-                      dv.review_status, dv.submitted_by
-               FROM document_versions dv
-               JOIN documents d ON d.id = dv.document_id
-               WHERE dv.id = $1 AND d.deleted_at IS NULL
-               FOR UPDATE""",
-            version_id,
-        )
+        row = await lock_review_version(connection, version_id)
         if row is None:
             raise ReviewError("DRAFT_NOT_FOUND", 404)
         if row["review_status"] != "pending_review" or row["submitted_by"] is None:
             raise ReviewError("INVALID_REVIEW_STATE", 409)
-        if row["submitted_by"] is not None and row["submitted_by"] == reviewer_id:
-            raise ReviewError("SELF_APPROVAL_DENIED", 403)
+        await _check_reviewer(connection, row, reviewer_id)
+        _check_revision(row, revision)
+        if row["admin_metadata"] is not None:
+            assigned = await connection.fetch(
+                """SELECT dc.category_id FROM document_categories dc
+                   JOIN categories c ON c.id = dc.category_id AND c.deleted_at IS NULL
+                   WHERE dc.document_id=$1 FOR KEY SHARE OF c""", row["document_id"],
+            )
+            if assigned and {item["category_id"] for item in assigned} != set(category_ids):
+                raise ReviewError("DOCUMENT_CATEGORIES_CHANGED", 409)
         try:
             await asyncio.to_thread(
                 read_immutable_pdf,
@@ -310,6 +315,8 @@ async def approve_document_version(
                 cat_id,
             )
 
+        if row["admin_metadata"] is not None:
+            await _publish_managed_version(connection, row)
         await connection.execute(
             """UPDATE document_versions
                SET review_status = 'approved', reviewed_by = $2, reviewed_at = $3,
@@ -352,11 +359,19 @@ async def approve_document_version(
                     connection, version_id, reviewer_id,
                     publication_date=publication_date, effective_from=effective_from,
                 )
+                if row["admin_metadata"] is not None and row["based_on_version_id"] is None:
+                    await connection.execute(
+                        """UPDATE document_versions SET valid_from=COALESCE(
+                             valid_from, publication_date, reviewed_at::date)
+                           WHERE id=$1 AND version_number>1""", version_id,
+                    )
                 effectivity = await process_approved_version(
                     connection, version_id, actor_id=reviewer_id
                 )
         except Exception:  # noqa: BLE001 - logged; approval stands without relations
             _LOG.warning("effectivity processing failed after approval", exc_info=True)
+            if row["admin_metadata"] is not None:
+                raise ReviewError("EFFECTIVITY_PROCESSING_FAILED", 503) from None
             effectivity = {"error": "EFFECTIVITY_PROCESSING_FAILED"}
         await append_audit(
             connection,
@@ -380,21 +395,114 @@ async def approve_document_version(
     }
 
 
+async def _check_reviewer(connection: Any, version: Any, reviewer_id: UUID) -> None:
+    if version["submitted_by"] == reviewer_id:
+        raise ReviewError("SELF_APPROVAL_DENIED", 403)
+    if version["admin_metadata"] is not None:
+        scope = await version_scope(connection, version["id"], reviewer_id,
+                                    curator=False, reviewer=True)
+        if not scope["can_read"] or not scope["can_review_all"]:
+            raise ReviewError("DOCUMENT_REVIEW_SCOPE_REQUIRED", 403)
+
+
+def _check_revision(version: Any, revision: int | None) -> None:
+    if revision != version["source_review_revision"] and (
+        revision is not None or version["admin_metadata"] is not None
+    ):
+        raise ReviewError("DOCUMENT_REVISION_CONFLICT", 409)
+
+
+async def _publish_managed_version(connection: Any, version: Any) -> None:
+    metadata = version["admin_metadata"]
+    if isinstance(metadata, str):
+        metadata = json.loads(metadata)
+    await connection.execute(
+        """UPDATE documents SET title=$2, doc_type=$3, document_number=$4, issuing_body=$5
+           WHERE id=$1""",
+        version["document_id"], metadata["title"], metadata["doc_type"],
+        metadata["document_number"], metadata["issuing_body"],
+    )
+    if version["based_on_version_id"] is not None:
+        # Corrections replace the reviewed interpretation of the same source.
+        # Earlier distinct originals remain available to historical queries.
+        await connection.execute(
+            """UPDATE document_versions SET retired_at=now()
+               WHERE document_id=$1 AND original_file_sha256=$2 AND id<>$3
+                 AND review_status='approved' AND retired_at IS NULL""",
+            version["document_id"], version["original_file_sha256"], version["id"],
+        )
+        await _reopen_node_effectivity(connection, version)
+
+
+async def _reopen_node_effectivity(connection: Any, version: Any) -> None:
+    # A relation reviewed against an earlier tree cannot silently change which
+    # text it affects. Carry it into the existing review queue and preserve
+    # the original approved record as history.
+    retired_nodes = """
+        SELECT n.id, regexp_replace(n.path, '^[0-9]+:?', '') AS legal_path
+        FROM document_nodes n JOIN document_versions v ON v.id=n.document_version_id
+        WHERE v.document_id=$1 AND v.original_file_sha256=$2 AND v.retired_at IS NOT NULL
+    """
+    await connection.execute(
+        f"""WITH retired AS ({retired_nodes}), pending AS MATERIALIZED (
+              SELECT a.*, gen_random_uuid() AS next_id, replacement.id AS next_node,
+                     retired.legal_path, sn.document_id AS originating_document
+              FROM node_amendments a JOIN retired ON retired.id=a.target_node_id
+              JOIN document_nodes sn ON sn.id=a.source_node_id
+              JOIN document_versions sv ON sv.id=sn.document_version_id
+              LEFT JOIN LATERAL (
+                SELECT (array_agg(n.id))[1] AS id FROM document_nodes n
+                WHERE n.document_version_id=$3 AND retired.legal_path<>''
+                  AND regexp_replace(n.path, '^[0-9]+:?', '')=retired.legal_path
+                HAVING count(*)=1
+              ) replacement ON TRUE
+              WHERE a.superseded_by IS NULL AND a.review_status<>'rejected'
+                AND sv.retired_at IS NULL
+              FOR UPDATE OF a
+            ), reopened AS (
+              INSERT INTO node_amendments
+                (id, source_node_id, source_document_id, target_document_id, target_node_id,
+                 scope, action, valid_from, valid_to, evidence_source, target_number,
+                 target_doc_type, target_issue_date, target_path, target_expression,
+                 resolution_state, condition_text, proposed_by, source_quote, source_page)
+              SELECT next_id, source_node_id, COALESCE(source_document_id, originating_document),
+                     $1, next_node, 'node', action, valid_from, valid_to, evidence_source,
+                     target_number, target_doc_type, target_issue_date,
+                     COALESCE(target_path, NULLIF(legal_path,'')), target_expression,
+                     CASE WHEN next_node IS NULL THEN 'unresolved' ELSE 'resolved' END,
+                     condition_text, 'rule', source_quote, source_page
+              FROM pending RETURNING id
+            )
+            UPDATE node_amendments a SET superseded_by=p.next_id
+            FROM pending p JOIN reopened r ON r.id=p.next_id WHERE a.id=p.id""",
+        version["document_id"], version["original_file_sha256"], version["id"],
+    )
+    await connection.execute(
+        f"""WITH retired AS ({retired_nodes})
+            UPDATE effectivity_attestations a
+            SET status='needs_reverify', status_reason='document_version_corrected',
+                status_changed_at=now()
+            FROM retired
+            WHERE a.target_node_id=retired.id AND a.status='valid' AND a.superseded_by IS NULL""",
+        version["document_id"], version["original_file_sha256"],
+    )
+
+
 async def reject_document_version(
-    pool: Any, *, version_id: UUID, reviewer_id: UUID, review_note: str
+    pool: Any, *, version_id: UUID, reviewer_id: UUID, review_note: str,
+    revision: int | None = None,
 ) -> dict[str, Any]:
     note = review_note.strip()
     if not note:
         raise ReviewError("INVALID_DOCUMENT_METADATA", 422)
     async with pool.acquire() as connection, connection.transaction():
-        row = await connection.fetchrow(
-            "SELECT id, document_id, review_status FROM document_versions WHERE id = $1 FOR UPDATE",
-            version_id,
-        )
+        row = await lock_review_version(connection, version_id)
         if row is None:
             raise ReviewError("DRAFT_NOT_FOUND", 404)
         if row["review_status"] != "pending_review":
             raise ReviewError("INVALID_REVIEW_STATE", 409)
+        await _check_reviewer(connection, row, reviewer_id)
+        _check_revision(row, revision)
         await connection.execute(
             """UPDATE document_versions
                SET review_status = 'rejected', reviewed_by = $2, reviewed_at = now(),
@@ -414,6 +522,6 @@ async def reject_document_version(
             action="document.reject_version",
             target_type="document_version",
             target_id=str(version_id),
-            metadata={"reason": note},
+            metadata={"reason": note, "document_id": str(row["document_id"])},
         )
     return {"document_version_id": str(version_id), "status": "rejected"}

@@ -66,6 +66,7 @@ async def test_auth_admin_review_and_audit_flow_on_postgresql(tmp_path: Path) ->
                 "0013_content_groups.sql",
                 "0014_embedding_jobs.sql",
                 "0015_ocr_page_review.sql",
+                "0016_document_management.sql",
             ]
             assert await apply_migrations(conn) == []
 

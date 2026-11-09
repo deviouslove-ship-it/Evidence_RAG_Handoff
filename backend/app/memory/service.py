@@ -24,6 +24,7 @@ class StoredEvent:
 
     event: str
     data: dict[str, object]
+    lookup_revision: int | None = None
 
 
 @dataclass(frozen=True)

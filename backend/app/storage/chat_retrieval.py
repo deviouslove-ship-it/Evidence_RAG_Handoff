@@ -19,6 +19,7 @@ from uuid import UUID
 
 from ..schemas import DocumentRelation, EvidenceRef, Scope, ScopeMode
 from ..workflow.chat_answer import Composition, Rule, compose
+from .authorized_search import ALLOWED_DOCUMENTS_SQL
 from .comprehensive import _HYDRATE_SQL, ComprehensiveRequest, ComprehensiveSearch, heading_of
 from .relevance import analyze_terms, assess, unit_weights, word_plan
 from .search import MAX_QUERY_CHARS, MAX_TERMS
@@ -97,7 +98,8 @@ class ChatRetrieval:
             question=question, phrases=result.summary.get("understood", {}).get("phrases", []),
             items=items, rules=await self.rules(), as_of=result.as_of,
             result_set_id=result.id,
-            verified_relations=await self.relations({item["document_id"] for item in items}),
+            verified_relations=await self.relations(
+                principal_id, {item["document_id"] for item in items}),
             max_documents=self.max_documents, max_clauses=self.max_clauses,
             weak_count=weak,
             documents_in_scope=result.summary.get("scope", {}).get("documents_in_scope"),
@@ -184,7 +186,7 @@ class ChatRetrieval:
         composition = compose(
             question=question, phrases=terms.phrases, items=items, rules=await self.rules(),
             as_of=as_of, verified_relations=await self.relations(
-                {item["document_id"] for item in items}),
+                principal_id, {item["document_id"] for item in items}),
             max_documents=self.max_documents, max_clauses=self.max_clauses,
         )
         return ChatRetrievalResult(composition, None, terms.phrases)
@@ -208,21 +210,28 @@ class ChatRetrieval:
         self._rules = (now, rules)
         return rules
 
-    async def relations(self, document_ids: set[str]) -> dict[str, list[DocumentRelation]]:
+    async def relations(
+        self, principal_id: UUID, document_ids: set[str],
+    ) -> dict[str, list[DocumentRelation]]:
         """Approved (reviewed) document-level relations only; proposals are not shown."""
 
         if not document_ids:
             return {}
         try:
-            async with self._pool.acquire() as connection:
+            async with self._pool.acquire() as connection, connection.transaction():
+                await connection.execute(
+                    "SELECT set_config('app.user_id', $1, true)", str(principal_id))
                 rows = await connection.fetch(
-                    """SELECT a.source_document_id::text AS source, a.target_document_id::text
+                    "WITH allowed AS (" + ALLOWED_DOCUMENTS_SQL + """)
+                       SELECT a.source_document_id::text AS source, a.target_document_id::text
                               AS target, a.action, a.target_number,
                               sd.document_number AS source_number,
                               td.document_number AS target_doc_number
                        FROM node_amendments a
-                       LEFT JOIN documents sd ON sd.id = a.source_document_id
-                       LEFT JOIN documents td ON td.id = a.target_document_id
+                       JOIN authorized_nodes n ON n.id = a.source_node_id
+                       JOIN documents sd ON sd.id = a.source_document_id
+                       JOIN allowed td_allowed ON td_allowed.document_id = a.target_document_id
+                       JOIN documents td ON td.id = td_allowed.document_id
                        WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
                          AND (a.source_document_id = ANY($1::uuid[])
                               OR a.target_document_id = ANY($1::uuid[]))

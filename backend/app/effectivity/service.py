@@ -415,12 +415,22 @@ async def document_effectivity(
                       td.document_number AS target_number, td.title AS target_title
                FROM node_amendments a
                JOIN documents sd ON sd.id = a.source_document_id
-               LEFT JOIN documents td ON td.id = a.target_document_id
-               LEFT JOIN document_nodes sn ON sn.id = a.source_node_id
+               JOIN documents td ON td.id = a.target_document_id
+               JOIN document_nodes sn ON sn.id = a.source_node_id
+               JOIN document_versions sv ON sv.id = sn.document_version_id
                LEFT JOIN document_nodes tn ON tn.id = a.target_node_id
+               LEFT JOIN document_versions tnv ON tnv.id = tn.document_version_id
                WHERE (a.target_document_id = $1 OR a.source_document_id = $1)
                  AND a.superseded_by IS NULL AND a.review_status <> 'rejected'
-                 AND a.target_document_id IS NOT NULL
+                 AND sn.review_status = 'approved'
+                 AND sv.review_status = 'approved' AND sv.retired_at IS NULL
+                 AND sd.deleted_at IS NULL AND sd.suspended_at IS NULL
+                 AND td.deleted_at IS NULL AND td.suspended_at IS NULL
+                 AND (tn.id IS NULL OR (tn.review_status = 'approved'
+                      AND tnv.review_status = 'approved' AND tnv.retired_at IS NULL))
+                 AND EXISTS (SELECT 1 FROM document_versions tv
+                             WHERE tv.document_id = td.id AND tv.review_status = 'approved'
+                               AND tv.retired_at IS NULL)
                ORDER BY a.valid_from NULLS LAST, a.id""",
             document_id,
         )
@@ -431,7 +441,16 @@ async def document_effectivity(
                FROM node_references r
                JOIN documents sd ON sd.id = r.source_document_id
                JOIN documents td ON td.id = r.target_document_id
-               WHERE r.target_document_id = $1 OR r.source_document_id = $1""",
+               JOIN document_nodes sn ON sn.id = r.source_node_id
+               JOIN document_versions sv ON sv.id = sn.document_version_id
+               WHERE (r.target_document_id = $1 OR r.source_document_id = $1)
+                 AND sn.review_status = 'approved'
+                 AND sv.review_status = 'approved' AND sv.retired_at IS NULL
+                 AND sd.deleted_at IS NULL AND sd.suspended_at IS NULL
+                 AND td.deleted_at IS NULL AND td.suspended_at IS NULL
+                 AND EXISTS (SELECT 1 FROM document_versions tv
+                             WHERE tv.document_id = td.id AND tv.review_status = 'approved'
+                               AND tv.retired_at IS NULL)""",
             document_id,
         )
     hidden = 0

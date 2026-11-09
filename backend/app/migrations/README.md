@@ -20,6 +20,12 @@ PostgreSQL.
 | `0009_node_structure.sql` | `0009_node_structure.down.sql` | Page-by-page source spans, citation label, `node_source_text_valid` |
 | `0014_embedding_jobs.sql` | `0014_embedding_jobs.down.sql` | Background embedding rebuild jobs, index states `paused`/`failed` |
 | `0015_ocr_page_review.sql` | `0015_ocr_page_review.down.sql` | OCR page diagnostics and the reviewer who confirmed a page against the scan |
+| `0016_document_management.sql` | `0016_document_management.down.sql` | Versioned metadata, OCR edits, lookup availability and cache revision |
+
+Migration `0016` preserves all existing versions, hashes and vectors. The intake hash
+remains unique for each original. Corrections can refer to that same immutable original.
+The down migration works on an unused schema and refuses to drop the new fields once they
+contain management data. Preserve an encrypted pre-upgrade backup for a binary rollback.
 
 Every up file needs a matching `.down.sql` (`scripts/validate_migrations.py`). Do not add
 a b-tree index on `document_nodes(document_version_id)` without re-running the search

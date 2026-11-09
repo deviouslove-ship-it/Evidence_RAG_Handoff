@@ -14,16 +14,20 @@ from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
+from ..audit import append_audit
+from ..auth_acl.policy import Principal
 from ..effectivity.store import detect_and_store_dates
 from ..schemas import PdfDraftResponse, PotentialDuplicate
 from ..vietnamese_nlp.unicode_norm import fold_text
 from .convert import ConvertedSource
 from .deduplication import content_fingerprint, find_content_matches
 from .isolated import extract_isolated
+from .management_read import _METADATA_FIELDS, _record
 from .native_pdf import ExtractedPage, extract_native_pdf
 from .node_writer import suspect_text_layer, write_nodes
 from .ocr import OcrEngine
 from .provenance import save_immutable_pdf, save_source_file
+from .review import ReviewError
 from .tree_parser import ParsedNode, parse_legal_tree
 
 
@@ -91,6 +95,19 @@ def validate_source_url(value: str | None) -> tuple[str | None, str | None]:
     return value, hostname.lower()
 
 
+async def new_original_base(
+    connection: Any, principal: Principal, document_id: UUID, revision: int, *, lock: bool = False,
+) -> Any:
+    if lock:
+        await connection.fetchval("SELECT id FROM documents WHERE id=$1 FOR UPDATE", document_id)
+    row = await _record(connection, principal, document_id, None, date.today())
+    if not row["can_edit"]:
+        raise ReviewError("DOCUMENT_EDIT_DENIED", 403)
+    if row["revision"] != revision or row["review_status"] not in {"approved", "rejected"}:
+        raise ReviewError("DOCUMENT_REVISION_CONFLICT", 409)
+    return row
+
+
 async def persist_draft(
     prepared: PreparedDraft,
     *,
@@ -105,6 +122,7 @@ async def persist_draft(
     official_url: str | None = None,
     submitted_by: UUID | None = None,
     converted: ConvertedSource | None = None,
+    existing_document: tuple[UUID, int, Principal] | None = None,
 ) -> PdfDraftResponse:
     """Write the original and one DB transaction; retrieval remains approval-gated.
 
@@ -123,6 +141,8 @@ async def persist_draft(
             store_root / "sources",
         )
     document_id, version_id = uuid4(), uuid4()
+    version_number = 1
+    source_revision = 1
     fingerprint = content_fingerprint(prepared.pages)
     captured_at = datetime.now(UTC)
     safe_filename = "".join(
@@ -138,22 +158,43 @@ async def persist_draft(
                 matches = await find_content_matches(
                     connection, fingerprint=fingerprint, viewer_id=submitted_by,
                 )
-            await connection.execute(
-                """INSERT INTO documents
-                   (id, doc_type, title, document_number, issuing_body)
-                   VALUES ($1, $2, $3, $4, $5)""",
-                document_id, doc_type, title, document_number, issuing_body,
-            )
+            metadata_json = None
+            if existing_document is None:
+                await connection.execute(
+                    """INSERT INTO documents (id, doc_type, title, document_number, issuing_body)
+                       VALUES ($1, $2, $3, $4, $5)""",
+                    document_id, doc_type, title, document_number, issuing_body,
+                )
+            else:
+                document_id, expected_revision, principal = existing_document
+                current = await new_original_base(connection, principal, document_id,
+                                                  expected_revision, lock=True)
+                version_number = current["version_number"] + 1
+                source_revision = current["revision"] + 1
+                metadata_json = json.dumps({
+                    "title": title, "doc_type": doc_type, "document_number": document_number,
+                    "issuing_body": issuing_body,
+                }, ensure_ascii=False)
+                await connection.execute(
+                    """UPDATE document_versions
+                       SET admin_metadata = COALESCE(admin_metadata, $2::jsonb)
+                       WHERE id=$1""", current["version_id"],
+                    json.dumps({key: current[key] for key in _METADATA_FIELDS},
+                               ensure_ascii=False),
+                )
             await connection.execute(
                 """INSERT INTO document_versions
-                   (id, document_id, version_number, official_url, publication_date,
+                   (id, document_id, official_url, publication_date,
                     original_file_path, original_file_sha256, original_filename,
                     captured_at, review_status, submitted_by, native_text_fingerprint_v1,
-                    source_format, source_file_sha256)
-                   VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, 'draft', $9, $10, $11, $12)""",
+                    source_format, source_file_sha256, version_number, admin_metadata,
+                    source_review_revision)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10, $11, $12,
+                           $13, $14::jsonb, $15)""",
                 version_id, document_id, official_url, publication_date,
                 f"originals/{source.sha256}.pdf", source.sha256, safe_filename,
                 captured_at, submitted_by, fingerprint, source_format, source_file_sha256,
+                version_number, metadata_json, source_revision,
             )
             await connection.execute(
                 """INSERT INTO source_provenance
@@ -243,6 +284,12 @@ async def persist_draft(
                    VALUES ($1, 'metadata_and_source_verification', 'high')""",
                 version_id,
             )
+            if existing_document is not None:
+                await append_audit(
+                    connection, principal_id=submitted_by, action="document.add_version",
+                    target_type="document_version", target_id=str(version_id),
+                    metadata={"document_id": str(document_id), "version_number": version_number},
+                )
     return PdfDraftResponse(
         document_id=document_id,
         document_version_id=version_id,

@@ -14,9 +14,10 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from ...auth_acl.policy import Permission, Principal, require_permission
 from ...schemas import AnalyzeRequest, AnalyzeResponse, QueryResponse, SearchResponse
+from ...storage.lookup_visibility import lookup_revision
 from ...storage.search import SearchQueryError, SearchService
 from ...workflow.fixed_pipeline import FixedPipeline
-from .dependencies import get_principal
+from .dependencies import get_principal, no_store
 from .errors import api_error
 
 router = APIRouter(prefix="/api/v1", tags=["user"])
@@ -45,21 +46,26 @@ async def analyze(
     return await pipeline.analyze(request)
 
 
-@router.post("/query/evidence", response_model=QueryResponse)
+@router.post("/query/evidence", response_model=QueryResponse, dependencies=[Depends(no_store)])
 async def evidence(
     request: AnalyzeRequest,
     http_request: Request,
     principal: Annotated[Principal, Depends(require_user)],
     pipeline: Annotated[FixedPipeline, Depends(get_pipeline)],
 ) -> QueryResponse:
-    return cast(
-        QueryResponse,
-        await http_request.app.state.execution.run(
+    pool = getattr(http_request.app.state, "db_pool", None)
+    revision = await lookup_revision(pool) if pool is not None else None
+    try:
+        result = await http_request.app.state.execution.run(
             http_request, lambda: pipeline.execute(request, principal_id=UUID(principal.id)),
             principal_id=principal.id,
             timeout=http_request.app.state.settings.query_timeout_seconds,
-        ),
-    )
+        )
+    except SearchQueryError as exc:
+        raise api_error(exc.status_code, exc.code) from exc
+    if pool is not None and await lookup_revision(pool) != revision:
+        raise api_error(status.HTTP_410_GONE, "RESULT_SET_EXPIRED")
+    return cast(QueryResponse, result)
 
 
 def _search_service(http_request: Request) -> SearchService:
@@ -78,7 +84,7 @@ async def _check_search_rate(http_request: Request, principal: Principal) -> Non
             raise api_error(exc.status_code, exc.code) from exc
 
 
-@router.get("/search", response_model=SearchResponse)
+@router.get("/search", response_model=SearchResponse, dependencies=[Depends(no_store)])
 async def search_documents(
     http_request: Request,
     q: Annotated[str, Query(min_length=1)],
@@ -117,7 +123,7 @@ async def search_documents(
         raise api_error(exc.status_code, exc.code) from exc
 
 
-@router.get("/search/approximate", response_model=SearchResponse)
+@router.get("/search/approximate", response_model=SearchResponse, dependencies=[Depends(no_store)])
 async def approximate_search(
     http_request: Request,
     q: Annotated[str, Query(min_length=1)],

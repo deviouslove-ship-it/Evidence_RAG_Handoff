@@ -1,11 +1,11 @@
 # Hướng dẫn sử dụng và cấu hình AI Evidence RAG
 
-Đối chiếu giao diện và source ngày 08/11/2026. Tên nút dưới đây thuộc source hiện tại; gói đang chạy có thể là bản khác. Xem [mô tả hệ thống](TAI_LIEU_MO_TA_HE_THONG.md) để hiểu kiến trúc và giới hạn. Chỉ thực hiện các thao tác quản trị, thay model, phục hồi hoặc thay cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống.
+Đối chiếu giao diện và source ngày 09/11/2026. Tên nút dưới đây thuộc source hiện tại; gói đang chạy có thể là bản khác. Xem [mô tả hệ thống](TAI_LIEU_MO_TA_HE_THONG.md) để hiểu kiến trúc và giới hạn. Chỉ thực hiện các thao tác quản trị, thay model, phục hồi hoặc thay cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống.
 
 ## Mục lục
 
 1. [Đăng nhập và tra cứu](#1-đăng-nhập-và-tra-cứu)
-2. [Nhập, OCR và duyệt nguồn](#2-nhập-ocr-và-duyệt-nguồn)
+2. [Nhập, OCR và duyệt nguồn](#2-nhập-ocr-và-duyệt-nguồn) · [Quản lý văn bản](#quản-lý-văn-bản)
 3. [Danh mục, tài khoản và kiểm toán](#3-danh-mục-tài-khoản-và-kiểm-toán)
 4. [Cấu hình AI Local](#4-cấu-hình-ai-local)
 5. [Cấu hình AI API](#5-cấu-hình-ai-api)
@@ -31,6 +31,32 @@ Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
 3. Với PDF scan, reviewer mở từng trang trong màn hình rà soát, so chữ OCR và các cảnh báo với ảnh trang rồi xác nhận. Không xác nhận trang không đọc được hoặc sai; cấu hình OCR và trích xuất lại, hoặc từ chối nháp theo tình huống. Chữ OCR đã duyệt vẫn cần đối chiếu ảnh khi dùng.
 4. Biên tập viên chọn **Gửi duyệt**. Reviewer khác mở nháp đang chờ, xử lý tác vụ còn mở, chọn danh mục áp dụng và nhập ghi chú thẩm định. Bấm **Phê duyệt & Phát hành** khi đủ điều kiện, hoặc **Từ chối**. Trùng byte bị chặn; cảnh báo nội dung trùng cần được xem xét.
 5. Vào **Hiệu lực** để rà soát đề xuất hiệu lực, quan hệ và nhãn khi có quyền. Một đề xuất chưa được xác minh không phải kết luận về hiệu lực pháp lý.
+
+### Quản lý văn bản
+
+1. Mở **Admin Portal → Quản lý văn bản**. Tìm theo số hiệu hoặc trích yếu, hoặc lọc theo loại,
+   cơ quan ban hành, ngày, trạng thái xử lý, hiệu lực và trạng thái tra cứu. Bấm **Áp dụng bộ lọc**.
+2. Chọn **Chi tiết** để xem metadata, danh mục và các phiên bản. Nếu có quyền đọc, mở tệp
+   gốc, chuyển trang OCR, xem Điều/Khoản/Điểm và số mục đã có embedding trong chỉ mục
+   đang dùng. Mở **Lịch sử xử lý** để xem thao tác gần đây.
+3. CURATOR có quyền sửa metadata, sửa chữ OCR của trang scan hoặc **Xử lý lại** từ tệp
+   nguồn. Xử lý lại chạy bộ trích xuất/OCR đã cấu hình và đưa kết quả về nháp. Khi đã duyệt
+   hoặc từ chối, thao tác tạo phiên bản nháp mới. Có thể **Thêm phiên bản từ tệp mới** để
+   đính một PDF, Word hoặc TXT mới vào cùng văn bản. Xác minh thông tin của tệp trước khi
+   gửi duyệt.
+4. Chọn **Gửi duyệt** hoặc chọn nhiều nháp rồi gửi theo lô. Kiểm tra kết quả từng bản.
+   REVIEWER khác mở phiên bản đang chờ, xem tệp nguồn, xử lý tác vụ và xác nhận lại từng
+   trang OCR có chỉnh sửa. Ghi lý do rồi phê duyệt hoặc từ chối. Các danh mục đã gán được
+   giữ lại. Nếu có thông báo phiên bản thay đổi, tải lại chi tiết rồi tiếp tục.
+5. SYS_ADMIN chọn một hoặc nhiều văn bản để **Tạm ngừng**, **Khôi phục tra cứu**,
+   **Xóa mềm** hoặc **Khôi phục văn bản**. Kiểm danh sách đã chọn, nhập lý do và xác
+   nhận. Dùng bộ lọc **Đã xóa** để khôi phục văn bản xóa mềm. Văn bản từng bị tạm ngừng
+   cần khôi phục tra cứu riêng. Bản đang chờ duyệt vẫn phải qua thẩm định trước khi phát hành.
+
+Nếu bản sửa làm thay đổi căn cứ của quan hệ cấp Điều/Khoản/Điểm, rà soát lại ở mục
+**Hiệu lực**. Khi hệ thống chưa ghép được đích theo đường dẫn pháp lý, cần chọn đúng nút
+đích trước khi phê duyệt quan hệ. Quyền xem nội dung được cấp riêng cho từng phạm vi,
+kể cả với tài khoản quản trị.
 
 ## 3. Danh mục, tài khoản và kiểm toán
 

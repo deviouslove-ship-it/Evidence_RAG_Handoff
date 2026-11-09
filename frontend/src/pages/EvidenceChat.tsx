@@ -363,6 +363,7 @@ export function EvidenceChat({
       return await attempt();
     } catch (caught) {
       if (caught instanceof ApiRequestError && caught.status === 410 &&
+          caught.code !== "RESULT_SET_EXPIRED" &&
           !controller.signal.aborted && abortRef.current === controller &&
           sessionRef.current?.id === attemptedSessionId) {
         sessionEpoch.current += 1;
@@ -441,6 +442,8 @@ export function EvidenceChat({
         setError("Đã dừng lượt tra cứu hiện tại.");
       } else if (caught instanceof ApiRequestError && caught.status === 401) {
         setError("Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.");
+      } else if (caught instanceof ApiRequestError && caught.code === "RESULT_SET_EXPIRED") {
+        setError("Căn cứ đã hết hạn hoặc kho văn bản đã thay đổi. Hãy tra cứu lại.");
       } else {
         setError(caught instanceof Error ? caught.message : "Không thể tra cứu lúc này.");
       }
@@ -832,6 +835,12 @@ export function EvidenceChat({
               <AiInterpretation
                 accessToken={effectiveToken}
                 deepAnalysis={operatingMode === "API" && deepAnalysis}
+                key={answer?.result_set_id}
+                onExpired={() => {
+                  lastTurnRef.current = null;
+                  setResult(undefined);
+                  setError("Căn cứ đã hết hạn hoặc kho văn bản đã thay đổi. Hãy tra cứu lại.");
+                }}
                 resultSetId={answer?.result_set_id}
               />
             )}
