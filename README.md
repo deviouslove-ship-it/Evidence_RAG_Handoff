@@ -111,7 +111,9 @@ skip chúng. Đo hiệu năng: `scripts/benchmark_search.py`; smoke HTTP:
 |---|---|
 | `00_README.md` | Chỉ mục hồ sơ bàn giao và thứ tự ưu tiên đặc tả |
 | `docs/HOSO_BAN_GIAO.md`, `docs/SRS_v1.3.md` | Hồ sơ chính và đặc tả kỹ thuật hiện hành |
-| `docs/architecture-decisions/ADR-000…006` | Quyết định kiến trúc |
+| `docs/architecture-decisions/ADR-000…009` | Quyết định kiến trúc |
+| `docs/TAI_LIEU_MO_TA_HE_THONG.md` | Mô tả hệ thống và vòng đời văn bản |
+| `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | Hướng dẫn sử dụng và quản trị, gồm Quản lý văn bản |
 | `docs/implementation-status.md` | Trạng thái, kiểm chứng, giới hạn còn lại |
 | `docs/search-v1-runbook.md` | Vận hành tìm kiếm và truy xuất chat |
 | `docs/threat-model.md` | Mô hình đe dọa |

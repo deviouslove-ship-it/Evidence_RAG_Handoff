@@ -11,9 +11,11 @@ hành ghi tại `docs/implementation-status.md`; cách chạy và cấu trúc re
 2. `docs/SRS_v1.3.md` — kỹ thuật hiện hành; §25 đồng bộ hợp đồng cho 8 góp ý, LLM
    API/Local và desktop; §26 là hợp đồng Search v1 (cập nhật owner 05/11 ở §26.8).
 3. `docs/architecture-decisions/ADR-000.md` — quyết định, mặc định kỹ thuật và ranh giới
-   nghiệm thu; ADR-001…006 ghi các quyết định triển khai sau đó.
+   nghiệm thu; ADR-001…009 ghi các quyết định triển khai sau đó.
 4. `docs/PROMPT_KHOI_DONG.md` — prompt chung và phân công đủ 56 WP.
 5. `docs/KE_HOACH_TRIEN_KHAI_TIM_KIEM_V1_Evidence_RAG.md` — kế hoạch Search v1 owner chốt.
+6. `docs/TAI_LIEU_MO_TA_HE_THONG.md` và `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` —
+   mô tả hệ thống và hướng dẫn vận hành Admin, gồm Quản lý văn bản.
 
 `docs/history/SRS_v1.2.1.md` giữ nguyên byte làm bản lịch sử. Các quyết định cũ trong
 file đó không phải yêu cầu hiện hành; không dùng nó để chọn lại mode/OS/Gold hoặc quyền

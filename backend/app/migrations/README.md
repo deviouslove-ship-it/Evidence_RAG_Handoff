@@ -18,6 +18,10 @@ PostgreSQL.
 | `0007_normalization_revision.sql` | `0007_normalization_revision.down.sql` | Normalization revision stamp |
 | `0008_source_format.sql` | `0008_source_format.down.sql` | Upload format and hash of Word/TXT sources |
 | `0009_node_structure.sql` | `0009_node_structure.down.sql` | Page-by-page source spans, citation label, `node_source_text_valid` |
+| `0010_ai_policy.sql` | `0010_ai_policy.down.sql` | AI stage policies and runtime settings |
+| `0011_effectivity.sql` | `0011_effectivity.down.sql` | Effectivity relations, reviews and snapshots |
+| `0012_comprehensive_search.sql` | `0012_comprehensive_search.down.sql` | Comprehensive search and flexible vector dimensions |
+| `0013_content_groups.sql` | `0013_content_groups.down.sql` | Content groups and labeling rules |
 | `0014_embedding_jobs.sql` | `0014_embedding_jobs.down.sql` | Background embedding rebuild jobs, index states `paused`/`failed` |
 | `0015_ocr_page_review.sql` | `0015_ocr_page_review.down.sql` | OCR page diagnostics and the reviewer who confirmed a page against the scan |
 | `0016_document_management.sql` | `0016_document_management.down.sql` | Versioned metadata, OCR edits, lookup availability and cache revision |

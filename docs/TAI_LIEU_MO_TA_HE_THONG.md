@@ -80,6 +80,11 @@ danh sách và trạng thái tra cứu toàn kho. Quyền xem tệp nguồn, OCR
 REVIEWER duyệt bản sửa trong các danh mục được giao quyền duyệt. CURATOR sửa bản nháp
 của mình, gửi lại để một người khác duyệt.
 
+Với bản sửa đã có danh mục, reviewer phải có quyền duyệt trên tất cả danh mục đang gán.
+Thay đổi danh mục trong lúc phê duyệt bản sửa được từ chối để người duyệt tải lại và
+kiểm tra. Danh sách của SYS_ADMIN có thể hiển thị metadata toàn kho, còn nội dung và
+tệp gốc yêu cầu quyền truy cập theo phạm vi.
+
 Biên tập metadata hoặc chữ OCR trên bản đã duyệt tạo bản nháp mới dùng chung tệp gốc bất
 biến. Sau khi phê duyệt bản hiệu chỉnh, phiên bản trước của cùng tệp được rút khỏi tra cứu và
 giữ trong lịch sử. Tệp mới có thể nhập vào cùng văn bản qua luồng nhập hiện có. Phiên bản
@@ -88,6 +93,11 @@ hành. Chữ OCR sửa tay phải xác nhận lại từng trang bị sửa. Cá
 tới phiên bản vừa rút được đưa lại vào hàng đợi duyệt. Bản xác nhận cấp nút cũ được đánh dấu
 cần xác minh lại. Lịch sử metadata và thao tác dùng audit log chuỗi băm. Chữ OCR trước và
 sau khi sửa được lưu riêng trong PostgreSQL.
+
+Trong lúc bản hiệu chỉnh chờ duyệt, bản đã duyệt trước đó tiếp tục phục vụ tra cứu khi
+văn bản đang hoạt động và người dùng còn quyền. Khi sửa bản nháp đang chờ duyệt, hệ
+thống đưa bản đó về nháp và yêu cầu gửi duyệt lại. Số phiên bản rà soát giúp phát hiện
+thao tác từ màn hình đã cũ.
 
 Tạm ngừng tra cứu và xóa mềm giữ tệp nguồn, vector, danh mục và lịch sử. Sau khi khôi phục
 văn bản đã xóa, cờ tạm ngừng trước đó vẫn có hiệu lực. Trạng thái tra cứu độc lập với hiệu lực

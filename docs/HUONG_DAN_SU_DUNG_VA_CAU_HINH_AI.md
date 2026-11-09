@@ -47,16 +47,18 @@ Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
 4. Chọn **Gửi duyệt** hoặc chọn nhiều nháp rồi gửi theo lô. Kiểm tra kết quả từng bản.
    REVIEWER khác mở phiên bản đang chờ, xem tệp nguồn, xử lý tác vụ và xác nhận lại từng
    trang OCR có chỉnh sửa. Ghi lý do rồi phê duyệt hoặc từ chối. Các danh mục đã gán được
-   giữ lại. Nếu có thông báo phiên bản thay đổi, tải lại chi tiết rồi tiếp tục.
+   giữ lại. Reviewer cần quyền duyệt trên tất cả danh mục đã gán. Nếu có thông báo phiên
+   bản thay đổi, tải lại chi tiết rồi tiếp tục. Bản đã duyệt trước đó tiếp tục được tra cứu
+   trong khi bản sửa chờ duyệt, nếu văn bản đang hoạt động và người dùng có quyền.
 5. SYS_ADMIN chọn một hoặc nhiều văn bản để **Tạm ngừng**, **Khôi phục tra cứu**,
    **Xóa mềm** hoặc **Khôi phục văn bản**. Kiểm danh sách đã chọn, nhập lý do và xác
    nhận. Dùng bộ lọc **Đã xóa** để khôi phục văn bản xóa mềm. Văn bản từng bị tạm ngừng
    cần khôi phục tra cứu riêng. Bản đang chờ duyệt vẫn phải qua thẩm định trước khi phát hành.
 
 Nếu bản sửa làm thay đổi căn cứ của quan hệ cấp Điều/Khoản/Điểm, rà soát lại ở mục
-**Hiệu lực**. Khi hệ thống chưa ghép được đích theo đường dẫn pháp lý, cần chọn đúng nút
-đích trước khi phê duyệt quan hệ. Quyền xem nội dung được cấp riêng cho từng phạm vi,
-kể cả với tài khoản quản trị.
+**Hiệu lực**. Khi hệ thống chưa ghép được đích theo đường dẫn pháp lý, quan hệ cần được
+xác định đúng nút đích qua API rà soát trước khi phê duyệt. Giao diện hiện chưa có bộ chọn
+nút đích. Quyền xem nội dung được cấp riêng cho từng phạm vi, kể cả với tài khoản quản trị.
 
 ## 3. Danh mục, tài khoản và kiểm toán
 

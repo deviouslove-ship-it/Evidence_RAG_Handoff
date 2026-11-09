@@ -14,7 +14,10 @@ nghiệp vụ được duyệt, chưa có Gold; model thật mới chỉ đượ
   pgvector 0.8.7 trên dữ liệu hư cấu, gồm nâng cấp giữ nguyên hash và vector cũ.
 - `verify.ps1` đạt 12/12 bước, backend 295 kiểm thử và frontend 94 kiểm thử đạt.
   Chrome kiểm tra cổng Admin tại 360, 768 và 1280 px. Chưa đo chất lượng truy xuất
-  trên bộ dữ liệu và model AI của máy nhà.
+  trên bộ dữ liệu và model AI của máy nhà. OCR Tesseract trên tài liệu scan thật cũng
+  chưa được kiểm chứng trong môi trường này.
+- Quan hệ hiệu lực cấp nút bị ảnh hưởng bởi bản hiệu chỉnh được đưa lại vào hàng đợi
+  duyệt. API hỗ trợ xác định nút đích, còn giao diện Hiệu lực chưa có bộ chọn nút đích.
 
 ## Diễn giải AI và PDF scan OCR (08/11/2026)
 
