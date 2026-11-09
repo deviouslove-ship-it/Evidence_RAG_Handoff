@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint backend Python on save",
+      "trigger": "PostFileSave",
+      "description": "Runs ruff on the backend after a Python file is saved. Uses ruff from PATH or from EVIDENCE_PROGRAMS_ROOT; skips with a message if neither exists.",
+      "matcher": "backend[\\\\/].*\\.py$",
+      "action": {
+        "type": "command",
+        "command": "powershell -NoProfile -Command \"$r = (Get-Command ruff -ErrorAction SilentlyContinue).Source; if (-not $r -and $env:EVIDENCE_PROGRAMS_ROOT) { $c = Join-Path $env:EVIDENCE_PROGRAMS_ROOT 'EvidenceRAG\\backend-venv\\Scripts\\ruff.exe'; if (Test-Path $c) { $r = $c } }; if (-not $r) { Write-Output 'ruff not found; set EVIDENCE_PROGRAMS_ROOT or add ruff to PATH. Skipped.'; exit 0 }; & $r check backend; exit 0\"",
+        "timeout": 60
+      }
+    }
+  ]
+}

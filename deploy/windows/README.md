@@ -1,5 +1,7 @@
 # Windows deployment
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 Các đường dẫn dưới đây là placeholder cấu hình, không phải giá trị nhúng trong source.
 
 1. Owner cấp `installation.programs_root` qua deployment profile hoặc `EVIDENCE_PROGRAMS_ROOT`.

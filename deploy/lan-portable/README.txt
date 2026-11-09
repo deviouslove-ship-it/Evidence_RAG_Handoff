@@ -1,6 +1,8 @@
 EVIDENCE RAG - BẢN CHẠY DI ĐỘNG CHO MẠNG LAN (WINDOWS, OFFLINE)
 ================================================================
 
+Ngôn ngữ / Language: Tiếng Việt (bản gốc) · English: README.en.txt cùng thư mục.
+
 Mọi thứ nằm trong thư mục này: giao diện web, máy chủ FastAPI, PostgreSQL + pgvector (cơ sở dữ
 liệu, chỉ mục, vector), kho tài liệu gốc, Tesseract OCR tiếng Việt, Ollama và các model AI cục bộ.
 Không cần Internet, không cần cài Python, Node.js, PostgreSQL, Ollama hay Tesseract.

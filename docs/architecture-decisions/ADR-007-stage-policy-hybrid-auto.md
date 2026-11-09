@@ -20,7 +20,7 @@ tuyệt đối không gọi API.
    thời, cho từng cặp (chế độ, giai đoạn). Thiếu dòng thì dùng `LLM_ATTEMPT_BUDGET` (nay 1–10, mặc
    định 2). Mỗi lần gửi HTTP, kể cả lỗi, hết giờ, dự phòng, vẫn trừ một lượt. Không có vòng lặp tự chủ.
 2. **Giai đoạn trong Registry:** `answer`, `summarize`, `expand`, `relation`, `label`, `embedding`,
-   `rerank`. Hôm nay ứng dụng chỉ gọi `answer`; các giai đoạn khác cấu hình được nhưng chưa dùng.
+   `rerank`. Khi viết ADR (07/11/2026) ứng dụng chỉ gọi `answer` (cập nhật 09/11/2026: G1–G4 đã nối đủ, xem `ACTIVE_STAGES` trong `model_registry/stages.py`); các giai đoạn khác cấu hình được nhưng chưa dùng.
 3. **Hai chế độ giữ nguyên tên:**
    - `LOCAL` = Local Only. Hồ sơ `public` bị từ chối khi lưu tuyến và khi chạy; tuyến LOCAL không
      được có hồ sơ nâng cấp; runtime ở chế độ này không đọc hồ sơ nâng cấp.

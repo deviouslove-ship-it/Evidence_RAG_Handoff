@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Type-check frontend TypeScript on save",
+      "trigger": "PostFileSave",
+      "description": "Runs tsc --noEmit in frontend/ after a TypeScript file is saved. Skips if dependencies are not installed.",
+      "matcher": "frontend[\\\\/]src[\\\\/].*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "powershell -NoProfile -Command \"if (-not (Test-Path 'frontend/node_modules')) { Write-Output 'frontend/node_modules missing; run pnpm install. Skipped.'; exit 0 }; Push-Location frontend; pnpm exec tsc --noEmit; Pop-Location; exit 0\"",
+        "timeout": 120
+      }
+    }
+  ]
+}

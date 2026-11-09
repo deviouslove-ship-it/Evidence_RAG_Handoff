@@ -1,5 +1,7 @@
 # Tài liệu mô tả hệ thống Evidence RAG
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](en/SYSTEM_DESCRIPTION.md)
+
 Đối chiếu source ngày 08/11/2026. Tài liệu mô tả mã trong repository; cấu hình, dữ liệu và phiên bản thực tế của từng gói triển khai có thể khác. Hướng dẫn thao tác ở [HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md](HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md).
 
 ## Mục lục

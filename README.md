@@ -1,9 +1,19 @@
 # Vietnamese Evidence RAG Agent
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 Tra cứu pháp lý tiếng Việt có căn cứ nguồn. Một backend FastAPI, một PostgreSQL và một
 kho PDF bất biến theo SHA-256 phục vụ **User Portal** (hỏi đáp, tìm kiếm văn bản),
 **Admin Portal** và **ứng dụng Windows USER (Tauri 2)**. Trạng thái hiện hành:
 [`docs/implementation-status.md`](docs/implementation-status.md).
+
+## Phát triển bằng Kiro (Kiroween 2026)
+
+Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) từ 30/10/2026 đến hết 09/11/2026, theo xác nhận của chủ dự án.
+
+- Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md)
+- Tổng quan kiến trúc: [`docs/vi/ARCHITECTURE_OVERVIEW.md`](docs/vi/ARCHITECTURE_OVERVIEW.md)
+- Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Được dựng lại từ mã nguồn ngày 09/11/2026, không phải spec lịch sử của Kiro. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
 
 ## Chạy cục bộ
 
@@ -112,8 +122,11 @@ skip chúng. Đo hiệu năng: `scripts/benchmark_search.py`; smoke HTTP:
 | `00_README.md` | Chỉ mục hồ sơ bàn giao và thứ tự ưu tiên đặc tả |
 | `docs/HOSO_BAN_GIAO.md`, `docs/SRS_v1.3.md` | Hồ sơ chính và đặc tả kỹ thuật hiện hành |
 | `docs/architecture-decisions/ADR-000…009` | Quyết định kiến trúc |
-| `docs/TAI_LIEU_MO_TA_HE_THONG.md` | Mô tả hệ thống và vòng đời văn bản |
-| `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | Hướng dẫn sử dụng và quản trị, gồm Quản lý văn bản |
+| `docs/TAI_LIEU_MO_TA_HE_THONG.md` | Mô tả hệ thống và vòng đời văn bản (bản tiếng Anh: `docs/en/SYSTEM_DESCRIPTION.md`) |
+| `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | Hướng dẫn sử dụng và quản trị, gồm Quản lý văn bản (bản tiếng Anh: `docs/en/USER_ADMIN_AND_AI_GUIDE.md`) |
+| `docs/vi/ARCHITECTURE_OVERVIEW.md` | Tổng quan kiến trúc (bản tiếng Anh: `docs/en/ARCHITECTURE_OVERVIEW.md`) |
+| `deploy/lan-portable/README.txt`, `deploy/windows/README.md` | Triển khai Windows LAN Portable và ghi chú Windows (bản tiếng Anh: `README.en.txt`, `README.en.md` cùng thư mục) |
+| `KIRO_WORK_SUMMARY.vi.md`, `PROJECT_TIMELINE.vi.md` | Hồ sơ công việc Kiro và dòng thời gian (bản tiếng Anh: `KIRO_WORK_SUMMARY.en.md`, `PROJECT_TIMELINE.md`) |
 | `docs/implementation-status.md` | Trạng thái, kiểm chứng, giới hạn còn lại |
 | `docs/search-v1-runbook.md` | Vận hành tìm kiếm và truy xuất chat |
 | `docs/threat-model.md` | Mô hình đe dọa |
@@ -128,11 +141,12 @@ frontend/         React + TypeScript: User Portal, Admin Portal, giao diện Orb
 src-tauri/        Tauri 2 shell cho Windows USER
 evaluation/       Corpus công khai, harness đánh giá tìm kiếm (case HƯ CẤU)
 configs/          Mẫu cấu hình
-deploy/windows/   Hướng dẫn triển khai Windows
+deploy/           Hướng dẫn Windows, nguồn gói portable và LAN portable
 tools/            Kiểm egress, hash, footprint
 scripts/          verify, seed, khởi động stack, benchmark, smoke
-docs/             Đặc tả, ADR, OpenAPI, runbook, bằng chứng
+docs/             Đặc tả, ADR, OpenAPI, runbook, bằng chứng; docs/en và docs/vi chứa bản dịch
 parts/            Bản trích hồ sơ chính (sinh lại từ docs/HOSO_BAN_GIAO.md)
+.kiro/            Quyền, specs, steering, hooks của Kiro
 ```
 
 ## Nguyên tắc an toàn
@@ -149,4 +163,4 @@ parts/            Bản trích hồ sơ chính (sinh lại từ docs/HOSO_BAN_GI
 7. Gold/trap chỉ được công nhận sau khi người nắm nghiệp vụ duyệt.
 
 ## License
-Licensed under the Apache License, Version 2.0. See LICENSE and NOTICE. Project history is described in PROJECT_TIMELINE.md.
+Licensed under the Apache License, Version 2.0. See LICENSE and NOTICE. Project history is described in PROJECT_TIMELINE.md ([Tiếng Việt](PROJECT_TIMELINE.vi.md)).
