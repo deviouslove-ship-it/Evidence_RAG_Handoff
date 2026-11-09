@@ -8,9 +8,9 @@
       "matcher": "frontend[\\\\/]src[\\\\/].*\\.(ts|tsx)$",
       "action": {
         "type": "command",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kiro-hook-check.ps1 -Scope frontend",
-        "timeout": 180
-      }
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kiro-hook-check.ps1 -Scope frontend"
+      },
+      "timeout": 180
     }
   ]
 }

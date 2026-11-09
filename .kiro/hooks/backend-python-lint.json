@@ -8,9 +8,9 @@
       "matcher": "backend[\\\\/].*\\.py$",
       "action": {
         "type": "command",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kiro-hook-check.ps1 -Scope backend",
-        "timeout": 180
-      }
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kiro-hook-check.ps1 -Scope backend"
+      },
+      "timeout": 180
     }
   ]
 }
