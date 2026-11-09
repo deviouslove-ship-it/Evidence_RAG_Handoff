@@ -147,3 +147,6 @@ parts/            Bản trích hồ sơ chính (sinh lại từ docs/HOSO_BAN_GI
    (`SELF_APPROVAL_DENIED`).
 6. Bộ nhớ phiên không bao giờ là căn cứ; mặc định chỉ trong RAM.
 7. Gold/trap chỉ được công nhận sau khi người nắm nghiệp vụ duyệt.
+
+## License
+Licensed under the Apache License, Version 2.0. See LICENSE and NOTICE. Project history is described in PROJECT_TIMELINE.md.
