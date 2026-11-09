@@ -11,9 +11,10 @@ Máy trạm chỉ cần trình duyệt.
 
 YÊU CẦU MÁY CHẠY
   - Windows 10 / Windows Server 2016 trở lên, 64-bit; PowerShell 5.1 (có sẵn trong Windows).
-  - Dung lượng trống: khoảng 6 GB cho gói và dữ liệu; RAM nên từ 8 GB (model AI chạy trên CPU).
+  - Tối thiểu: khoảng 6 GB trống cho gói và dữ liệu; RAM từ 8 GB (model AI chạy trên CPU).
+  - Khuyến nghị (đã thử): Intel Core i3, RAM DDR4 32 GB, SSD 512 GB.
   - Giải nén TOÀN BỘ gói vào một thư mục có đường dẫn ngắn, ví dụ D:\EvidenceRAG
-    (tránh thư mục sâu; đường dẫn dưới 120 ký tự). Không chạy trực tiếp trong tệp ZIP.
+    (tránh thư mục sâu; đường dẫn dưới 120 ký tự). Không chạy trực tiếp trong tệp nén. Gói phát hành là .rar: giải nén bằng WinRAR hoặc 7-Zip.
   - Không cần quyền Administrator để chạy. Chỉ cần khi mở cổng tường lửa (mục 4).
 
 1. KHỞI ĐỘNG

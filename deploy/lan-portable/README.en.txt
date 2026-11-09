@@ -11,9 +11,10 @@ Client machines only need a browser.
 
 MACHINE REQUIREMENTS
   - Windows 10 / Windows Server 2016 or later, 64-bit; PowerShell 5.1 (built into Windows).
-  - Free space: about 6 GB for the package and data; RAM preferably 8 GB or more (the AI models run on CPU).
+  - Minimum: about 6 GB free disk space for the package and data; 8 GB RAM or more (the AI models run on CPU).
+  - Recommended (tested): Intel Core i3, 32 GB DDR4 RAM, 512 GB SSD.
   - Extract the WHOLE package into a folder with a short path, for example D:\EvidenceRAG
-    (avoid deep folders; keep the path under 120 characters). Do not run directly inside the ZIP file.
+    (avoid deep folders; keep the path under 120 characters). Do not run directly inside the archive. The release archive is a .rar: extract it with WinRAR or 7-Zip.
   - Administrator rights are not needed to run. They are only needed to open the firewall port (section 4).
 
 1. START

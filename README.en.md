@@ -8,15 +8,16 @@ This is the English counterpart of `README.md`. The Vietnamese file is the origi
 
 ## Download the app (for judges)
 
-- **Package:** `Evidence-RAG-Portable-20261109-r2.zip` (~3.5 GB, 3,777,232,458 bytes; includes documents and local AI models)
+- **Package:** `Evidence-RAG-Portable-20261109-r2.rar` (~3.43 GiB, 3,679,113,027 bytes; includes documents and local AI models). Extract with WinRAR or 7-Zip.
 - **Download:** https://drive.google.com/file/d/1oyOhY76EwH2846iCtnOl6JekAeH5Luzw/view?usp=sharing
-- **SHA-256:** `40df579be3be2b75215e8e8a7225e850bc6c2d9951037b1ce0b1560696980146`
-- **Verify on Windows:** `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.zip -Algorithm SHA256`
-- **Minimum system requirements:** Windows, Intel Core i3, 32 GB DDR4 RAM, 512 GB SSD
+- **SHA-256:** `8d3813337290451d6f5d1252265fb4f2d3d82a094268385fde14499feff84a3f`
+- **Verify on Windows:** `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.rar -Algorithm SHA256`
+- **Minimum:** Windows 10 / Server 2016 or later (x64), about 8 GB RAM, 6 GB free disk space (per `deploy/lan-portable/README.en.txt`; the AI models run on CPU).
+- **Recommended (tested):** Intel Core i3, 32 GB DDR4 RAM, 512 GB SSD.
 
 **How to start** (steps from [`deploy/lan-portable/README.en.txt`](deploy/lan-portable/README.en.txt)):
 
-1. Extract the WHOLE package into a folder with a short path, for example `D:\EvidenceRAG`. Do not run it inside the ZIP file. Administrator rights are not needed to run.
+1. Extract the WHOLE package with WinRAR or 7-Zip into a folder with a short path, for example `D:\EvidenceRAG`. Do not run it inside the archive. Administrator rights are not needed to run.
 2. Double-click `Start-Server.bat` (no other command to type). It checks the runtime, models, database, ports and configuration, starts the package's own PostgreSQL + pgvector, Ollama and the web/API server, checks readiness and prints the access address through the LAN IP, for example `http://192.168.1.15:8800/`.
 3. The first run takes 1-3 more minutes: the package builds its own database from the original data copy in `seed\` and compares every table with the original. Documents are not re-imported, not re-OCR'd, and vectors are not recreated. Later runs start in a few tens of seconds.
 4. Open the printed address (or `http://127.0.0.1:8800/` on the same machine) in a browser. Other machines on the LAN only need a browser.
@@ -32,6 +33,7 @@ The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from
 - Evidence and limits: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md), per-file statistics appendix [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md)
 - Architecture overview: [`docs/en/ARCHITECTURE_OVERVIEW.md`](docs/en/ARCHITECTURE_OVERVIEW.md)
 - Kiro specs (10 groups), steering and hooks: [`.kiro/`](.kiro/). They were reconstructed from the implemented code on 2026-11-09 and are not historical Kiro specs. Vietnamese translations: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
+- Kiro MCP: **Stitch** – UI design, results in [`.stitch/`](.stitch/) (server configured at user level; use confirmed by the project owner, no tool-call log: evidence type B, see [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md) section 7)
 
 ## Run locally
 

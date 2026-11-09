@@ -9,11 +9,12 @@ kho PDF bất biến theo SHA-256 phục vụ **User Portal** (hỏi đáp, tìm
 
 ## Tải ứng dụng (cho giám khảo)
 
-- **Gói:** `Evidence-RAG-Portable-20261109-r2.zip` (~3,5 GB, 3.777.232.458 byte; gồm tài liệu và model AI cục bộ)
+- **Gói:** `Evidence-RAG-Portable-20261109-r2.rar` (~3,43 GiB, 3.679.113.027 byte; gồm tài liệu và model AI cục bộ). Giải nén bằng WinRAR hoặc 7-Zip.
 - **Tải về:** https://drive.google.com/file/d/1oyOhY76EwH2846iCtnOl6JekAeH5Luzw/view?usp=sharing
-- **SHA-256:** `40df579be3be2b75215e8e8a7225e850bc6c2d9951037b1ce0b1560696980146` (kiểm: `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.zip -Algorithm SHA256`)
-- **Cấu hình tối thiểu:** Windows, Intel Core i3, RAM DDR4 32 GB, SSD 512 GB
-- **Khởi động:** giải nén TOÀN BỘ gói vào thư mục có đường dẫn ngắn (không chạy trong ZIP), bấm đúp `Start-Server.bat`, chờ cửa sổ in địa chỉ dạng `http://<IP LAN>:8800/` rồi mở bằng trình duyệt. Lần đầu mất thêm 1-3 phút. Dừng bằng `Stop-Server.bat`. Chi tiết: [`deploy/lan-portable/README.txt`](deploy/lan-portable/README.txt) (tiếng Anh: [`README.en.txt`](deploy/lan-portable/README.en.txt)).
+- **SHA-256:** `8d3813337290451d6f5d1252265fb4f2d3d82a094268385fde14499feff84a3f` (kiểm: `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.rar -Algorithm SHA256`)
+- **Cấu hình tối thiểu:** Windows 10 / Server 2016 trở lên (x64), RAM khoảng 8 GB, trống 6 GB đĩa (theo `deploy/lan-portable/README.txt`; model AI chạy bằng CPU).
+- **Khuyến nghị (đã thử):** Intel Core i3, RAM DDR4 32 GB, SSD 512 GB.
+- **Khởi động:** giải nén TOÀN BỘ gói bằng WinRAR hoặc 7-Zip vào thư mục có đường dẫn ngắn (không chạy trong tệp nén), bấm đúp `Start-Server.bat`, chờ cửa sổ in địa chỉ dạng `http://<IP LAN>:8800/` rồi mở bằng trình duyệt. Lần đầu mất thêm 1-3 phút. Dừng bằng `Stop-Server.bat`. Chi tiết: [`deploy/lan-portable/README.txt`](deploy/lan-portable/README.txt) (tiếng Anh: [`README.en.txt`](deploy/lan-portable/README.en.txt)).
 - **Tài khoản thử:** thông tin đăng nhập demo nằm trong biểu mẫu nộp bài Devpost. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**). Gói r2 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
 ## Phát triển bằng Kiro (Kiroween 2026)
 
@@ -22,6 +23,7 @@ Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5
 - Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md), phụ lục thống kê từng tệp [`KIRO_STATS_APPENDIX.vi.md`](KIRO_STATS_APPENDIX.vi.md)
 - Tổng quan kiến trúc: [`docs/vi/ARCHITECTURE_OVERVIEW.md`](docs/vi/ARCHITECTURE_OVERVIEW.md)
 - Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Được dựng lại từ mã nguồn ngày 09/11/2026, không phải spec lịch sử của Kiro. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
+- MCP của Kiro: **Stitch** – thiết kế UI, kết quả trong [`.stitch/`](.stitch/) (máy chủ cấu hình ở mức người dùng; chủ dự án xác nhận đã dùng, không có nhật ký lệnh gọi: bằng chứng loại B, xem [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md) mục 7)
 
 ## Chạy cục bộ
 

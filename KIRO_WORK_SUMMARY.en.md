@@ -95,7 +95,7 @@ These items exist in the repository but have **no Kiro write/edit command in the
 | Admin Portal document management and lookup visibility (commit `ba596ce`, 11-09): `documents/management_{access,read,write}.py`, migration `0016_document_management`, `storage/lookup_visibility.py`, `AdminDocumentManager.tsx`, `AdminDocumentDetail.tsx`, related tests | In the repository and Git | **17 of the 52 files in this commit have no Kiro write command**; between 11-08 17:21 and 11-09 17:19 no Kiro session is recorded, while 3 commits (09:25, 10:00, 12:04) fall in that window |
 | System description and user guide: `docs/TAI_LIEU_MO_TA_HE_THONG.md`, `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (commits `74e7e60`, `caa2e7a`) | In Git | No Kiro write command |
 | CI, license, disclosure: `.github/workflows/ci.yml`, `LICENSE`, `NOTICE`, `PROJECT_TIMELINE.md` | In Git (committed by the author) | Written by the author; outside Kiro's scope |
-| UI design through Stitch: `.stitch/DESIGN.md`, `SITE.md`, `metadata.json` | In Git; the machine has a `stitch` MCP config | No Kiro write command; creating session unknown |
+| UI design through Stitch MCP: `.stitch/DESIGN.md`, `SITE.md`, `metadata.json` (design system, screen map, three screens) | In Git; user-level MCP server `stitch` (remote, `https://stitch.googleapis.com/mcp`, API key sent in a header and not recorded here); every stored `mcp.log` (10 log folders, 2026-11-05 to 2026-11-09) shows it connecting and listing tools at session start; the three files are dated 2026-10-22 (indicative only) | No Kiro write command and no log of a Stitch design call, so no usage date can be given. Use for UI design: type B (project owner's confirmation) |
 | Small tools: `tools/*`, `scripts/seed_local_runtime.py`, `smoke_app_runtime.py`, `validate_*`, `evaluation/scripts/*` | In the repository | No Kiro write command |
 
 Note: changes without a Kiro record are **not** counted as Kiro's, even when they fall inside the period the owner confirmed.
@@ -114,6 +114,7 @@ These descriptions come from reading existing code and documents, not from sessi
 | React 18 + Vite 5 + TypeScript 5 web app; FastAPI + asyncpg backend; PostgreSQL with pgvector; Tauri 2 desktop shell | `frontend/package.json`, `backend/pyproject.toml`, `src-tauri/*`, migrations |
 | Admin Portal document management (commit `ba596ce` and the guide) | `documents/management_*.py`, `AdminDocumentManager.tsx` — functions inferred from code, actor unknown |
 | 10 spec groups, 3 steering files, 2 hooks added 2026-11-09 | `.kiro/specs/*`, `.kiro/steering/*`, `.kiro/hooks/*`; each states it was reconstructed from code |
+| UI design system and screen map (Stitch): Segoe UI typography, colour tokens, three-pane layout, three screens (user evidence workspace, floating chat dock, Admin Portal) | `.stitch/DESIGN.md`, `.stitch/SITE.md`, `.stitch/metadata.json` (`stitchProjectId` `local-evidence-rag-ui`); this describes the design as written in these files, not how it was produced |
 
 ## 6. Development timeline
 
@@ -150,7 +151,8 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 | `.kiro/settings/permissions.yaml` | Present (on GitHub since the first commit); drafted by Kiro and applied by the user (A24). Left unchanged |
 | `.kiro/specs` (10 groups), `.kiro/steering` (3 files), `.kiro/hooks` (2 hooks) from 2026-11-09 | **Reconstructed from code** (type C), in English so Kiro reads them directly; Vietnamese translations in `docs/vi/kiro/`. Hooks were revised on 2026-11-09 (scoped ruff/mypy and eslint/tsc via `scripts/kiro-hook-check.ps1`); automatic `PostFileSave` triggering was observed when the agent wrote test files, a manual editor save was not tried |
 | Project copy `Evidence_RAG_Handoff-20261109-171404` | Contains `.kiro/settings/permissions.yaml`, byte-identical; nothing else |
-| MCP configuration | Only at user level (`~/.kiro/settings/mcp.json`), 9 servers; only `stitch` relates to UI design; the rest are personal tools. Not copied into the repository (machine paths and personal configuration) |
+| MCP configuration | Only at user level (`~/.kiro/settings/mcp.json`), 9 servers; only `stitch` relates to UI design; the rest are personal tools. Not copied into the repository (machine paths, personal configuration and an API key header) |
+| MCP: Stitch – UI design, results in `.stitch/` | Server `stitch` (remote streamable-HTTP, `https://stitch.googleapis.com/mcp`, user level, enabled). The stored `mcp.log` files show `mcp.connect.ok` and `mcp.listTools.ok` for `stitch` at session start; no Stitch design call appears in the stored `kiro.log` files. Use for UI design: **type B** (project owner's confirmation), no usage date |
 | Working mode | All stored sessions ran in free chat mode (`vibe`) or workflow; session settings record `specPlanEnabled = false`. **The specs, steering and hooks added on 2026-11-09 are reconstructed documents, not Kiro history.** |
 
 ## 8. Method and statistics

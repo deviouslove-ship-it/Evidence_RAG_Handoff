@@ -20,10 +20,10 @@ This guide ships with **Evidence RAG - Windows Web LAN Portable** and describes 
 
 **What is inside.** The web interface, the FastAPI server, PostgreSQL + pgvector (database, indexes, vectors), the original document store (file names are the SHA-256 of their content), Tesseract OCR (`vie`, `eng`, `osd`), Ollama and two local AI models (`qwen3:1.7b` for interpretation/expansion/labelling/relations, `qwen3-embedding:0.6b`, 1024 dimensions, for semantic search). It runs fully offline; no need to install Python, PostgreSQL, Ollama, Tesseract or Node.js. Client machines only need a browser.
 
-**Server requirements.** Windows 10 / Windows Server 2016 or later, x64, PowerShell 5.1 (built in). About 8 GB free for the extracted package and data; RAM preferably 8 GB or more (models run on CPU; the first call must load the model into RAM). Administrator rights are not needed to run.
+**Server requirements.** Windows 10 / Windows Server 2016 or later, x64, PowerShell 5.1 (built in). At least 6 GB free for the extracted package and data; RAM at least 8 GB (recommended and tested: Intel Core i3, 32 GB DDR4, 512 GB SSD) (models run on CPU; the first call must load the model into RAM). Administrator rights are not needed to run.
 
 **Quick start.**
-1. Extract the WHOLE ZIP into any folder on any drive (a folder name with spaces is fine; do not run inside the ZIP). A short path is recommended.
+1. Extract the WHOLE archive (.rar, with WinRAR or 7-Zip) into any folder on any drive (a folder name with spaces is fine; do not run inside the archive). A short path is recommended.
 2. Double-click **Start-Server.bat**. The window checks the components, starts PostgreSQL, Ollama and the web server, then prints an address such as `http://<LAN IP>:8800/`. The first run takes 1-3 more minutes to build the package's own database from the original data copy in `seed\` and compare every table; documents, OCR, vectors and indexes are kept as they were and not re-imported.
 3. Send that address to LAN users; they open it in a browser and log in. If another machine cannot connect, see 8.4 (firewall). The package **never opens a firewall port by itself**.
 4. Stop with **Stop-Server.bat**; it stops only the processes started from this folder and does not affect other PostgreSQL/Ollama/Python on the machine.

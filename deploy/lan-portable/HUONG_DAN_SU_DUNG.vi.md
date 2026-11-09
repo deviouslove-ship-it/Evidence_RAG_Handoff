@@ -20,10 +20,10 @@ Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và 
 
 **Gói gồm gì.** Giao diện web, máy chủ FastAPI, PostgreSQL + pgvector (cơ sở dữ liệu, chỉ mục, vector), kho tài liệu gốc (tên tệp là SHA-256 của nội dung), Tesseract OCR (`vie`, `eng`, `osd`), Ollama và hai model AI cục bộ (`qwen3:1.7b` cho diễn giải/mở rộng/gán nhãn/quan hệ, `qwen3-embedding:0.6b` 1024 chiều cho tìm theo nghĩa). Chạy hoàn toàn offline; không cần cài Python, PostgreSQL, Ollama, Tesseract hay Node.js. Máy trạm chỉ cần trình duyệt.
 
-**Yêu cầu máy chủ.** Windows 10 / Windows Server 2016 trở lên, x64, PowerShell 5.1 (có sẵn). Trống khoảng 8 GB cho gói đã giải nén và dữ liệu; RAM nên từ 8 GB (model chạy bằng CPU, lần gọi đầu phải nạp model vào RAM). Không cần quyền Administrator để chạy.
+**Yêu cầu máy chủ.** Windows 10 / Windows Server 2016 trở lên, x64, PowerShell 5.1 (có sẵn). Trống tối thiểu 6 GB cho gói đã giải nén và dữ liệu; RAM tối thiểu 8 GB (khuyến nghị, đã thử: Intel Core i3, DDR4 32 GB, SSD 512 GB) (model chạy bằng CPU, lần gọi đầu phải nạp model vào RAM). Không cần quyền Administrator để chạy.
 
 **Khởi động nhanh.**
-1. Giải nén TOÀN BỘ tệp ZIP vào một thư mục bất kỳ trên ổ bất kỳ (tên thư mục có dấu cách vẫn dùng được; không chạy trong ZIP). Nên dùng đường dẫn ngắn.
+1. Giải nén TOÀN BỘ tệp nén (.rar, bằng WinRAR hoặc 7-Zip) vào một thư mục bất kỳ trên ổ bất kỳ (tên thư mục có dấu cách vẫn dùng được; không chạy trong tệp nén). Nên dùng đường dẫn ngắn.
 2. Bấm đúp **Start-Server.bat**. Cửa sổ lần lượt kiểm tra thành phần, khởi động PostgreSQL, Ollama và máy chủ web, rồi in địa chỉ dạng `http://<IP LAN>:8800/`. Lần đầu mất thêm 1-3 phút để dựng cơ sở dữ liệu riêng từ bản dữ liệu gốc trong `seed\` và đối chiếu từng bảng; tài liệu, OCR, vector và chỉ mục giữ nguyên, không nạp lại.
 3. Gửi địa chỉ đó cho người dùng trong LAN; họ mở bằng trình duyệt và đăng nhập. Nếu máy khác không vào được, xem mục 8.4 (tường lửa). Gói **không tự mở cổng tường lửa**.
 4. Dừng bằng **Stop-Server.bat**; chỉ dừng các tiến trình chạy từ thư mục này, không ảnh hưởng PostgreSQL/Ollama/Python khác trên máy.

@@ -97,7 +97,7 @@ Các mục này tồn tại trong repo nhưng **không có lệnh ghi/sửa củ
 | Quản lý văn bản trong Admin Portal và hiển thị tra cứu (commit `ba596ce`, 09/11): `documents/management_{access,read,write}.py`, migration `0016_document_management`, `storage/lookup_visibility.py`, `AdminDocumentManager.tsx`, `AdminDocumentDetail.tsx`, các test đi kèm | Có trong repo và Git | **17 trong 52 file của commit này không có lệnh ghi của Kiro**; khoảng 08/11 17:21 → 09/11 17:19 không có phiên Kiro nào được ghi, trong khi 3 commit (09:25, 10:00, 12:04) nằm trong khoảng đó |
 | Tài liệu mô tả hệ thống và hướng dẫn: `docs/TAI_LIEU_MO_TA_HE_THONG.md`, `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (commit `74e7e60`, `caa2e7a`) | Có trong Git | Không có lệnh ghi của Kiro |
 | CI, giấy phép, công bố: `.github/workflows/ci.yml`, `LICENSE`, `NOTICE`, `PROJECT_TIMELINE.md` | Có trong Git (commit do tác giả) | Do tác giả cam kết/ghi; không thuộc phạm vi Kiro |
-| Thiết kế giao diện qua Stitch: `.stitch/DESIGN.md`, `SITE.md`, `metadata.json` | Có trong Git; máy có cấu hình MCP `stitch` | Không có lệnh ghi của Kiro; chưa xác định phiên tạo |
+| Thiết kế giao diện qua MCP Stitch: `.stitch/DESIGN.md`, `SITE.md`, `metadata.json` (hệ thống thiết kế, sơ đồ màn hình, ba màn hình) | Có trong Git; máy chủ MCP `stitch` ở mức người dùng (từ xa, `https://stitch.googleapis.com/mcp`, khóa API gửi qua header và không ghi lại ở đây); mọi `mcp.log` còn lưu (10 thư mục nhật ký, 05/11–09/11/2026) ghi nó kết nối và liệt kê công cụ lúc bắt đầu phiên; ba tệp có mốc 22/10/2026 (chỉ mang tính tham khảo) | Không có lệnh ghi của Kiro và không có nhật ký lệnh gọi thiết kế Stitch nên không nêu được ngày sử dụng. Dùng cho thiết kế giao diện: loại B (chủ dự án xác nhận) |
 | Công cụ nhỏ: `tools/*`, `scripts/seed_local_runtime.py`, `smoke_app_runtime.py`, `validate_*`, `evaluation/scripts/*` | Có trong repo | Không có lệnh ghi của Kiro |
 
 Lưu ý: thay đổi không có bản ghi Kiro **không** được thống kê là của Kiro, kể cả khi nằm trong khoảng thời gian chủ dự án xác nhận.
@@ -116,6 +116,7 @@ Các mô tả dưới đây dựa trên việc đọc mã và tài liệu hiện
 | Ứng dụng web React 18 + Vite 5 + TypeScript 5; backend FastAPI + asyncpg; PostgreSQL với pgvector; shell Tauri 2 cho bản desktop | `frontend/package.json`, `backend/pyproject.toml`, `src-tauri/*`, các migration |
 | Quản lý văn bản trong Admin Portal (mô tả trong commit `ba596ce` và hướng dẫn) | `documents/management_*.py`, `AdminDocumentManager.tsx` — mô tả chức năng suy ra từ mã, không xác định tác nhân |
 | 10 nhóm spec, 3 steering, 2 hook bổ sung ngày 09/11/2026 | `.kiro/specs/*`, `.kiro/steering/*`, `.kiro/hooks/*`; mỗi tệp ghi rõ là dựng lại từ code |
+| Hệ thống thiết kế giao diện và sơ đồ màn hình (Stitch): chữ Segoe UI, bảng màu, bố cục ba cột, ba màn hình (không gian chứng cứ của người dùng, ô chat nổi, Admin Portal) | `.stitch/DESIGN.md`, `.stitch/SITE.md`, `.stitch/metadata.json` (`stitchProjectId` `local-evidence-rag-ui`); mô tả thiết kế như đã viết trong các tệp này, không khẳng định cách tạo ra |
 
 ## 6. Dòng thời gian phát triển
 
@@ -153,7 +154,8 @@ Mốc trước 05/11 suy ra từ thời gian sửa tệp và là **chỉ số th
 | `.kiro/settings/permissions.yaml` trong repo | Có (đã nằm trên GitHub từ commit đầu); là tệp Kiro soạn và người dùng áp dụng (A24) |
 | `.kiro/specs`, `steering`, `hooks` ở `~/.kiro` và ở bản sao lưu cũ | Không có. Thư mục người dùng chỉ có cài đặt cá nhân, kỹ năng (skills), cơ sở bộ nhớ và nhật ký, không phải tài liệu dự án |
 | Bản sao dự án `Evidence_RAG_Handoff-20261109-171404` | Có `.kiro/settings/permissions.yaml` giống từng byte; không có gì khác |
-| Cấu hình MCP | Chỉ ở mức người dùng (`~/.kiro/settings/mcp.json`), có 9 máy chủ; chỉ `stitch` liên quan thiết kế giao diện; còn lại là công cụ cá nhân. Không phù hợp để đưa vào repo (chứa đường dẫn và khóa cấu hình riêng của máy) |
+| Cấu hình MCP | Chỉ ở mức người dùng (`~/.kiro/settings/mcp.json`), có 9 máy chủ; chỉ `stitch` liên quan thiết kế giao diện; còn lại là công cụ cá nhân. Không đưa vào repo (chứa đường dẫn riêng của máy, cấu hình cá nhân và header khóa API) |
+| MCP: Stitch – thiết kế UI, kết quả trong `.stitch/` | Máy chủ `stitch` (từ xa, streamable-HTTP, `https://stitch.googleapis.com/mcp`, mức người dùng, đang bật). Các `mcp.log` còn lưu ghi `mcp.connect.ok` và `mcp.listTools.ok` của `stitch` lúc bắt đầu phiên; không có lệnh gọi thiết kế Stitch nào trong các `kiro.log` còn lưu. Dùng cho thiết kế giao diện: **loại B** (chủ dự án xác nhận), không có ngày sử dụng |
 | Cách làm việc | Mọi phiên còn lưu chạy chế độ trò chuyện tự do (`vibe`) hoặc workflow; cài đặt phiên ghi `specPlanEnabled = false`. **Spec/steering/hook được thêm ngày 09/11/2026 là tài liệu dựng lại, không phải lịch sử Kiro.** |
 
 ## 8. Phương pháp và số liệu thống kê
