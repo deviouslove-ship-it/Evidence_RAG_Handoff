@@ -24,10 +24,10 @@ This is the owner's statement, not a log. The Kiro logs kept locally exist on **
 | Kiro sessions for this workspace stored locally | **7** (5 chat sessions + 2 steps of the `wf-coder` workflow agent) | the user's Kiro session folder |
 | Period with records | **2026-11-05 17:27 → 2026-11-09** (this review session) | `session.json`, `messages.jsonl` |
 | Models in the sessions | `claude-sonnet-5.5` (5 sessions), `claude-opus-5.5` (3 sessions: 2 workflows + 1 chat) | `session.json` |
-| Turns / tool calls | 60 turns, about 3,730 calls (shell 1,340, file reads 700, `str_replace` edits 1,000, `fs_write` 290, searches 300…) | counted from `messages.jsonl` |
+| Turns / tool calls | 62 turns, 3,924 calls up to the time of this count (shell 1,403, file reads 723, `str_replace` 993, `fs_write` 358, searches 319…): **3,704 calls (1,274 write/edit)** in the historical records before 11-09 17:19 and **220 calls (95 write/edit)** in the current turn | counted from `messages.jsonl`; the current-turn count keeps growing |
 | Kiro workflows run | 2 × `bundled://goal` (G1.0 and G1→G5), agent `wf-coder`, `claude-opus-5.5`, effort `high` | `workflow-state.json` |
-| Git-tracked files with at least one Kiro write/edit | **194 / 421** (46%) | `git ls-files` compared with the records |
-| Lines in those files | about 77% (46,189 / 60,292 lines of Python, TypeScript, SQL, PowerShell, CSS, Rust, Batch) | section 8; an **upper bound**, because editing a file does not mean writing all of it |
+| Product files in Git with at least one Kiro write/edit | **257 / 471** (55%): code 161/300, documents `.md`/`.txt` 88/142, configuration 8/29. Of these, **194** come from the historical records and **63** were first touched by Kiro in the current turn (59 newly created). **208** files have an `fs_write` call (created or overwritten whole); 49 were edited locally only | section 8; the denominator excludes 9 non-product files |
+| Lines in those files | 54,957 / 76,975 lines (71%) — an **upper bound**; 29,926 lines (39%) are in files with `fs_write`. Code alone: 46,189 / 60,609 (76%); documents: 8,364 / 14,620 (57%) | section 8; editing a file does not mean writing all of it |
 | Specs / steering / hooks in `.kiro/` | No session recorded spec mode. On 2026-11-09 the repository gained 10 spec groups and 3 steering files **reconstructed from code** (`Spec reconstructed from the implemented code on 2026-11-09`) and 2 hooks. They are **not** historical Kiro artefacts | section 7 |
 
 Two points to read before using this document in a submission:
@@ -80,6 +80,8 @@ The "Evidence" column gives the session ID (first 8 characters) and files that c
 | A23 | `.bat` files to open the app for UI testing | Start/stop PostgreSQL, Ollama and web on loopback ports; login and search checks | Start–stop checked, no leftover processes | `Mo-ung-dung-test.bat`, `Dung-ung-dung-test.bat`, `ung-dung-test.ps1` | Done | `4c10b6e7`, 11-08 08:50 |
 | A24 | Drive C data inventory, Kiro permissions | Inventoried data, drafted workspace permissions; `.kiro/settings/permissions.yaml` in the repository is **byte-identical** to the file Kiro drafted at 09:08 (SHA-256 `58EF3EDA…C95C209`) and applied by the user at 09:17. **Mistake:** Kiro changed another tool's environment variable, the user objected, Kiro reverted it | Permissions applied; Kiro data moved to drive E | `.kiro/settings/permissions.yaml` | Partly done (the user ran the user-settings part) | `b63f6d04`, 11-07 |
 | A25 | Kiroween record review (phase 1) | Inventory of Git, `~/.kiro`, sessions, specs/steering/hooks/MCP; wrote this document | — | `KIRO_WORK_SUMMARY.vi.md`, `KIRO_WORK_SUMMARY.en.md` | Done | `4c10b6e7`, 11-09 |
+| A26 | Kiroween record: specs, steering, hooks, bilingual documents (**current turn**) | Reconstructed 10 spec groups (30 EARS/design/tasks files), 3 steering files, 2 hooks via `createHook` (hook commands run directly), 14 Vietnamese translations, and Vietnamese/English versions of the README, Kiro summary, timeline, system description, guide, deployment notes, architecture overview | Commit `34cff8b`: 66 files (59 new, 7 modified). Tests not re-run; the IDE has not triggered the hooks yet | `.kiro/*`, `docs/en/*`, `docs/vi/*`, `*.en.md`, `*.vi.md` | Done | `4c10b6e7`, 11-09 from 17:19 |
+| A27 | Recount of Kiro's contribution (**current turn**) | Recomputed the statistics under the principles of section 8.1: Markdown and configuration included, only input data and non-product files excluded; files affected separated from files with `fs_write`; history separated from the current turn | Section 8, statistics appendix | `KIRO_STATS_APPENDIX.vi.md`, `KIRO_STATS_APPENDIX.en.md` | Done | `4c10b6e7`, 11-09 |
 
 ## 4. Work in the source without Kiro logs (type B)
 
@@ -153,11 +155,108 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 
 ## 8. Method and statistics
 
-- **Sources:** `session.json` and `messages.jsonl` of each session; `workflow-state.json` of the 2 workflows; `git log`, `git ls-files`; current code and documents.
-- **"Files with a Kiro write/edit":** collected from the tool calls `fs_write`, `str_replace`, `fs_append`, `delete_file`, `semantic_rename`, `smart_relocate` that point into the repository. This is a **lower bound on file count**: files created by shell commands (for example `test-data/cau-hoi-kiem-thu-vong-1.md`) are not counted. Conversely, the line share is an **upper bound**: Kiro may have edited only part of a file.
-- **Distribution by area (tracked files | with Kiro commands):** `backend/app/effectivity` 7 | 7; `synthesis` 6 | 6; `model_registry` 9 | 7; `storage` 14 | 10; `documents` 22 | 11; `migrations` 35 | 17 (0008–0015); `api` 13 | 5; `backend/tests` 48 | 17; `frontend/src` 56 | 38; `deploy` 20 | 19; `scripts` 17 | 9; `evaluation` 29 | 13; `docs` 65 | 19; `src-tauri` 12 | 0; `auth_acl` 4 | 0.
-- **By language (lines in files with Kiro commands / total):** Python 27,973 / 38,306 (73%); TypeScript+TSX 11,575 / 13,516 (86%); PowerShell 2,472 / 2,730; SQL 527 / 1,329 (40%); CSS 3,493 / 3,537; Rust 0 / 725 (0%); Batch 149 / 149.
-- **Sensitive data:** a user message in the records contains an API key (given temporarily for testing); it is not quoted in this document, and no key was written to the repository.
+### 8.1 Counting principles (adjusted at the project owner's request, 2026-11-09)
+
+1. **Only the input business documents of Evidence RAG are excluded** (PDF, DOC, DOCX, TXT of laws, decrees, circulars, decisions, official letters downloaded or imported into the store), together with files downloaded from the Internet, model weights, dependencies, runtimes, caches and auto-generated data. No input file is in Git (they sit in folders ignored by `.gitignore`); only {NX} files in Git are excluded (fonts, dependency lock files, binary icons, the auto-generated `docs/openapi.json`, the public-corpus manifest). The list is in the appendix.
+2. **A file is not excluded merely because it is Markdown.** Documents Kiro wrote to develop the project (requirements, design, tasks, SRS, ADRs, READMEs, reports, guides, specs, steering) count like code. Documents imported for lookup do not.
+3. A file counts when it is in Git at commit `34cff8b` and has at least one Kiro write/edit command (`fs_write`, `str_replace`, `fs_append`, `delete_file`, `semantic_rename`, `smart_relocate`, `createHook`) in the session records, whatever its extension.
+4. **Two different measures:** *files affected* (at least one write/edit command) and *files with an `fs_write` call* (Kiro created or overwrote the whole file at that moment). A file with only `str_replace`/`fs_append` is affected, not written whole.
+5. **Historical evidence and current-turn work are separated.** The current turn starts at the Kiroween record-review request (2026-11-09 17:19). Specs, steering, hooks and bilingual documents created in this turn are Kiro work **in the current turn**; they are not evidence about the earlier development history.
+6. 30 Oct – 9 Nov 2026 is the period of Kiro use confirmed by the owner on two machines. Work without logs is **not** added to the figures here.
+
+### 8.2 Sources and definitions
+
+- **Sources:** `session.json` and `messages.jsonl` of the 7 sessions; `workflow-state.json`; `git ls-tree` at commit `34cff8b`; current code and documents.
+- **Files counted:** 471 of 480 tracked files (9 excluded).
+- **File counts are a lower bound:** files created by shell commands are not counted. 29 files are mentioned in shell commands containing a write verb but have no edit-tool call; a mention does not prove a write, so they are **not counted** (list in the appendix).
+- **Line counts are an upper bound on authorship:** editing a file does not mean writing all of it, and later changes by others cannot be separated. Lines in files with `fs_write` are closer to "written whole by Kiro" but are still an upper bound.
+- Lines are counted at commit `34cff8b`. The statistics/summary files updated after that commit belong to the current turn and are not in the figures.
+
+### 8.3 Totals by file type
+
+| Group | Files counted | With a Kiro command | With `fs_write` | Lines | Lines in files with a Kiro command | Lines in files with `fs_write` |
+|---|---:|---:|---:|---:|---:|---:|
+| **Total** | 471 | 257 | 208 | 76,975 | 54,957 (71%) | 29,926 (39%) |
+| Code (`.py`, `.ts`, `.tsx`, `.sql`, `.ps1`, `.bat`, `.cmd`, `.rs`, `.css`, `.js`, `.mjs`, `.html`) | 300 | 161 | 120 | 60,609 | 46,189 (76%) | 23,659 (39%) |
+| Documents (`.md`, `.txt`) | 142 | 88 | 81 | 14,620 | 8,364 (57%) | 5,914 (40%) |
+| Configuration and technical data (`.json`, `.yaml`, `.toml`, `.env`, `.example`, extension-less) | 29 | 8 | 7 | 1,746 | 404 (23%) | 353 (20%) |
+
+### 8.4 History and current turn
+
+| Period | Files | Tool calls | Write/edit calls | Note |
+|---|---:|---:|---:|---|
+| Historical records (11-05 → 11-09 17:19) | 194 (code 161, documents 27, configuration 6) | 3,704 | 1,274 | The previously published 194/421 is unchanged; the denominator is now 412 counted files of the 421 at commit `08b0021` (9 excluded) |
+| Current turn (from 11-09 17:19, up to the time of this count) | 63 files first touched by Kiro (59 created, 4 existing) and 3 historical files edited again | 220 | 95 | Specs, steering, hooks, bilingual documents, statistics. The call count keeps growing while the session continues |
+| **Total** | **257** / 471 (55%) | 3,924 | 1,369 | |
+
+Tool-call distribution (total): `execute_pwsh` 1,403, `str_replace` 993, `read_file` 723, `fs_write` 358, `grep_search` 319, `list_directory` 29, `update_session_information` 16, `remote_web_search` 13.
+
+### 8.5 By area
+
+| Area | Files counted | With a Kiro command | With `fs_write` | Lines | Lines in files with a Kiro command | Lines in files with `fs_write` |
+|---|---:|---:|---:|---:|---:|---:|
+| `(root)` | 15 | 10 | 10 | 1,296 | 971 (75%) | 971 (75%) |
+| `.github` | 1 | 0 | 0 | 29 | 0 (0%) | 0 (0%) |
+| `.kiro` | 36 | 35 | 35 | 1,349 | 1,274 (94%) | 1,274 (94%) |
+| `.stitch` | 3 | 0 | 0 | 69 | 0 (0%) | 0 (0%) |
+| `backend/(root)` | 1 | 1 | 0 | 51 | 51 (100%) | 0 (0%) |
+| `backend/app/(root)` | 7 | 5 | 0 | 2,871 | 2,865 (100%) | 0 (0%) |
+| `backend/app/api` | 13 | 5 | 3 | 2,737 | 2,163 (79%) | 731 (27%) |
+| `backend/app/auth_acl` | 4 | 0 | 0 | 347 | 0 (0%) | 0 (0%) |
+| `backend/app/documents` | 20 | 11 | 4 | 3,487 | 2,581 (74%) | 1,085 (31%) |
+| `backend/app/effectivity` | 7 | 7 | 7 | 2,372 | 2,372 (100%) | 2,372 (100%) |
+| `backend/app/evidence` | 3 | 0 | 0 | 197 | 0 (0%) | 0 (0%) |
+| `backend/app/memory` | 2 | 0 | 0 | 579 | 0 (0%) | 0 (0%) |
+| `backend/app/migrations` | 35 | 17 | 17 | 1,432 | 570 (40%) | 570 (40%) |
+| `backend/app/model_registry` | 9 | 7 | 4 | 2,099 | 2,080 (99%) | 486 (23%) |
+| `backend/app/storage` | 14 | 10 | 6 | 5,726 | 5,553 (97%) | 3,544 (62%) |
+| `backend/app/synthesis` | 6 | 6 | 6 | 1,793 | 1,793 (100%) | 1,793 (100%) |
+| `backend/app/vietnamese_nlp` | 3 | 0 | 0 | 186 | 0 (0%) | 0 (0%) |
+| `backend/app/workflow` | 6 | 3 | 2 | 1,425 | 1,304 (92%) | 625 (44%) |
+| `backend/tests` | 48 | 17 | 11 | 8,832 | 4,541 (51%) | 2,498 (28%) |
+| `configs` | 5 | 1 | 1 | 72 | 28 (39%) | 28 (39%) |
+| `deploy` | 22 | 22 | 21 | 2,363 | 2,363 (100%) | 2,304 (98%) |
+| `docs` | 82 | 39 | 34 | 10,542 | 5,675 (54%) | 3,404 (32%) |
+| `evaluation` | 28 | 13 | 12 | 4,456 | 1,536 (34%) | 1,416 (32%) |
+| `frontend/(root)` | 7 | 0 | 0 | 136 | 0 (0%) | 0 (0%) |
+| `frontend/e2e` | 2 | 0 | 0 | 304 | 0 (0%) | 0 (0%) |
+| `frontend/public` | 1 | 0 | 0 | 5 | 0 (0%) | 0 (0%) |
+| `frontend/src` | 56 | 38 | 26 | 17,013 | 15,068 (89%) | 5,148 (30%) |
+| `parts` | 3 | 0 | 0 | 1,180 | 0 (0%) | 0 (0%) |
+| `scripts` | 17 | 9 | 8 | 2,901 | 2,130 (73%) | 1,638 (56%) |
+| `src-tauri` | 9 | 0 | 0 | 852 | 0 (0%) | 0 (0%) |
+| `test-data` | 2 | 1 | 1 | 131 | 39 (30%) | 39 (30%) |
+| `tools` | 4 | 0 | 0 | 143 | 0 (0%) | 0 (0%) |
+
+### 8.6 By extension
+
+| Extension | Files counted | With a Kiro command | With `fs_write` | Lines | Lines in files with a Kiro command | Lines in files with `fs_write` |
+|---|---:|---:|---:|---:|---:|---:|
+| `(none)` | 3 | 0 | 0 | 276 | 0 (0%) | 0 (0%) |
+| `.bat` | 9 | 9 | 9 | 107 | 107 (100%) | 107 (100%) |
+| `.cmd` | 5 | 5 | 5 | 42 | 42 (100%) | 42 (100%) |
+| `.css` | 2 | 1 | 0 | 3,537 | 3,493 (99%) | 0 (0%) |
+| `.env` | 2 | 2 | 2 | 100 | 100 (100%) | 100 (100%) |
+| `.example` | 2 | 1 | 1 | 29 | 28 (97%) | 28 (97%) |
+| `.html` | 1 | 0 | 0 | 13 | 0 (0%) | 0 (0%) |
+| `.js` | 1 | 0 | 0 | 25 | 0 (0%) | 0 (0%) |
+| `.json` | 15 | 4 | 4 | 1,131 | 225 (20%) | 225 (20%) |
+| `.md` | 139 | 85 | 78 | 14,326 | 8,070 (56%) | 5,620 (39%) |
+| `.mjs` | 1 | 0 | 0 | 279 | 0 (0%) | 0 (0%) |
+| `.ps1` | 8 | 6 | 6 | 2,730 | 2,472 (91%) | 2,472 (91%) |
+| `.py` | 180 | 87 | 58 | 38,306 | 27,973 (73%) | 15,363 (40%) |
+| `.rs` | 5 | 0 | 0 | 725 | 0 (0%) | 0 (0%) |
+| `.sql` | 32 | 16 | 16 | 1,329 | 527 (40%) | 527 (40%) |
+| `.toml` | 2 | 1 | 0 | 73 | 51 (70%) | 0 (0%) |
+| `.ts` | 16 | 7 | 5 | 3,495 | 3,000 (86%) | 939 (27%) |
+| `.tsx` | 40 | 30 | 21 | 10,021 | 8,575 (86%) | 4,209 (42%) |
+| `.txt` | 3 | 3 | 3 | 294 | 294 (100%) | 294 (100%) |
+| `.yaml` | 4 | 0 | 0 | 108 | 0 (0%) | 0 (0%) |
+| `.yml` | 1 | 0 | 0 | 29 | 0 (0%) | 0 (0%) |
+
+File-by-file list, excluded files and uncounted candidates: [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md).
+
+**Sensitive data:** a user message in the records contains an API key (given temporarily for testing); it is not quoted here and no key was written to the repository.
 
 ## 9. Unverified limits
 
@@ -168,3 +267,6 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 - The Kiro sessions in section 2 cover one machine; the statistics exclude the other.
 - Specs, steering and hooks of 2026-11-09 are reconstructed from code; automatic triggering of the hooks by the IDE has not been observed.
 - Some other generated files (reports, files in `.agents/`) are outside Git per `.gitignore` and are not in the file statistics.
+- The current-turn tool-call count is a snapshot at the time of this count and keeps growing while the session continues.
+- The "files with `fs_write`" measure and the line counts are upper bounds on Kiro's authorship; the file count is a lower bound because files created by shell commands are not counted (29 uncounted candidates, see the appendix).
+- Work in 30 Oct – 4 Nov, on the other machine and between 11-08 17:21 and 11-09 17:19 rests on the owner's confirmation and is not added to the figures.

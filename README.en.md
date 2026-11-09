@@ -10,7 +10,7 @@ This is the English counterpart of `README.md`. The Vietnamese file is the origi
 
 The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from 2026-10-30 to 2026-11-09, as confirmed by the project owner.
 
-- Evidence and limits: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md)
+- Evidence and limits: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md), per-file statistics appendix [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md)
 - Architecture overview: [`docs/en/ARCHITECTURE_OVERVIEW.md`](docs/en/ARCHITECTURE_OVERVIEW.md)
 - Kiro specs (10 groups), steering and hooks: [`.kiro/`](.kiro/). They were reconstructed from the implemented code on 2026-11-09 and are not historical Kiro specs. Vietnamese translations: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
 
@@ -94,7 +94,7 @@ Original files are Vietnamese unless stated; English counterparts are listed.
 | `deploy/lan-portable/README.txt` | Windows LAN Portable operator guide | [`README.en.txt`](deploy/lan-portable/README.en.txt) |
 | `deploy/windows/README.md` | Windows deployment notes | [`README.en.md`](deploy/windows/README.en.md) |
 | `docs/vi/ARCHITECTURE_OVERVIEW.md` | Architecture overview (Vietnamese) | [`docs/en/ARCHITECTURE_OVERVIEW.md`](docs/en/ARCHITECTURE_OVERVIEW.md) |
-| `KIRO_WORK_SUMMARY.vi.md`, `PROJECT_TIMELINE.vi.md` | Kiro work record and timeline | [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md) |
+| `KIRO_WORK_SUMMARY.vi.md`, `PROJECT_TIMELINE.vi.md` | Kiro work record and timeline | [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md), per-file statistics appendix [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md) |
 | `docs/implementation-status.md` | State, verification, remaining limits | Not translated |
 | `docs/search-v1-runbook.md` | Search and chat retrieval operations | Not translated |
 | `docs/threat-model.md` | Threat model | Not translated |

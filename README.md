@@ -11,7 +11,7 @@ kho PDF bất biến theo SHA-256 phục vụ **User Portal** (hỏi đáp, tìm
 
 Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) từ 30/10/2026 đến hết 09/11/2026, theo xác nhận của chủ dự án.
 
-- Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md)
+- Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md), phụ lục thống kê từng tệp [`KIRO_STATS_APPENDIX.vi.md`](KIRO_STATS_APPENDIX.vi.md)
 - Tổng quan kiến trúc: [`docs/vi/ARCHITECTURE_OVERVIEW.md`](docs/vi/ARCHITECTURE_OVERVIEW.md)
 - Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Được dựng lại từ mã nguồn ngày 09/11/2026, không phải spec lịch sử của Kiro. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
 

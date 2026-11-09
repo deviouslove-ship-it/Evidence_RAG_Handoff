@@ -25,10 +25,10 @@ lịch sử Git, mã nguồn và tài liệu của repo, rồi cập nhật cùn
 | Phiên Kiro cho workspace này còn lưu cục bộ | **7** (5 phiên trò chuyện + 2 bước workflow của agent `wf-coder`) | thư mục phiên Kiro của người dùng |
 | Khoảng thời gian có bản ghi | **05/11/2026 17:27 → 09/11/2026** (phiên rà soát này) | `session.json`, `messages.jsonl` |
 | Mô hình ghi trong phiên | `claude-sonnet-5.5` (5 phiên), `claude-opus-5.5` (3 phiên: 2 workflow + 1 phiên trò chuyện) | `session.json` |
-| Lượt làm việc (turn) / lệnh công cụ | 60 lượt, khoảng 3.730 lệnh (shell 1.340, đọc tệp 700, sửa tệp bằng `str_replace` 1.000, ghi tệp `fs_write` 290, tìm kiếm 300…) | đếm từ `messages.jsonl` |
+| Lượt làm việc (turn) / lệnh công cụ | 62 lượt, 3.924 lệnh tính đến lúc lập thống kê (shell 1.403, đọc tệp 723, `str_replace` 993, `fs_write` 358, tìm kiếm 319…): **3.704 lệnh (1.274 lệnh ghi/sửa)** thuộc bản ghi lịch sử trước 09/11 17:19 và **220 lệnh (95 lệnh ghi/sửa)** thuộc lượt hiện tại | đếm từ `messages.jsonl`; số lệnh lượt hiện tại còn tăng |
 | Workflow Kiro đã chạy | 2 lần `bundled://goal` (G1.0 và G1→G5), agent `wf-coder`, `claude-opus-5.5`, effort `high` | `workflow-state.json` |
-| File trong Git có ít nhất một lệnh ghi/sửa của Kiro | **194 / 421** file đang theo dõi (46%) | đối chiếu `git ls-files` với bản ghi |
-| Dòng mã nằm trong các file đó | khoảng 77% (46.189 / 60.292 dòng Python, TypeScript, SQL, PowerShell, CSS, Rust, Batch) | xem mục 8; **cận trên**, vì sửa một file không có nghĩa viết cả file |
+| Tệp sản phẩm trong Git có ít nhất một lệnh ghi/sửa của Kiro | **257 / 471** (55%): mã 161/300, tài liệu `.md`/`.txt` 88/142, cấu hình 8/29. Trong đó **194** tệp từ bản ghi lịch sử và **63** tệp lần đầu được Kiro chạm tới ở lượt hiện tại (59 tạo mới). **208** tệp có lệnh `fs_write` (tạo hoặc ghi đè toàn bộ), 49 tệp chỉ sửa cục bộ | mục 8; mẫu số đã loại 9 tệp không phải sản phẩm |
+| Dòng trong các tệp đó | 54.957 / 76.975 dòng (71%) — **cận trên**; 29.926 dòng (39%) nằm trong tệp có `fs_write`. Riêng mã: 46.189 / 60.609 (76%); tài liệu: 8.364 / 14.620 (57%) | mục 8; sửa một tệp không có nghĩa viết cả tệp |
 | Spec / steering / hook trong `.kiro/` | Không phiên nào ghi dùng chế độ spec. Ngày 09/11/2026 repo được bổ sung 10 nhóm spec và 3 steering **dựng lại từ code** (`Spec reconstructed from the implemented code on 2026-11-09`) và 2 hook; đây **không phải** tài liệu lịch sử của Kiro | mục 7 |
 
 Hai điều cần đọc kỹ trước khi dùng tài liệu này làm hồ sơ:
@@ -82,6 +82,8 @@ Các con số là số liệu do Kiro báo cáo ở cuối phiên; lần rà so�
 | A23 | Tệp `.bat` mở app để thử giao diện | Mở/tắt PostgreSQL, Ollama và web trên cổng loopback; kiểm đăng nhập và tìm kiếm | Kiểm bật–tắt, không sót tiến trình | `Mo-ung-dung-test.bat`, `Dung-ung-dung-test.bat`, `ung-dung-test.ps1` | Hoàn thành | `4c10b6e7` 08/11 08:50 |
 | A24 | Kiểm kê dữ liệu ổ C, cấu hình quyền Kiro | Kiểm kê dữ liệu, soạn quyền theo workspace; tệp `.kiro/settings/permissions.yaml` trong repo **giống từng byte** tệp Kiro soạn lúc 09:08 (SHA-256 `58EF3EDA…C95C209`) và được người dùng áp dụng 09:17. **Sai sót:** Kiro sửa nhầm biến môi trường của công cụ khác, người dùng phản đối, Kiro đã hoàn lại | Quyền áp dụng; dữ liệu Kiro chuyển sang ổ E | `.kiro/settings/permissions.yaml` | Hoàn thành một phần (phần ghi vào cài đặt người dùng do người dùng tự chạy) | `b63f6d04` 07/11 |
 | A25 | Rà soát hồ sơ Kiroween (giai đoạn 1) | Kiểm kê Git, `~/.kiro`, phiên, specs/steering/hooks/MCP; lập tài liệu này | — | `KIRO_WORK_SUMMARY.vi.md`, `KIRO_WORK_SUMMARY.en.md` | Hoàn thành | `4c10b6e7` 09/11 |
+| A26 | Hồ sơ Kiroween: specs, steering, hooks, tài liệu song ngữ (**lượt hiện tại**) | Dựng lại 10 nhóm spec (30 tệp EARS/design/tasks), 3 steering, 2 hook qua `createHook` (lệnh hook chạy thử trực tiếp), 14 bản dịch tiếng Việt, và bản Việt/Anh của README, tóm tắt Kiro, dòng thời gian, mô tả hệ thống, hướng dẫn, triển khai, tổng quan kiến trúc | Commit `34cff8b`: 66 tệp (59 mới, 7 sửa). Chưa chạy lại kiểm thử; IDE chưa tự kích hoạt hook | `.kiro/*`, `docs/en/*`, `docs/vi/*`, `*.en.md`, `*.vi.md` | Hoàn thành | `4c10b6e7`, 09/11 từ 17:19 |
+| A27 | Thống kê lại đóng góp của Kiro (**lượt hiện tại**) | Tính lại thống kê theo nguyên tắc mục 8.1: đưa Markdown và cấu hình vào, chỉ loại dữ liệu đầu vào và tệp không phải sản phẩm; tách tệp tác động và tệp `fs_write`; tách lịch sử và lượt hiện tại | Mục 8, phụ lục thống kê | `KIRO_STATS_APPENDIX.vi.md`, `KIRO_STATS_APPENDIX.en.md` | Hoàn thành | `4c10b6e7`, 09/11 |
 
 ## 4. Công việc có trong source, không có nhật ký Kiro (loại B)
 
@@ -156,11 +158,108 @@ Mốc trước 05/11 suy ra từ thời gian sửa tệp và là **chỉ số th
 
 ## 8. Phương pháp và số liệu thống kê
 
-- **Nguồn:** `session.json` và `messages.jsonl` của từng phiên; `workflow-state.json` của 2 workflow; `git log`, `git ls-files`; mã và tài liệu hiện tại.
-- **"File có lệnh ghi/sửa của Kiro":** gom từ các lệnh công cụ `fs_write`, `str_replace`, `fs_append`, `delete_file`, `semantic_rename`, `smart_relocate` trỏ vào repo. Đây là **cận dưới về số tệp**: tệp tạo bằng lệnh shell (ví dụ `test-data/cau-hoi-kiem-thu-vong-1.md`) không được đếm. Ngược lại, tỷ lệ dòng mã là **cận trên**: Kiro có thể chỉ sửa một phần tệp.
-- **Phân bố theo vùng (tệp đang theo dõi | có lệnh của Kiro):** `backend/app/effectivity` 7 | 7; `synthesis` 6 | 6; `model_registry` 9 | 7; `storage` 14 | 10; `documents` 22 | 11; `migrations` 35 | 17 (0008–0015); `api` 13 | 5; `backend/tests` 48 | 17; `frontend/src` 56 | 38; `deploy` 20 | 19; `scripts` 17 | 9; `evaluation` 29 | 13; `docs` 65 | 19; `src-tauri` 12 | 0; `auth_acl` 4 | 0.
-- **Theo ngôn ngữ (dòng trong tệp có lệnh Kiro / tổng):** Python 27.973 / 38.306 (73%); TypeScript+TSX 11.575 / 13.516 (86%); PowerShell 2.472 / 2.730; SQL 527 / 1.329 (40%); CSS 3.493 / 3.537; Rust 0 / 725 (0%); Batch 149 / 149.
-- **Mã hóa thông tin nhạy cảm:** lời nhắn người dùng trong bản ghi có chứa khóa API (đã được người dùng tạm thời đưa để thử); không trích lại trong tài liệu này, và không có khóa nào được ghi vào repo.
+### 8.1 Nguyên tắc tính (điều chỉnh theo yêu cầu của chủ dự án, 09/11/2026)
+
+1. **Chỉ loại tài liệu nghiệp vụ đầu vào** của Evidence RAG (PDF, DOC, DOCX, TXT văn bản pháp luật, nghị định, thông tư, quyết định, công văn được tải về hoặc nhập vào kho), tệp tải từ Internet, trọng số model, phụ thuộc, runtime, cache và dữ liệu tự sinh. Không có tệp đầu vào nào nằm trong Git (chúng ở thư mục bị `.gitignore`); trong Git chỉ có {NX} tệp bị loại (phông chữ, tệp khóa phụ thuộc, biểu tượng nhị phân, `docs/openapi.json` sinh tự động, bảng kê corpus công khai) — danh sách ở phụ lục.
+2. **Không loại tệp chỉ vì là Markdown.** Tài liệu Kiro viết để phát triển dự án (requirements, design, tasks, SRS, ADR, README, báo cáo, hướng dẫn, specs, steering) được tính như mã. Tài liệu được nhập để tra cứu thì không.
+3. Tệp được tính khi: có trong Git ở commit `34cff8b`, và có ít nhất một lệnh ghi/sửa của Kiro (`fs_write`, `str_replace`, `fs_append`, `delete_file`, `semantic_rename`, `smart_relocate`, `createHook`) trong bản ghi phiên, bất kể phần mở rộng.
+4. **Hai chỉ số khác nhau:** *tệp được tác động* (có ít nhất một lệnh ghi/sửa) và *tệp có lệnh `fs_write`* (Kiro tạo hoặc ghi đè toàn bộ tệp tại thời điểm đó). Tệp chỉ có `str_replace`/`fs_append` được tính là tác động, không phải viết toàn bộ.
+5. **Bằng chứng lịch sử và công việc lượt hiện tại được tách riêng.** Lượt hiện tại bắt đầu từ yêu cầu hồ sơ Kiroween (09/11/2026 17:19). Specs, steering, hooks và tài liệu song ngữ tạo trong lượt này là công việc Kiro **trong lượt hiện tại**, không phải bằng chứng về lịch sử phát triển trước đó.
+6. Khoảng 30/10–09/11/2026 là thời gian dùng Kiro theo xác nhận của chủ dự án trên hai máy. Phần không có nhật ký **không** được cộng vào số liệu ở đây.
+
+### 8.2 Nguồn và định nghĩa
+
+- **Nguồn:** `session.json`, `messages.jsonl` của 7 phiên; `workflow-state.json`; `git ls-tree` ở commit `34cff8b`; mã và tài liệu hiện tại.
+- **Tệp tính:** 471 trong 480 tệp đang theo dõi (loại 9).
+- **Số tệp là cận dưới:** tệp tạo bằng lệnh shell không được đếm. Có 29 tệp được nhắc trong lệnh shell có động từ ghi nhưng không có lệnh chỉnh sửa; việc nhắc tới không chứng minh đã ghi, nên **không tính** (danh sách ở phụ lục).
+- **Số dòng là cận trên về quyền tác giả:** sửa một tệp không có nghĩa viết toàn bộ; thay đổi của người sau đó cũng không tách được. Số dòng trong tệp có `fs_write` gần với "Kiro viết toàn bộ" hơn nhưng vẫn là cận trên.
+- Dòng được đếm ở trạng thái commit `34cff8b`. Các tệp thống kê/tóm tắt cập nhật sau commit này thuộc lượt hiện tại và không có trong số liệu.
+
+### 8.3 Tổng hợp theo loại tệp
+
+| Nhóm | Tệp tính | Có lệnh Kiro | Có `fs_write` | Dòng | Dòng trong tệp có lệnh Kiro | Dòng trong tệp có `fs_write` |
+|---|---:|---:|---:|---:|---:|---:|
+| **Tổng** | 471 | 257 | 208 | 76.975 | 54.957 (71%) | 29.926 (39%) |
+| Mã (`.py`, `.ts`, `.tsx`, `.sql`, `.ps1`, `.bat`, `.cmd`, `.rs`, `.css`, `.js`, `.mjs`, `.html`) | 300 | 161 | 120 | 60.609 | 46.189 (76%) | 23.659 (39%) |
+| Tài liệu (`.md`, `.txt`) | 142 | 88 | 81 | 14.620 | 8.364 (57%) | 5.914 (40%) |
+| Cấu hình và dữ liệu kỹ thuật (`.json`, `.yaml`, `.toml`, `.env`, `.example`, tệp không đuôi) | 29 | 8 | 7 | 1.746 | 404 (23%) | 353 (20%) |
+
+### 8.4 Lịch sử và lượt hiện tại
+
+| Giai đoạn | Tệp | Lệnh công cụ | Lệnh ghi/sửa | Ghi chú |
+|---|---:|---:|---:|---|
+| Bản ghi lịch sử (05/11 → 09/11 17:19) | 194 (mã 161, tài liệu 27, cấu hình 6) | 3.704 | 1.274 | Con số 194/421 công bố trước đây không đổi; mẫu số nay là 412 tệp tính trong 421 tệp ở commit `08b0021` (loại 9) |
+| Lượt hiện tại (từ 09/11 17:19, tính đến lúc lập thống kê) | 63 tệp lần đầu bị Kiro chạm tới (59 tạo mới, 4 có sẵn) và 3 tệp lịch sử được sửa lại | 220 | 95 | Specs, steering, hooks, tài liệu song ngữ, thống kê. Số lệnh còn tăng khi phiên tiếp tục |
+| **Cộng** | **257** / 471 (55%) | 3.924 | 1.369 | |
+
+Phân bố lệnh công cụ (tổng): `execute_pwsh` 1.403, `str_replace` 993, `read_file` 723, `fs_write` 358, `grep_search` 319, `list_directory` 29, `update_session_information` 16, `remote_web_search` 13.
+
+### 8.5 Theo khu vực
+
+| Khu vực | Tệp tính | Có lệnh Kiro | Có `fs_write` | Dòng | Dòng trong tệp có lệnh Kiro | Dòng trong tệp có `fs_write` |
+|---|---:|---:|---:|---:|---:|---:|
+| `(root)` | 15 | 10 | 10 | 1.296 | 971 (75%) | 971 (75%) |
+| `.github` | 1 | 0 | 0 | 29 | 0 (0%) | 0 (0%) |
+| `.kiro` | 36 | 35 | 35 | 1.349 | 1.274 (94%) | 1.274 (94%) |
+| `.stitch` | 3 | 0 | 0 | 69 | 0 (0%) | 0 (0%) |
+| `backend/(root)` | 1 | 1 | 0 | 51 | 51 (100%) | 0 (0%) |
+| `backend/app/(root)` | 7 | 5 | 0 | 2.871 | 2.865 (100%) | 0 (0%) |
+| `backend/app/api` | 13 | 5 | 3 | 2.737 | 2.163 (79%) | 731 (27%) |
+| `backend/app/auth_acl` | 4 | 0 | 0 | 347 | 0 (0%) | 0 (0%) |
+| `backend/app/documents` | 20 | 11 | 4 | 3.487 | 2.581 (74%) | 1.085 (31%) |
+| `backend/app/effectivity` | 7 | 7 | 7 | 2.372 | 2.372 (100%) | 2.372 (100%) |
+| `backend/app/evidence` | 3 | 0 | 0 | 197 | 0 (0%) | 0 (0%) |
+| `backend/app/memory` | 2 | 0 | 0 | 579 | 0 (0%) | 0 (0%) |
+| `backend/app/migrations` | 35 | 17 | 17 | 1.432 | 570 (40%) | 570 (40%) |
+| `backend/app/model_registry` | 9 | 7 | 4 | 2.099 | 2.080 (99%) | 486 (23%) |
+| `backend/app/storage` | 14 | 10 | 6 | 5.726 | 5.553 (97%) | 3.544 (62%) |
+| `backend/app/synthesis` | 6 | 6 | 6 | 1.793 | 1.793 (100%) | 1.793 (100%) |
+| `backend/app/vietnamese_nlp` | 3 | 0 | 0 | 186 | 0 (0%) | 0 (0%) |
+| `backend/app/workflow` | 6 | 3 | 2 | 1.425 | 1.304 (92%) | 625 (44%) |
+| `backend/tests` | 48 | 17 | 11 | 8.832 | 4.541 (51%) | 2.498 (28%) |
+| `configs` | 5 | 1 | 1 | 72 | 28 (39%) | 28 (39%) |
+| `deploy` | 22 | 22 | 21 | 2.363 | 2.363 (100%) | 2.304 (98%) |
+| `docs` | 82 | 39 | 34 | 10.542 | 5.675 (54%) | 3.404 (32%) |
+| `evaluation` | 28 | 13 | 12 | 4.456 | 1.536 (34%) | 1.416 (32%) |
+| `frontend/(root)` | 7 | 0 | 0 | 136 | 0 (0%) | 0 (0%) |
+| `frontend/e2e` | 2 | 0 | 0 | 304 | 0 (0%) | 0 (0%) |
+| `frontend/public` | 1 | 0 | 0 | 5 | 0 (0%) | 0 (0%) |
+| `frontend/src` | 56 | 38 | 26 | 17.013 | 15.068 (89%) | 5.148 (30%) |
+| `parts` | 3 | 0 | 0 | 1.180 | 0 (0%) | 0 (0%) |
+| `scripts` | 17 | 9 | 8 | 2.901 | 2.130 (73%) | 1.638 (56%) |
+| `src-tauri` | 9 | 0 | 0 | 852 | 0 (0%) | 0 (0%) |
+| `test-data` | 2 | 1 | 1 | 131 | 39 (30%) | 39 (30%) |
+| `tools` | 4 | 0 | 0 | 143 | 0 (0%) | 0 (0%) |
+
+### 8.6 Theo phần mở rộng
+
+| Đuôi | Tệp tính | Có lệnh Kiro | Có `fs_write` | Dòng | Dòng trong tệp có lệnh Kiro | Dòng trong tệp có `fs_write` |
+|---|---:|---:|---:|---:|---:|---:|
+| `(none)` | 3 | 0 | 0 | 276 | 0 (0%) | 0 (0%) |
+| `.bat` | 9 | 9 | 9 | 107 | 107 (100%) | 107 (100%) |
+| `.cmd` | 5 | 5 | 5 | 42 | 42 (100%) | 42 (100%) |
+| `.css` | 2 | 1 | 0 | 3.537 | 3.493 (99%) | 0 (0%) |
+| `.env` | 2 | 2 | 2 | 100 | 100 (100%) | 100 (100%) |
+| `.example` | 2 | 1 | 1 | 29 | 28 (97%) | 28 (97%) |
+| `.html` | 1 | 0 | 0 | 13 | 0 (0%) | 0 (0%) |
+| `.js` | 1 | 0 | 0 | 25 | 0 (0%) | 0 (0%) |
+| `.json` | 15 | 4 | 4 | 1.131 | 225 (20%) | 225 (20%) |
+| `.md` | 139 | 85 | 78 | 14.326 | 8.070 (56%) | 5.620 (39%) |
+| `.mjs` | 1 | 0 | 0 | 279 | 0 (0%) | 0 (0%) |
+| `.ps1` | 8 | 6 | 6 | 2.730 | 2.472 (91%) | 2.472 (91%) |
+| `.py` | 180 | 87 | 58 | 38.306 | 27.973 (73%) | 15.363 (40%) |
+| `.rs` | 5 | 0 | 0 | 725 | 0 (0%) | 0 (0%) |
+| `.sql` | 32 | 16 | 16 | 1.329 | 527 (40%) | 527 (40%) |
+| `.toml` | 2 | 1 | 0 | 73 | 51 (70%) | 0 (0%) |
+| `.ts` | 16 | 7 | 5 | 3.495 | 3.000 (86%) | 939 (27%) |
+| `.tsx` | 40 | 30 | 21 | 10.021 | 8.575 (86%) | 4.209 (42%) |
+| `.txt` | 3 | 3 | 3 | 294 | 294 (100%) | 294 (100%) |
+| `.yaml` | 4 | 0 | 0 | 108 | 0 (0%) | 0 (0%) |
+| `.yml` | 1 | 0 | 0 | 29 | 0 (0%) | 0 (0%) |
+
+Danh sách từng tệp, tệp bị loại và tệp ứng viên chưa tính: [`KIRO_STATS_APPENDIX.vi.md`](KIRO_STATS_APPENDIX.vi.md).
+
+**Dữ liệu nhạy cảm:** lời nhắn của người dùng trong bản ghi có chứa một khóa API (đưa tạm để thử); không trích lại ở đây và không có khóa nào được ghi vào repository.
 
 ## 9. Giới hạn chưa xác minh
 
@@ -171,3 +270,6 @@ Mốc trước 05/11 suy ra từ thời gian sửa tệp và là **chỉ số th
 - Phiên Kiro ghi lại ở mục 2 là lần chạy cho workspace này trên một máy; số liệu thống kê không bao gồm máy còn lại.
 - Spec, steering và hook ngày 09/11/2026 dựng từ code; việc IDE tự kích hoạt hook chưa được quan sát.
 - Một số tệp tài liệu phát sinh khác (báo cáo, tệp trong `.agents/`) nằm ngoài Git theo `.gitignore` và không được đưa vào thống kê tệp.
+- Số lệnh công cụ của lượt hiện tại là ảnh chụp tại lúc lập thống kê và còn tăng khi phiên tiếp tục.
+- Chỉ số "tệp có `fs_write`" và số dòng đều là cận trên về quyền tác giả của Kiro; số tệp là cận dưới vì không đếm tệp tạo bằng lệnh shell (29 ứng viên chưa tính, xem phụ lục).
+- Công việc trong 30/10–04/11, trên máy còn lại và trong khoảng 08/11 17:21 → 09/11 17:19 dựa trên xác nhận của chủ dự án và không được cộng vào số liệu.
