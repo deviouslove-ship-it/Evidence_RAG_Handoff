@@ -221,6 +221,7 @@ foreach ($file in 'Allow-LAN-Firewall.bat', 'Verify-Package.bat', 'Status.bat') 
 foreach ($file in 'portable.ps1', 'portable-lib.ps1') { Write-TextAsset (Join-Path $templates "tools\$file") (Join-Path $package "tools\$file") $true }
 Write-TextAsset (Join-Path $templates 'config\evidence.env') (Join-Path $package 'config\evidence.env') $true
 Write-TextAsset (Join-Path $templates 'README.txt') (Join-Path $package 'README.txt') $true
+foreach ($file in 'README.en.txt', 'HUONG_DAN_SU_DUNG.vi.md', 'USER_GUIDE.en.md') { Write-TextAsset (Join-Path $templates $file) (Join-Path $package $file) $true }
 foreach ($dir in 'logs', 'run', 'backups', 'secrets') { New-Item -ItemType Directory -Force (Join-Path $package $dir) | Out-Null }
 foreach ($dir in 'logs', 'run', 'backups', 'secrets') { Write-Utf8File (Join-Path $package "$dir\.keep") '' }
 
@@ -242,7 +243,7 @@ $pgText = Get-ToolText (Join-Path $package 'runtime\postgresql\bin\postgres.exe'
 if ($pgText -notmatch 'PostgreSQL\)?\s+(\d+)\.(\d+)') { throw "Cannot run the packaged PostgreSQL: $pgText" }
 $pgVersion = "$($Matches[1]).$($Matches[2])"; $pgMajor = $Matches[1]
 $ollamaText = Get-ToolText (Join-Path $package 'runtime\ollama\ollama.exe') @('--version') 'ollamaver'
-if ($ollamaText -notmatch 'ollama version is ([\d\.]+)') { throw "Cannot run the packaged Ollama: $ollamaText" }
+if ($ollamaText -notmatch '(?:ollama|client) version is ([\d\.]+)') { throw "Cannot run the packaged Ollama: $ollamaText" }
 $ollamaVersion = $Matches[1]
 $tessText = Get-ToolText (Join-Path $package 'runtime\tesseract\tesseract.exe') @('--version') 'tessver'
 if ($tessText -notmatch 'tesseract v?([\d\.]+)') { throw "Cannot run the packaged Tesseract: $tessText" }
