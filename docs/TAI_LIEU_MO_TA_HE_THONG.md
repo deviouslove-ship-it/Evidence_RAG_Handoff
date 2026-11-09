@@ -49,7 +49,7 @@ React/TypeScript trong `frontend/` cung cấp Hỏi đáp, Tìm kiếm và Admin
 | SYS_ADMIN | Quản lý danh mục, tài khoản, vai trò và quyền theo danh mục; quản lý registry, phân công AI và embedding. SYS_ADMIN không mặc nhiên có quyền đọc mọi nội dung hoặc hỏi đáp. |
 | AUDITOR | Xem chức năng kiểm toán theo quyền được cấp; không suy ra quyền sửa cấu hình AI hay đọc mọi tài liệu. |
 
-Backend kiểm tra phiên, quyền thao tác RBAC và phạm vi ABAC/ACL ở phía server, trước truy xuất và trước khi mở trích dẫn. Danh mục có cờ cho phép xử lý từ xa: quyền tài khoản, chính sách vận hành và cấu hình model vẫn là các điều kiện độc lập. Quản trị có thể tạo/sửa danh mục, xóa mềm và thu hồi ACL; quản lý tài khoản, vai trò, trạng thái và phạm vi; giao diện thay đổi theo quyền thực tế.
+Backend kiểm tra phiên, quyền thao tác RBAC và phạm vi ABAC/ACL ở phía server, trước truy xuất và trước khi mở trích dẫn. Danh mục có cờ cho phép xử lý từ xa: quyền tài khoản, chính sách vận hành và cấu hình model vẫn là các điều kiện độc lập. Quản trị có thể tạo/sửa danh mục, xóa mềm và thu hồi ACL; quản lý tài khoản, vai trò, trạng thái và phạm vi; giao diện thay đổi theo quyền thực tế. Quyền danh mục do admin cấp cho từng tài khoản ở hai ô **Danh mục được phép tra cứu (ABAC)** và **Danh mục được xác nhận hiệu lực (người duyệt)** trong **Tài khoản & Phân quyền**. Khi khởi tạo, `chuyenvien` đã được sẵn quyền tra cứu các danh mục thử; `curator` và `reviewer` thấy danh sách trống cho đến khi admin cấp.
 
 ## 4. Nhập và duyệt tài liệu
 

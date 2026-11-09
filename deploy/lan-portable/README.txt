@@ -2,6 +2,7 @@ EVIDENCE RAG - BẢN CHẠY DI ĐỘNG CHO MẠNG LAN (WINDOWS, OFFLINE)
 ================================================================
 
 Ngôn ngữ / Language: Tiếng Việt (bản gốc) · English: README.en.txt cùng thư mục.
+Hướng dẫn sử dụng đầy đủ: HUONG_DAN_SU_DUNG.vi.md (tiếng Việt) và USER_GUIDE.en.md (English), cùng thư mục.
 
 Mọi thứ nằm trong thư mục này: giao diện web, máy chủ FastAPI, PostgreSQL + pgvector (cơ sở dữ
 liệu, chỉ mục, vector), kho tài liệu gốc, Tesseract OCR tiếng Việt, Ollama và các model AI cục bộ.
@@ -32,8 +33,9 @@ YÊU CẦU MÁY CHẠY
 
 2. NGƯỜI DÙNG TRONG LAN
   Gửi địa chỉ http://<IP máy chủ>:8800/ cho người dùng; họ mở bằng trình duyệt.
-  Tài khoản, mật khẩu, vai trò, quyền theo danh mục (ACL) và nhật ký kiểm toán được giữ nguyên
-  từ hệ thống hiện có. Gói KHÔNG chứa mật khẩu dạng rõ: dùng mật khẩu hiện tại của từng tài khoản.
+  Tài khoản, vai trò, quyền theo danh mục (ACL) và nhật ký kiểm toán được giữ trong cơ sở dữ liệu của gói.
+  Mỗi tài khoản demo có mật khẩu riêng, dùng ngay được; mật khẩu được bàn giao riêng, KHÔNG nằm trong gói.
+  Đổi mật khẩu sau khi nhận (xem HUONG_DAN_SU_DUNG.vi.md, mục 0).
   Phiên đăng nhập cũ không được mang theo, mọi người đăng nhập lại.
 
 3. DỪNG

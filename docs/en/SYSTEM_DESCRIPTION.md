@@ -49,7 +49,7 @@ React/TypeScript in `frontend/` provides Q&A, Search and the Admin Portal; Tauri
 | SYS_ADMIN | Manage categories, accounts, roles and per-category permissions; manage the registry, AI assignment and embedding. SYS_ADMIN does not by default read all content or use Q&A. |
 | AUDITOR | View audit functions as granted; no implied right to change AI configuration or read all documents. |
 
-The backend checks the session, RBAC action permission and ABAC/ACL scope on the server, before retrieval and before opening a citation. A category has a flag allowing remote processing; account permission, operating policy and model configuration remain independent conditions. Administrators can create/edit categories, soft-delete and revoke ACLs; manage accounts, roles, status and scope; the interface changes with the actual permissions.
+The backend checks the session, RBAC action permission and ABAC/ACL scope on the server, before retrieval and before opening a citation. A category has a flag allowing remote processing; account permission, operating policy and model configuration remain independent conditions. Administrators can create/edit categories, soft-delete and revoke ACLs; manage accounts, roles, status and scope; the interface changes with the actual permissions. Category permissions are granted by the admin per account in two boxes, **Danh mục được phép tra cứu (ABAC)** (look-up) and **Danh mục được xác nhận hiệu lực (người duyệt)** (effectivity confirmation by reviewers), in **Tài khoản & Phân quyền**. On initialisation `chuyenvien` already holds look-up rights on the test categories; `curator` and `reviewer` see an empty list until the admin grants categories.
 
 ## 4. Document intake and review
 

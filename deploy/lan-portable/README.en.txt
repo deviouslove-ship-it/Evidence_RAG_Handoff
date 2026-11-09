@@ -2,6 +2,7 @@ EVIDENCE RAG - PORTABLE LAN PACKAGE (WINDOWS, OFFLINE)
 =======================================================
 
 Language / Ngon ngu: this is the English counterpart of README.txt (the Vietnamese original).
+Complete user guides: USER_GUIDE.en.md (English) and HUONG_DAN_SU_DUNG.vi.md (Vietnamese), same folder.
 
 Everything is in this folder: the web interface, the FastAPI server, PostgreSQL + pgvector (database,
 indexes, vectors), the original document store, Tesseract OCR for Vietnamese, Ollama and the local AI
@@ -32,8 +33,9 @@ MACHINE REQUIREMENTS
 
 2. USERS ON THE LAN
   Send the address http://<server IP>:8800/ to users; they open it in a browser.
-  Accounts, passwords, roles, per-category permissions (ACL) and the audit log are kept as they are in
-  the existing system. The package contains NO plaintext passwords: use each account's current password.
+  Accounts, roles, per-category permissions (ACL) and the audit log are kept in the package database.
+  Each demo account has its own password that works right away; the passwords are handed over separately and
+  are NOT in the package. Change them after receiving them (see USER_GUIDE.en.md, section 0).
   Old login sessions are not carried over; everyone logs in again.
 
 3. STOP

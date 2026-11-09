@@ -6,6 +6,25 @@ Grounded lookup of Vietnamese legal documents. One FastAPI backend, one PostgreS
 
 This is the English counterpart of `README.md`. The Vietnamese file is the original.
 
+## Download the app (for judges)
+
+- **Package:** `Evidence-RAG-Portable-20261109-r2.zip` (~3.5 GB, 3,777,232,458 bytes; includes documents and local AI models)
+- **Download:** https://drive.google.com/file/d/1oyOhY76EwH2846iCtnOl6JekAeH5Luzw/view?usp=sharing
+- **SHA-256:** `40df579be3be2b75215e8e8a7225e850bc6c2d9951037b1ce0b1560696980146`
+- **Verify on Windows:** `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.zip -Algorithm SHA256`
+- **Minimum system requirements:** Windows, Intel Core i3, 32 GB DDR4 RAM, 512 GB SSD
+
+**How to start** (steps from [`deploy/lan-portable/README.en.txt`](deploy/lan-portable/README.en.txt)):
+
+1. Extract the WHOLE package into a folder with a short path, for example `D:\EvidenceRAG`. Do not run it inside the ZIP file. Administrator rights are not needed to run.
+2. Double-click `Start-Server.bat` (no other command to type). It checks the runtime, models, database, ports and configuration, starts the package's own PostgreSQL + pgvector, Ollama and the web/API server, checks readiness and prints the access address through the LAN IP, for example `http://192.168.1.15:8800/`.
+3. The first run takes 1-3 more minutes: the package builds its own database from the original data copy in `seed\` and compares every table with the original. Documents are not re-imported, not re-OCR'd, and vectors are not recreated. Later runs start in a few tens of seconds.
+4. Open the printed address (or `http://127.0.0.1:8800/` on the same machine) in a browser. Other machines on the LAN only need a browser.
+5. Stop with `Stop-Server.bat`. If other machines cannot connect, the package does not change Windows Firewall by itself: see section 4 of the README, `tools\Allow-LAN-Firewall.bat`. The connection is plain HTTP: use it only on a trusted network.
+
+Complete guides inside the package: `USER_GUIDE.en.md` (English) and `HUONG_DAN_SU_DUNG.vi.md` (Vietnamese).
+
+**Test accounts:** Demo credentials are provided in the Devpost submission form. `chuyenvien` can search right away. To test the full workflow, the admin grants `curator` the lookup categories, and grants `reviewer` both the lookup and the validity-confirmation categories (**Tài khoản & Phân quyền**, boxes **Danh mục được phép tra cứu (ABAC)** and **Danh mục được xác nhận hiệu lực (người duyệt)**). This r2 package already ships with all 9 categories granted to `curator` and `reviewer`; the admin can change them there. A user cannot approve their own submission.
 ## Built with Kiro (Kiroween 2026)
 
 The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from 2026-10-30 to 2026-11-09, as confirmed by the project owner.
