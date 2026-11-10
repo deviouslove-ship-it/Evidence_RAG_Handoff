@@ -3491,3 +3491,240 @@ body.orb-window #root {
   flex-direction: column;
   gap: var(--space-2);
 }
+
+/* ------------------------------------------------------------------ */
+/* Hỏi đáp: two panes — questions and short answers on the left,       */
+/* results and evidence of the selected question on the right.         */
+/* ------------------------------------------------------------------ */
+.chat-split-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: calc(100vh - 72px);
+  min-height: 480px;
+  overflow: hidden;
+  padding: 12px clamp(12px, 2vw, 24px);
+}
+
+.chat-header-compact h1 {
+  font-size: 1.15rem;
+}
+
+.chat-header-compact p {
+  margin-top: 2px;
+  font-size: 0.85rem;
+}
+
+.chat-tabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-tab {
+  padding: 8px 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.chat-tab[aria-selected="true"] {
+  color: var(--color-action);
+  border-bottom-color: var(--color-action);
+}
+
+.chat-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 42% 10px minmax(0, 1fr);
+}
+
+.chat-split[data-narrow="true"] {
+  display: flex;
+}
+
+.chat-split[data-narrow="true"] > .chat-pane {
+  flex: 1;
+}
+
+.chat-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+
+.chat-pane[hidden] {
+  display: none;
+}
+
+.chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+}
+
+.chat-composer.composer {
+  flex-shrink: 0;
+  max-height: 55%;
+  overflow-y: auto;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 10px 12px;
+}
+
+.chat-page .chat-composer textarea {
+  min-height: 48px;
+}
+
+.chat-pane-right {
+  overflow-y: auto;
+  gap: var(--space-3);
+  padding: 14px 16px 76px;
+}
+
+.chat-resizer {
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.chat-resizer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--color-border);
+}
+
+.chat-resizer:hover::before,
+.chat-resizer:focus-visible::before {
+  left: 3px;
+  width: 4px;
+  background: var(--color-action);
+}
+
+.chat-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-turn-question {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.chat-turn[data-selected="true"] .chat-turn-question {
+  border-color: var(--color-action);
+  box-shadow: inset 3px 0 0 var(--color-action);
+}
+
+.chat-turn-error {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+}
+
+.chat-answer {
+  padding: 10px 12px;
+}
+
+.chat-answer .answer-summary {
+  margin-top: 0;
+}
+
+.chat-cites {
+  margin: 6px 0 0;
+}
+
+.chat-cite {
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-action);
+  cursor: pointer;
+}
+
+.chat-cite:hover {
+  text-decoration: underline;
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.results-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.chat-pane-empty {
+  margin: 0;
+  padding: 28px 8px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.chat-pane-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.doc-card-slot {
+  border-radius: var(--radius-md);
+  scroll-margin-top: 8px;
+  outline: 0 solid transparent;
+  transition: outline-color 0.3s ease, background-color 0.3s ease;
+}
+
+.doc-card-slot.is-cited {
+  outline: 3px solid var(--color-action);
+  outline-offset: 2px;
+  background-color: rgb(30 100 200 / 8%);
+}
+
+.chat-pane-right .chat-technical {
+  margin-top: auto;
+}
+
+@media (max-width: 900px) {
+  .chat-header-compact p {
+    display: none;
+  }
+
+  .chat-pane-right {
+    padding-bottom: 76px;
+  }
+}
