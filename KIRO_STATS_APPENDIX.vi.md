@@ -455,7 +455,7 @@ Các tệp dưới đây được nhắc trong lệnh shell của Kiro có độ
 
 ## Snapshot 11/11/2026 (commit 861fa34)
 
-Bảng riêng này ghi số dòng thực tế trong các blob của commit `861fa34`, đếm bằng `git show <commit>:<tệp>`. Bảng lịch sử đóng góp phía trên vẫn giữ nguyên phạm vi commit `34cff8b`.
+Bảng riêng này ghi số dòng thực tế trong các blob của commit `861fa34`, đếm bằng `git show <commit>:<tệp>`. Bảng lịch sử đóng góp phía trên vẫn giữ nguyên phạm vi commit `34cff8b`. Đây là snapshot mã nguồn ngày 11/11, không phải tổng kết đóng góp cuối Kiroween; chương trình còn diễn ra đến 04/12/2026.
 
 | Tệp | Dòng |
 |---|---:|

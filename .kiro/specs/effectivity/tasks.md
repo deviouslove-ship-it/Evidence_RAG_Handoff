@@ -1,6 +1,6 @@
 # Tasks: Effectivity
 
-> Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository. Figures come from the cited reports and were not re-run.
+> Spec reconstructed from the implemented code on 2026-11-09 (updated 2026-11-11). Checkboxes reflect what exists in the repository. Figures come from the cited reports and were not re-run.
 
 - [x] 1. Migration `0011_effectivity` with down script (tables, enum value `replaced`, trigger)
 - [x] 2. Rule reader (`effectivity/extract.py`)

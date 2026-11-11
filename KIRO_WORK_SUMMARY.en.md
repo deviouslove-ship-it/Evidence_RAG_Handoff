@@ -2,13 +2,15 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](KIRO_WORK_SUMMARY.vi.md) · English
 
-Prepared for the **Kiroween 2026** submission. Written on 2026-11-09 from the Kiro session records still stored on the author's machine, the Git history, the source code and the repository documents, then updated the same day with the project owner's confirmation. All times are Vietnam time (UTC+7). This is an English counterpart of `KIRO_WORK_SUMMARY.vi.md`; if they differ, report it as a defect.
+Prepared for the **Kiroween 2026** submission. The first version was written on 2026-11-09 from the Kiro session records still stored on the author's machine, Git history, source code and repository documents; it was updated on 2026-11-11 with the owner's confirmation and post-build changes. Kiroween remains open until 2026-12-04, so this is not the final report. All times are Vietnam time (UTC+7). This is an English counterpart of `KIRO_WORK_SUMMARY.vi.md`; if they differ, report it as a defect.
+
+Contribution figures in sections 1 and 8 are snapshots through 2026-11-09; they exclude the Nov 10–11 updates and are not the final Kiroween totals.
 
 ## 0. Owner confirmation and how to read the evidence
 
-**Confirmation by the project owner (Vu Tuan Anh):** the project was developed with Kiro **from 2026-10-30 to the end of 2026-11-09**, on **both the office machine and the home machine**. Kiro IDE used **Claude Sonnet 5.5** and **Claude Opus 5.5**; work done by these models inside Kiro is recorded as Kiro-assisted work.
+**Confirmation by the project owner (Vu Tuan Anh):** Kiro was used on the project from **2026-10-30 through at least 2026-11-11**; use on **both the office and home machines** is confirmed through November 9. As of November 11, Kiro use is continuing and Kiroween has not ended (deadline: 2026-12-04). Kiro IDE used **Claude Sonnet 5.5** and **Claude Opus 5.5**; work done by these models inside Kiro is recorded as Kiro-assisted work.
 
-This is the owner's statement, not a log. The Kiro logs kept locally exist on **one machine** and only from 2026-11-05 (section 2). For the rest of 30 Oct – 9 Nov there are no logs on hand to check individual files or commits.
+This is the owner's statement, not a log. The Kiro logs kept locally exist on **one machine** and currently cover through the 2026-11-09 review (section 2). No logs are on hand for October 30 – November 4, the other machine or the Nov 10–11 updates; those dates rest on owner confirmation and are not used to attribute individual files or increase the historical counts.
 
 > **Principle.** This document does not claim that all source code was produced by Kiro. Every item carries one of three evidence types:
 > **A** – **Kiro log**: session records, file write/edit commands, end-of-session reports;
@@ -28,11 +30,11 @@ This is the owner's statement, not a log. The Kiro logs kept locally exist on **
 | Kiro workflows run | 2 × `bundled://goal` (G1.0 and G1→G5), agent `wf-coder`, `claude-opus-5.5`, effort `high` | `workflow-state.json` |
 | Product files in Git with at least one Kiro write/edit | **257 / 471** (55%): code 161/300, documents `.md`/`.txt` 88/142, configuration 8/29. Of these, **194** come from the historical records and **63** were first touched by Kiro in the current turn (59 newly created). **208** files have an `fs_write` call (created or overwritten whole); 49 were edited locally only | section 8; the denominator excludes 9 non-product files |
 | Lines in those files | 54,957 / 76,975 lines (71%) — an **upper bound**; 29,926 lines (39%) are in files with `fs_write`. Code alone: 46,189 / 60,609 (76%); documents: 8,364 / 14,620 (57%) | section 8; editing a file does not mean writing all of it |
-| Specs / steering / hooks in `.kiro/` | No session recorded spec mode. On 2026-11-09 the repository gained 10 spec groups and 3 steering files **reconstructed from code** (`Spec reconstructed from the implemented code on 2026-11-09`) and 2 hooks. They are **not** historical Kiro artefacts | section 7 |
+| Specs / steering / hooks in `.kiro/` | No session recorded spec mode. The repository initially gained 10 spec groups and 3 steering files **reconstructed from code** and 2 hooks on 2026-11-09; effectivity and citation-pinning specs were updated on Nov 11. They are **not** historical Kiro artefacts | section 7 |
 
 Two points to read before using this document in a submission:
 
-1. **Local Kiro logs start on 2026-11-05 17:27 and cover one machine only.** The owner confirms Kiro was used from 30 Oct to the end of 9 Nov on both the office and home machines. For 30 Oct – 4 Nov, and for the work on the other machine, **no logs are on hand**; that work is type **B** (owner confirmation) and is not attributed to individual files.
+1. **Local Kiro logs start on 2026-11-05 17:27, cover one machine only and currently end with the 2026-11-09 review.** The owner confirms Kiro use from Oct 30 through at least Nov 11; use on both machines is confirmed through Nov 9. For Oct 30 – Nov 4, Nov 10–11 and work on the other machine, **no logs are on hand**; these dates are type **B** (owner confirmation) and are not attributed to individual files.
 2. **Git does not record Kiro.** All 9 commits come from one GitHub account (`deviouslove-ship-it`) with no co-author line; the first commit (2026-11-08 20:32) is a snapshot of 404 files from the working folder. Git therefore cannot show who wrote what.
 
 ## 2. Kiro sessions still accessible
@@ -85,7 +87,7 @@ The "Evidence" column gives the session ID (first 8 characters) and files that c
 
 ## 4. Work in the source without Kiro logs (type B)
 
-These items exist in the repository but have **no Kiro write/edit command in the stored session records**. The owner confirms Kiro was used from 30 Oct to 9 Nov 2026 on two machines, so part of this may be Kiro-assisted; individual files cannot be attributed to Kiro or the author, and this document does not try. Files dated before 30 Oct (requirements, initial skeleton) are outside the confirmed period.
+These items exist in the repository but have **no Kiro write/edit command in the stored session records**. The owner confirms Kiro use from 30 Oct through at least 11 Nov 2026; use on two machines is confirmed through Nov 9, while later updates have no logs for file-level attribution. Some items may be Kiro-assisted, but individual files cannot be attributed to Kiro or the author, and this document does not try. Files dated before 30 Oct (requirements, initial skeleton) are outside the confirmed period.
 
 | Component | Why it is "in the source" | Why it is not attributed |
 |---|---|---|
@@ -140,8 +142,9 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 | 8 Nov 16:00–17:21 | Windows LAN Portable offline | A22 |
 | 8 Nov 20:32 | **First Git commit**: snapshot of 404 files (289bf62); 20:34–21:02 documents, CI added | B |
 | 9 Nov 09:25–12:04 | Commits: document management (`ba596ce`), documentation clarifications (`caa2e7a`), license and disclosure (`08b0021`); **no Kiro session recorded in this window** | B |
-| 9 Nov (end of confirmed period) | Last day of Kiro use confirmed by the owner | B |
+| 9 Nov | Cutoff of the original log snapshot; the owner later confirmed Kiro use continued through at least Nov 11 | B |
 | 9 Nov 17:19 onward | This record-review session; `.kiro` specs/steering/hooks and bilingual documents added | A25, C |
+| 11 Nov 2026 | Post-build update using Kiro IDE; Kiroween remains open through its Dec 4 deadline | B |
 
 ## 7. Inventory of Kiro material in the project
 
@@ -149,11 +152,11 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 |---|---|
 | `.kiro/specs`, `.kiro/steering`, `.kiro/hooks` before 2026-11-09 | **None** found in the repository, backups or `~/.kiro` |
 | `.kiro/settings/permissions.yaml` | Present (on GitHub since the first commit); drafted by Kiro and applied by the user (A24). Left unchanged |
-| `.kiro/specs` (10 groups), `.kiro/steering` (3 files), `.kiro/hooks` (2 hooks) from 2026-11-09 | **Reconstructed from code** (type C), in English so Kiro reads them directly; Vietnamese translations in `docs/vi/kiro/`. Hooks were revised on 2026-11-09 (scoped ruff/mypy and eslint/tsc via `scripts/kiro-hook-check.ps1`); automatic `PostFileSave` triggering was observed when the agent wrote test files, a manual editor save was not tried |
+| `.kiro/specs` (10 groups), `.kiro/steering` (3 files), `.kiro/hooks` (2 hooks), initially from 2026-11-09 | **Reconstructed from code** (type C), in English so Kiro reads them directly; Vietnamese translations in `docs/vi/kiro/`. Effectivity and citation-pinning specs were updated on Nov 11; hooks were revised on 2026-11-09 (scoped ruff/mypy and eslint/tsc via `scripts/kiro-hook-check.ps1`); automatic `PostFileSave` triggering was observed when the agent wrote a test file, while manual editor save was not tried |
 | Project copy `Evidence_RAG_Handoff-20261109-171404` | Contains `.kiro/settings/permissions.yaml`, byte-identical; nothing else |
 | MCP configuration | Only at user level (`~/.kiro/settings/mcp.json`), 9 servers; only `stitch` relates to UI design; the rest are personal tools. Not copied into the repository (machine paths, personal configuration and an API key header) |
 | MCP: Stitch – UI design, results in `.stitch/` | Server `stitch` (remote streamable-HTTP, `https://stitch.googleapis.com/mcp`, user level, enabled). The stored `mcp.log` files show `mcp.connect.ok` and `mcp.listTools.ok` for `stitch` at session start; no Stitch design call appears in the stored `kiro.log` files. Use for UI design: **type B** (project owner's confirmation), no usage date |
-| Working mode | All stored sessions ran in free chat mode (`vibe`) or workflow; session settings record `specPlanEnabled = false`. **The specs, steering and hooks added on 2026-11-09 are reconstructed documents, not Kiro history.** |
+| Working mode | All stored sessions ran in free chat mode (`vibe`) or workflow; session settings record `specPlanEnabled = false`. **The specs, steering and hooks initially added on 2026-11-09 are reconstructed documents, not Kiro history; selected specs were updated on Nov 11.** |
 
 ## 8. Method and statistics
 
@@ -164,7 +167,7 @@ Dates before 11-05 are inferred from file modification times and are **indicativ
 3. A file counts when it is in Git at commit `34cff8b` and has at least one Kiro write/edit command (`fs_write`, `str_replace`, `fs_append`, `delete_file`, `semantic_rename`, `smart_relocate`, `createHook`) in the session records, whatever its extension.
 4. **Two different measures:** *files affected* (at least one write/edit command) and *files with an `fs_write` call* (Kiro created or overwrote the whole file at that moment). A file with only `str_replace`/`fs_append` is affected, not written whole.
 5. **Historical evidence and current-turn work are separated.** The current turn starts at the Kiroween record-review request (2026-11-09 17:19). Specs, steering, hooks and bilingual documents created in this turn are Kiro work **in the current turn**; they are not evidence about the earlier development history.
-6. 30 Oct – 9 Nov 2026 is the period of Kiro use confirmed by the owner on two machines. Work without logs is **not** added to the figures here.
+6. As of the 2026-11-11 snapshot, the owner confirms Kiro use from Oct 30 through Nov 11; use on both machines is confirmed through Nov 9, and Kiroween remains open until Dec 4. Figures here cover only the stated stored-log/commit scope and are not the final Kiroween totals. Work without logs is **not** added.
 
 ### 8.2 Sources and definitions
 
@@ -265,17 +268,17 @@ File-by-file list, excluded files and uncounted candidates: [`KIRO_STATS_APPENDI
 - The test suites were not re-run in this review; all test results in section 3 are figures Kiro reported at the end of sessions, together with reports in `docs/evidence/` (part of that folder is not in Git).
 - Required grounds, reference relations and question sets were drafted by an agent and have **not been confirmed by domain staff**.
 - The portable packages (A5, A22) have not been tried on a second physical Windows machine; the Tauri desktop app and TXT files were not checked in session `201bebb1`.
-- 30 Oct – 4 Nov, the work on the second machine and the changes between 11-08 17:21 and 11-09 17:19 have no Kiro records to check against; they rest on the owner's confirmation.
+- 30 Oct – 4 Nov, work on the other machine, changes between 11-08 17:21 and 11-09 17:19, and Nov 10–11 updates are not fully covered by the stored Kiro records; the gaps rest on the owner's confirmation.
 - The Kiro sessions in section 2 cover one machine; the statistics exclude the other.
 - Specs, steering and hooks of 2026-11-09 are reconstructed from code; automatic `PostFileSave` triggering of the hooks was observed for agent writes only; a manual editor save was not tried.
 - Some other generated files (reports, files in `.agents/`) are outside Git per `.gitignore` and are not in the file statistics.
-- The current-turn tool-call count is a snapshot at the time of this count and keeps growing while the session continues.
+- The current-turn tool-call count was captured on 2026-11-09; it excludes the Nov 10–11 updates.
 - The "files with `fs_write`" measure and the line counts are upper bounds on Kiro's authorship; the file count is a lower bound because files created by shell commands are not counted (29 uncounted candidates, see the appendix).
 - Work in 30 Oct – 4 Nov, on the other machine and between 11-08 17:21 and 11-09 17:19 rests on the owner's confirmation and is not added to the figures.
 
 ## Update after the build period (Nov 11, 2026)
 
-The additions after the Oct 30–Nov 9 period were made in Kiro IDE with Claude Sonnet 5.5. The Kiro-session and contribution statistics above exclude this work.
+The updates after the original build and statistics cutoff on Nov 9 were made in Kiro IDE with Claude Sonnet 5.5. The Kiro-session and contribution statistics above exclude this work; Kiroween continues through Dec 4, 2026, so this is not the final report.
 
 - Completed the two-pane Q&A screen: session history on the left, evidence on the right; evidence pagination adapts to pane height, and clicking `[n]` jumps to its citation.
 - Added Article/Clause/Point effectivity relations: proposed replacements, amendments, additions and repeals; item-level effective dates, as-of lookup, and yellow warning notes when node-level effectivity is unverified or the query date is later than the store's data date.

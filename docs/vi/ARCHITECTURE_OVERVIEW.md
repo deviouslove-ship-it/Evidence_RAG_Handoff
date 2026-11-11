@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](../en/ARCHITECTURE_OVERVIEW.md)
 
-Tóm tắt dành cho giám khảo, lập ngày 09/11/2026 từ mã nguồn và tài liệu trong repository. Chi tiết: [Mô tả hệ thống](../TAI_LIEU_MO_TA_HE_THONG.md), các ADR trong `docs/architecture-decisions/` và các spec trong `.kiro/specs/` (tiếng Anh; bản dịch ở [`docs/vi/kiro/`](kiro/README.vi.md)).
+Tóm tắt kiến trúc lập ngày 09/11/2026 từ mã nguồn và tài liệu trong repository; mốc sử dụng Kiro và lịch sử cập nhật spec được bổ sung ngày 11/11/2026. Chi tiết: [Mô tả hệ thống](../TAI_LIEU_MO_TA_HE_THONG.md), các ADR trong `docs/architecture-decisions/` và các spec trong `.kiro/specs/` (tiếng Anh; bản dịch ở [`docs/vi/kiro/`](kiro/README.vi.md)).
 
 ## Thành phần
 
@@ -72,4 +72,4 @@ flowchart TB
 
 ## Vị trí của Kiro
 
-Theo chủ dự án, Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) được dùng từ 30/10/2026 đến 09/11/2026. Nhật ký còn lưu gồm 7 phiên từ 05/11/2026 trên một máy. Xem [`KIRO_WORK_SUMMARY.vi.md`](../../KIRO_WORK_SUMMARY.vi.md) để biết phần nào có bằng chứng, phần nào dựa trên xác nhận của chủ dự án, phần nào dựng lại. Các spec trong `.kiro/specs` mô tả mã đã triển khai và được dựng lại ngày 09/11/2026.
+Theo chủ dự án, Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) tiếp tục được dùng đến mốc cập nhật 11/11/2026; Kiroween còn diễn ra đến hạn nộp 04/12/2026. Nhật ký còn lưu gồm 7 phiên từ 05/11 đến phiên rà soát 09/11 trên một máy. Xem [`KIRO_WORK_SUMMARY.vi.md`](../../KIRO_WORK_SUMMARY.vi.md) để biết phần nào có bằng chứng và phần nào dựa trên xác nhận. Các spec trong `.kiro/specs` được dựng lại ban đầu ngày 09/11; spec hiệu lực và ghim trích dẫn có cập nhật ngày 11/11.

@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · bản chuẩn: [`.kiro/specs/citation-pinning/`](../../../../.kiro/specs/citation-pinning/)
 
-> Spec dựng lại từ mã nguồn đã triển khai ngày 09/11/2026 (`Spec reconstructed from the implemented code on 2026-11-09`). Không phải spec lịch sử do Kiro tạo. Hợp đồng: `docs/citation-contract.md`, `docs/pdf-anchor-coordinate-contract.md`.
+> Spec dựng lại từ mã nguồn đã triển khai ngày 09/11/2026, cập nhật 11/11/2026 (`Spec reconstructed from the implemented code on 2026-11-09`). Không phải spec lịch sử do Kiro tạo. Hợp đồng: `docs/citation-contract.md`, `docs/pdf-anchor-coordinate-contract.md`.
 
 ## Giới thiệu
 Mọi căn cứ hiển thị cho người dùng được ghim vào một phiên bản văn bản bất biến, một nút Điều/Khoản/Điểm, một span nguồn trên trang và SHA-256 của tệp gốc. Lời trích đến từ văn bản đã lưu, không bao giờ từ model.

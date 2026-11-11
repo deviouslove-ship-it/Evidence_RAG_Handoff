@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](../vi/ARCHITECTURE_OVERVIEW.md) · English
 
-A short overview for reviewers, written on 2026-11-09 from the repository code and documents. Details: [System description](SYSTEM_DESCRIPTION.md), the ADRs in `docs/architecture-decisions/` (Vietnamese) and the specs in `.kiro/specs/`.
+A short architecture overview for reviewers, written on 2026-11-09 from the repository code and documents; Kiro-use dates and spec update history were added on 2026-11-11. Details: [System description](SYSTEM_DESCRIPTION.md), the ADRs in `docs/architecture-decisions/` (Vietnamese) and the specs in `.kiro/specs/`.
 
 ## Components
 
@@ -72,4 +72,4 @@ flowchart TB
 
 ## How Kiro fits
 
-Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) was used from 2026-10-30 to 2026-11-09 per the project owner. Logs on hand cover 7 sessions from 2026-11-05 on one machine. See [`KIRO_WORK_SUMMARY.en.md`](../../KIRO_WORK_SUMMARY.en.md) for what is evidenced, what rests on the owner's confirmation and what is reconstructed. The `.kiro/specs` in this repository describe the code as implemented and were reconstructed on 2026-11-09.
+Per the project owner, Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) continued to be used through the 2026-11-11 snapshot; Kiroween remains open until its 2026-12-04 deadline. The stored logs cover 7 sessions from 2026-11-05 through the 2026-11-09 review on one machine. See [`KIRO_WORK_SUMMARY.en.md`](../../KIRO_WORK_SUMMARY.en.md) for evidence and owner-confirmed work. The `.kiro/specs` were initially reconstructed on 2026-11-09; effectivity and citation-pinning specs were updated on 2026-11-11.

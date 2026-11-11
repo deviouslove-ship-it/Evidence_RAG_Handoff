@@ -1,6 +1,6 @@
 # Tasks: Citation Pinning
 
-> Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository.
+> Spec reconstructed from the implemented code on 2026-11-09 (updated 2026-11-11). Checkboxes reflect what exists in the repository.
 
 - [x] 1. Citation contract and anchor contract documents (`docs/citation-contract.md`, `docs/pdf-anchor-coordinate-contract.md`)
 - [x] 2. Authorised citation lookup and routes (`storage/citations.py`, `main.py`)

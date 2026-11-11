@@ -2,14 +2,16 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](KIRO_WORK_SUMMARY.en.md)
 
-Tài liệu phục vụ hồ sơ **Kiroween 2026**. Lập ngày 09/11/2026 bằng cách đọc bản ghi phiên Kiro còn lưu trên máy tác giả,
-lịch sử Git, mã nguồn và tài liệu của repo, rồi cập nhật cùng ngày theo xác nhận của chủ dự án. Mọi giờ trong tài liệu là giờ Việt Nam (UTC+7).
+Tài liệu phục vụ hồ sơ **Kiroween 2026**. Bản đầu lập ngày 09/11/2026 từ bản ghi phiên Kiro còn lưu trên máy tác giả,
+lịch sử Git, mã nguồn và tài liệu repo; cập nhật ngày 11/11/2026 theo xác nhận của chủ dự án và các bổ sung sau build. Kiroween còn diễn ra đến hạn 04/12/2026, nên đây chưa phải tổng kết cuối kỳ. Mọi giờ trong tài liệu là giờ Việt Nam (UTC+7).
+
+Các số liệu đóng góp ở mục 1 và 8 là snapshot chốt đến 09/11/2026; không bao gồm cập nhật 10–11/11 và không phải tổng kết cuối Kiroween.
 
 ## 0. Xác nhận của chủ dự án và cách đọc bằng chứng
 
-**Xác nhận của chủ dự án (Vu Tuan Anh):** dự án được phát triển bằng Kiro **từ 30/10/2026 đến hết 09/11/2026**, trên **cả máy cơ quan và máy nhà**. Kiro IDE dùng **Claude Sonnet 5.5** và **Claude Opus 5.5**; công việc do các model này thực hiện trong Kiro được ghi nhận là công việc Kiro hỗ trợ.
+**Xác nhận của chủ dự án (Vu Tuan Anh):** Kiro được dùng trong dự án từ **30/10/2026 đến ít nhất 11/11/2026**; việc sử dụng trên **cả máy cơ quan và máy nhà** được xác nhận đến 09/11. Tính đến 11/11, Kiro vẫn đang được dùng và Kiroween chưa kết thúc (hạn 04/12/2026). Kiro IDE dùng **Claude Sonnet 5.5** và **Claude Opus 5.5**; công việc do các model này thực hiện trong Kiro được ghi nhận là công việc Kiro hỗ trợ.
 
-Đây là lời xác nhận của chủ dự án, không phải nhật ký. Nhật ký Kiro còn lưu cục bộ chỉ có trên **một máy** và chỉ từ 05/11/2026 (mục 2). Phần còn lại của khoảng 30/10–09/11 không có nhật ký trong tay để đối chiếu từng tệp hay từng commit.
+Đây là lời xác nhận của chủ dự án, không phải nhật ký. Nhật ký Kiro còn lưu cục bộ chỉ có trên **một máy** và hiện bao phủ đến phiên rà soát ngày 09/11/2026 (mục 2). Không có nhật ký trong tay cho 30/10–04/11, máy còn lại và các cập nhật 10–11/11; các mốc này dựa trên xác nhận của chủ dự án, không dùng để quy từng tệp hay tăng các số liệu lịch sử.
 
 > **Nguyên tắc.** Tài liệu này không khẳng định toàn bộ mã nguồn do Kiro tạo. Mỗi mục được gắn một trong ba loại bằng chứng:
 > **A** – **nhật ký Kiro**: có bản ghi phiên, lệnh ghi/sửa tệp, báo cáo cuối phiên;
@@ -29,11 +31,11 @@ lịch sử Git, mã nguồn và tài liệu của repo, rồi cập nhật cùn
 | Workflow Kiro đã chạy | 2 lần `bundled://goal` (G1.0 và G1→G5), agent `wf-coder`, `claude-opus-5.5`, effort `high` | `workflow-state.json` |
 | Tệp sản phẩm trong Git có ít nhất một lệnh ghi/sửa của Kiro | **257 / 471** (55%): mã 161/300, tài liệu `.md`/`.txt` 88/142, cấu hình 8/29. Trong đó **194** tệp từ bản ghi lịch sử và **63** tệp lần đầu được Kiro chạm tới ở lượt hiện tại (59 tạo mới). **208** tệp có lệnh `fs_write` (tạo hoặc ghi đè toàn bộ), 49 tệp chỉ sửa cục bộ | mục 8; mẫu số đã loại 9 tệp không phải sản phẩm |
 | Dòng trong các tệp đó | 54.957 / 76.975 dòng (71%) — **cận trên**; 29.926 dòng (39%) nằm trong tệp có `fs_write`. Riêng mã: 46.189 / 60.609 (76%); tài liệu: 8.364 / 14.620 (57%) | mục 8; sửa một tệp không có nghĩa viết cả tệp |
-| Spec / steering / hook trong `.kiro/` | Không phiên nào ghi dùng chế độ spec. Ngày 09/11/2026 repo được bổ sung 10 nhóm spec và 3 steering **dựng lại từ code** (`Spec reconstructed from the implemented code on 2026-11-09`) và 2 hook; đây **không phải** tài liệu lịch sử của Kiro | mục 7 |
+| Spec / steering / hook trong `.kiro/` | Không phiên nào ghi dùng chế độ spec. Ngày 09/11/2026 repo được bổ sung ban đầu 10 nhóm spec và 3 steering **dựng lại từ code**, cùng 2 hook; spec hiệu lực và ghim trích dẫn được cập nhật 11/11. Đây **không phải** tài liệu lịch sử của Kiro | mục 7 |
 
 Hai điều cần đọc kỹ trước khi dùng tài liệu này làm hồ sơ:
 
-1. **Nhật ký Kiro cục bộ chỉ bắt đầu từ 05/11/2026 17:27 và chỉ trên một máy.** Chủ dự án xác nhận Kiro được dùng từ 30/10 đến hết 09/11/2026 trên cả máy cơ quan và máy nhà. Khoảng 30/10–04/11, và phần công việc trên máy còn lại, **không có nhật ký trong tay**; nội dung đó được xếp vào loại **B** (xác nhận của chủ dự án) và không được gán cho từng tệp.
+1. **Nhật ký Kiro cục bộ chỉ bắt đầu từ 05/11/2026 17:27, chỉ trên một máy và hiện kết thúc ở phiên rà soát 09/11.** Chủ dự án xác nhận Kiro được dùng từ 30/10 đến ít nhất 11/11; việc dùng trên cả hai máy được xác nhận đến 09/11. Khoảng 30/10–04/11, 10–11/11 và phần công việc trên máy còn lại **không có nhật ký trong tay**; các mốc này thuộc loại **B** (xác nhận của chủ dự án) và không được gán cho từng tệp.
 2. **Git không ghi nhận Kiro.** Cả 9 commit đều do một tài khoản GitHub (`deviouslove-ship-it`), không có dòng đồng tác giả; commit đầu (08/11/2026 20:32) là ảnh chụp 404 file của thư mục làm việc. Vì vậy lịch sử Git không phân biệt được ai viết gì.
 
 ## 2. Các phiên Kiro còn truy cập được
@@ -87,7 +89,7 @@ Các con số là số liệu do Kiro báo cáo ở cuối phiên; lần rà so�
 
 ## 4. Công việc có trong source, không có nhật ký Kiro (loại B)
 
-Các mục này tồn tại trong repo nhưng **không có lệnh ghi/sửa của Kiro trong bản ghi phiên còn lưu**. Chủ dự án xác nhận Kiro được dùng trong 30/10–09/11/2026 trên hai máy, nên một phần có thể do Kiro hỗ trợ; tuy vậy không thể quy từng tệp cho Kiro hay cho tác giả, và tài liệu này không làm điều đó. Các tệp có mốc trước 30/10 (hồ sơ yêu cầu, khung ban đầu) nằm ngoài khoảng thời gian chủ dự án xác nhận.
+Các mục này tồn tại trong repo nhưng **không có lệnh ghi/sửa của Kiro trong bản ghi phiên còn lưu**. Chủ dự án xác nhận Kiro được dùng từ 30/10 đến ít nhất 11/11/2026; việc dùng trên hai máy được xác nhận đến 09/11, còn cập nhật 10–11/11 không có log để quy từng tệp. Vì vậy một phần có thể do Kiro hỗ trợ nhưng không thể quy từng tệp cho Kiro hay cho tác giả. Các tệp có mốc trước 30/10 (hồ sơ yêu cầu, khung ban đầu) nằm ngoài khoảng xác nhận.
 
 | Thành phần | Căn cứ để nói "có trong source" | Vì sao chưa xác định |
 |---|---|---|
@@ -142,21 +144,22 @@ Mốc trước 05/11 suy ra từ thời gian sửa tệp và là **chỉ số th
 | 08/11 16:00–17:21 | Windows LAN Portable offline | A22 |
 | 08/11 20:32 | **Commit đầu tiên lên Git**: ảnh chụp 404 file (289bf62); 20:34–21:02 thêm tài liệu, CI | B |
 | 09/11 09:25–12:04 | Commit quản lý văn bản (`ba596ce`), làm rõ tài liệu (`caa2e7a`), giấy phép và công bố (`08b0021`); **không có phiên Kiro nào được ghi trong khoảng này** | B |
-| 09/11 (hết khoảng xác nhận) | Ngày cuối cùng chủ dự án xác nhận dùng Kiro | B |
+| 09/11 | Mốc chốt của số liệu nhật ký ban đầu; chủ dự án sau đó xác nhận Kiro tiếp tục được dùng đến ít nhất 11/11 | B |
 | 09/11 17:19 trở đi | Phiên rà soát hồ sơ này; bổ sung `.kiro` specs/steering/hooks và tài liệu song ngữ | A25, C |
+| 11/11/2026 | Cập nhật sau build bằng Kiro IDE; Kiroween vẫn đang diễn ra đến hạn 04/12 | B |
 
 ## 7. Kiểm kê tài liệu Kiro trong dự án
 
 | Hạng mục | Kết quả |
 |---|---|
 | `.kiro/specs`, `.kiro/steering`, `.kiro/hooks` trước ngày 09/11/2026 | **Không có** (không tìm thấy ở repo, bản sao lưu, `~/.kiro`) |
-| `.kiro/specs` (10 nhóm), `.kiro/steering` (3 tệp), `.kiro/hooks` (2 hook) từ 09/11/2026 | **Dựng lại từ code** (loại C), tiếng Anh để Kiro đọc trực tiếp; bản dịch tiếng Việt ở `docs/vi/kiro/`. Hook được sửa ngày 09/11/2026 (ruff/mypy và eslint/tsc theo phạm vi tệp qua `scripts/kiro-hook-check.ps1`); đã quan sát `PostFileSave` tự kích hoạt khi agent ghi tệp thử, chưa thử lưu tay trong editor |
+| `.kiro/specs` (10 nhóm), `.kiro/steering` (3 tệp), `.kiro/hooks` (2 hook) ban đầu từ 09/11/2026 | **Dựng lại từ code** (loại C), tiếng Anh để Kiro đọc trực tiếp; bản dịch tiếng Việt ở `docs/vi/kiro/`. Spec hiệu lực và ghim trích dẫn cập nhật 11/11; hook được sửa ngày 09/11/2026 (ruff/mypy và eslint/tsc theo phạm vi tệp qua `scripts/kiro-hook-check.ps1`); đã quan sát `PostFileSave` tự kích hoạt khi agent ghi tệp thử, chưa thử lưu tay trong editor |
 | `.kiro/settings/permissions.yaml` trong repo | Có (đã nằm trên GitHub từ commit đầu); là tệp Kiro soạn và người dùng áp dụng (A24) |
 | `.kiro/specs`, `steering`, `hooks` ở `~/.kiro` và ở bản sao lưu cũ | Không có. Thư mục người dùng chỉ có cài đặt cá nhân, kỹ năng (skills), cơ sở bộ nhớ và nhật ký, không phải tài liệu dự án |
 | Bản sao dự án `Evidence_RAG_Handoff-20261109-171404` | Có `.kiro/settings/permissions.yaml` giống từng byte; không có gì khác |
 | Cấu hình MCP | Chỉ ở mức người dùng (`~/.kiro/settings/mcp.json`), có 9 máy chủ; chỉ `stitch` liên quan thiết kế giao diện; còn lại là công cụ cá nhân. Không đưa vào repo (chứa đường dẫn riêng của máy, cấu hình cá nhân và header khóa API) |
 | MCP: Stitch – thiết kế UI, kết quả trong `.stitch/` | Máy chủ `stitch` (từ xa, streamable-HTTP, `https://stitch.googleapis.com/mcp`, mức người dùng, đang bật). Các `mcp.log` còn lưu ghi `mcp.connect.ok` và `mcp.listTools.ok` của `stitch` lúc bắt đầu phiên; không có lệnh gọi thiết kế Stitch nào trong các `kiro.log` còn lưu. Dùng cho thiết kế giao diện: **loại B** (chủ dự án xác nhận), không có ngày sử dụng |
-| Cách làm việc | Mọi phiên còn lưu chạy chế độ trò chuyện tự do (`vibe`) hoặc workflow; cài đặt phiên ghi `specPlanEnabled = false`. **Spec/steering/hook được thêm ngày 09/11/2026 là tài liệu dựng lại, không phải lịch sử Kiro.** |
+| Cách làm việc | Mọi phiên còn lưu chạy chế độ trò chuyện tự do (`vibe`) hoặc workflow; cài đặt phiên ghi `specPlanEnabled = false`. **Spec/steering/hook được thêm ban đầu ngày 09/11/2026 là tài liệu dựng lại, không phải lịch sử Kiro; một số spec cập nhật ngày 11/11.** |
 
 ## 8. Phương pháp và số liệu thống kê
 
@@ -167,7 +170,7 @@ Mốc trước 05/11 suy ra từ thời gian sửa tệp và là **chỉ số th
 3. Tệp được tính khi: có trong Git ở commit `34cff8b`, và có ít nhất một lệnh ghi/sửa của Kiro (`fs_write`, `str_replace`, `fs_append`, `delete_file`, `semantic_rename`, `smart_relocate`, `createHook`) trong bản ghi phiên, bất kể phần mở rộng.
 4. **Hai chỉ số khác nhau:** *tệp được tác động* (có ít nhất một lệnh ghi/sửa) và *tệp có lệnh `fs_write`* (Kiro tạo hoặc ghi đè toàn bộ tệp tại thời điểm đó). Tệp chỉ có `str_replace`/`fs_append` được tính là tác động, không phải viết toàn bộ.
 5. **Bằng chứng lịch sử và công việc lượt hiện tại được tách riêng.** Lượt hiện tại bắt đầu từ yêu cầu hồ sơ Kiroween (09/11/2026 17:19). Specs, steering, hooks và tài liệu song ngữ tạo trong lượt này là công việc Kiro **trong lượt hiện tại**, không phải bằng chứng về lịch sử phát triển trước đó.
-6. Khoảng 30/10–09/11/2026 là thời gian dùng Kiro theo xác nhận của chủ dự án trên hai máy. Phần không có nhật ký **không** được cộng vào số liệu ở đây.
+6. Tính đến snapshot 11/11/2026, chủ dự án xác nhận Kiro đã được dùng từ 30/10 và tiếp tục đến 11/11; Kiroween còn đến hạn 04/12. Các số liệu trong tài liệu này chỉ tính bản ghi/commit thuộc phạm vi nêu ở trên, không phải tổng kết cuối kỳ. Phần không có nhật ký **không** được cộng vào số liệu.
 
 ### 8.2 Nguồn và định nghĩa
 
@@ -268,17 +271,17 @@ Danh sách từng tệp, tệp bị loại và tệp ứng viên chưa tính: [`
 - Chưa chạy lại bộ kiểm thử trong lần rà soát này; mọi kết quả kiểm thử ở mục 3 là số liệu Kiro báo cáo ở cuối phiên, kèm các báo cáo trong `docs/evidence/` (một phần thư mục này không đưa lên Git).
 - Căn cứ bắt buộc, quan hệ đối chiếu và bộ câu hỏi do tác nhân soạn; **chưa được cán bộ chuyên môn xác nhận**.
 - Các gói portable (A5, A22) chưa được thử trên máy Windows vật lý thứ hai; bản desktop Tauri và tệp TXT chưa được kiểm trong phiên `201bebb1`.
-- Giai đoạn 30/10–04/11, phần công việc trên máy thứ hai và các thay đổi 08/11 17:21 → 09/11 17:19 không có bản ghi Kiro để đối chiếu; chúng dựa trên xác nhận của chủ dự án.
+- Giai đoạn 30/10–04/11, phần công việc trên máy thứ hai, các thay đổi 08/11 17:21 → 09/11 17:19 và cập nhật 10–11/11 không được bản ghi Kiro còn lưu bao phủ đầy đủ; các mốc thiếu log dựa trên xác nhận của chủ dự án.
 - Phiên Kiro ghi lại ở mục 2 là lần chạy cho workspace này trên một máy; số liệu thống kê không bao gồm máy còn lại.
 - Spec, steering và hook ngày 09/11/2026 dựng từ code; `PostFileSave` đã được quan sát tự kích hoạt khi agent ghi tệp; lưu tay trong editor chưa thử.
 - Một số tệp tài liệu phát sinh khác (báo cáo, tệp trong `.agents/`) nằm ngoài Git theo `.gitignore` và không được đưa vào thống kê tệp.
-- Số lệnh công cụ của lượt hiện tại là ảnh chụp tại lúc lập thống kê và còn tăng khi phiên tiếp tục.
+- Số lệnh công cụ của lượt hiện tại là ảnh chụp lúc lập thống kê ngày 09/11; không bao gồm các bổ sung 10–11/11.
 - Chỉ số "tệp có `fs_write`" và số dòng đều là cận trên về quyền tác giả của Kiro; số tệp là cận dưới vì không đếm tệp tạo bằng lệnh shell (29 ứng viên chưa tính, xem phụ lục).
-- Công việc trong 30/10–04/11, trên máy còn lại và trong khoảng 08/11 17:21 → 09/11 17:19 dựa trên xác nhận của chủ dự án và không được cộng vào số liệu.
+- Công việc trong 30/10–04/11, trên máy còn lại, khoảng 08/11 17:21 → 09/11 17:19 và các cập nhật 10–11/11 không được bản ghi phiên lưu lại bao phủ đầy đủ; các mốc không có log dựa trên xác nhận của chủ dự án và không được cộng vào số liệu thống kê cũ.
 
 ## Cập nhật sau giai đoạn build (11/11/2026)
 
-Các bổ sung sau giai đoạn 30/10–09/11 được thực hiện trong Kiro IDE với Claude Sonnet 5.5. Số liệu phiên Kiro và thống kê đóng góp ở các mục phía trên không bao gồm đợt này.
+Các bổ sung sau mốc build và chốt số liệu ban đầu ngày 09/11 được thực hiện trong Kiro IDE với Claude Sonnet 5.5. Số liệu phiên Kiro và thống kê đóng góp ở các mục phía trên không bao gồm đợt này; Kiroween vẫn tiếp diễn đến 04/12/2026 nên đây chưa phải bản tổng kết cuối kỳ.
 
 - Hoàn thiện màn hình Hỏi đáp hai khung: lịch sử hỏi đáp trong phiên ở khung trái, căn cứ ở khung phải; phân trang căn cứ theo chiều cao khung và bấm `[n]` để nhảy tới căn cứ.
 - Bổ sung quan hệ hiệu lực cấp Điều/Khoản/Điểm: đề xuất thay thế, sửa đổi, bổ sung, bãi bỏ; ngày hiệu lực theo từng mục, hỗ trợ tra cứu theo thời điểm và hiển thị ghi chú cảnh báo màu vàng khi hiệu lực cấp nút chưa được xác minh hoặc ngày tra cứu vượt ngày dữ liệu.

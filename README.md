@@ -19,11 +19,11 @@ FastAPI, một PostgreSQL và một kho tài liệu bất biến theo SHA-256 ph
 - **Tài khoản thử:** thông tin đăng nhập demo nằm trong file tài khoản `Acount_Demo.md` ở thư mục gốc của gói zip. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**). Gói r4 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
 ## Phát triển bằng Kiro (Kiroween 2026)
 
-Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) từ 30/10/2026 đến hết 11/11/2026, theo xác nhận của chủ dự án.
+Tính đến 11/11/2026, Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) vẫn đang được dùng trong dự án, bắt đầu từ 30/10/2026. Kiroween 2026 vẫn đang diễn ra, hạn nộp là 04/12/2026, theo xác nhận của chủ dự án.
 
 - Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md), phụ lục thống kê từng tệp [`KIRO_STATS_APPENDIX.vi.md`](KIRO_STATS_APPENDIX.vi.md)
 - Tổng quan kiến trúc: [`docs/vi/ARCHITECTURE_OVERVIEW.md`](docs/vi/ARCHITECTURE_OVERVIEW.md)
-- Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Được dựng lại từ mã nguồn ngày 09/11/2026, không phải spec lịch sử của Kiro. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
+- Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Nội dung được dựng lại ban đầu từ mã nguồn ngày 09/11/2026; spec hiệu lực và ghim trích dẫn được cập nhật ngày 11/11/2026. Đây không phải spec lịch sử do Kiro tạo. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
 - MCP của Kiro: **Stitch** – thiết kế UI, kết quả trong [`.stitch/`](.stitch/) (máy chủ cấu hình ở mức người dùng; chủ dự án xác nhận đã dùng, không có nhật ký lệnh gọi: bằng chứng loại B, xem [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md) mục 7)
 
 ## Chạy cục bộ

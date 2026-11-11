@@ -28,11 +28,11 @@ Complete guides inside the package: `USER_GUIDE.en.md` (English) and `HUONG_DAN_
 **Test accounts:** Demo credentials are in the account file `Acount_Demo.md` at the root of the zip package. `chuyenvien` can search right away. To test the full workflow, the admin grants `curator` the lookup categories, and grants `reviewer` both the lookup and the validity-confirmation categories (**Tài khoản & Phân quyền**, boxes **Danh mục được phép tra cứu (ABAC)** and **Danh mục được xác nhận hiệu lực (người duyệt)**). This r4 package already ships with all 9 categories granted to `curator` and `reviewer`; the admin can change them there. A user cannot approve their own submission.
 ## Built with Kiro (Kiroween 2026)
 
-The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from 2026-10-30 through 2026-11-11, as confirmed by the project owner.
+As of 2026-11-11, Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) is still being used on the project; its use began on 2026-10-30. Kiroween 2026 is still in progress, with a submission deadline of 2026-12-04, as confirmed by the project owner.
 
 - Evidence and limits: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md), per-file statistics appendix [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md)
 - Architecture overview: [`docs/en/ARCHITECTURE_OVERVIEW.md`](docs/en/ARCHITECTURE_OVERVIEW.md)
-- Kiro specs (10 groups), steering and hooks: [`.kiro/`](.kiro/). They were reconstructed from the implemented code on 2026-11-09 and are not historical Kiro specs. Vietnamese translations: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
+- Kiro specs (10 groups), steering and hooks: [`.kiro/`](.kiro/). They were initially reconstructed from the implemented code on 2026-11-09; the effectivity and citation-pinning specs were updated on 2026-11-11. They are not historical Kiro specs. Vietnamese translations: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
 - Kiro MCP: **Stitch** – UI design, results in [`.stitch/`](.stitch/) (server configured at user level; use confirmed by the project owner, no tool-call log: evidence type B, see [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md) section 7)
 
 ## Run locally

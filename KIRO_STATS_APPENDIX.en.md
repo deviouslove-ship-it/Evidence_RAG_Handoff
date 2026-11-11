@@ -455,7 +455,7 @@ The files below are mentioned in Kiro shell commands that contain a write verb (
 
 ## Snapshot 11/11/2026 (commit 861fa34)
 
-This separate table gives the actual line counts in the blobs at commit `861fa34`, counted with `git show <commit>:<file>`. The historical contribution table above remains scoped to commit `34cff8b`.
+This separate table gives the actual line counts in the blobs at commit `861fa34`, counted with `git show <commit>:<file>`. The historical contribution table above remains scoped to commit `34cff8b`. This is a source snapshot from Nov 11, not the final Kiroween contribution report; the event remains open through Dec 4, 2026.
 
 | File | Lines |
 |---|---:|

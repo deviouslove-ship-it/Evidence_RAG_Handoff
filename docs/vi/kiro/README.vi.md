@@ -4,7 +4,7 @@
 
 Kiro đọc trực tiếp các tệp tiếng Anh trong `.kiro/specs/` và `.kiro/steering/`. Các tệp ở thư mục này chỉ là **bản dịch để người đọc tiếng Việt tham khảo**; không thay thế tệp chuẩn và Kiro không đọc chúng. Nếu hai bản khác nhau, bản tiếng Anh là chuẩn.
 
-**Lưu ý trung thực.** Tất cả spec và steering được **dựng lại từ mã nguồn đã triển khai ngày 09/11/2026**. Chúng không phải spec lịch sử do Kiro tạo ra trong thời gian phát triển (không có phiên Kiro nào dùng chế độ spec). Dấu `[x]` trong tasks nghĩa là hạng mục tồn tại trong repository, không phải bằng chứng đã chạy lại kiểm thử. Xem [`KIRO_WORK_SUMMARY.vi.md`](../../../KIRO_WORK_SUMMARY.vi.md).
+**Lưu ý trung thực.** Spec và steering được **dựng lại ban đầu từ mã nguồn đã triển khai ngày 09/11/2026**; spec hiệu lực và ghim trích dẫn được cập nhật ngày 11/11/2026. Chúng không phải spec lịch sử do Kiro tạo ra trong thời gian phát triển (không có phiên Kiro nào dùng chế độ spec). Dấu `[x]` trong tasks nghĩa là hạng mục tồn tại trong repository, không phải bằng chứng đã chạy lại kiểm thử. Xem [`KIRO_WORK_SUMMARY.vi.md`](../../../KIRO_WORK_SUMMARY.vi.md).
 
 ## Steering
 - [product.vi.md](steering/product.vi.md)
