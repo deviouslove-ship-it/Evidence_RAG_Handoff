@@ -518,3 +518,135 @@ it("keeps the memory visible and reports failure when deleting the session fails
   expect(await screen.findByText(/Không thể xác nhận việc xóa bộ nhớ trên máy chủ/)).toBeInTheDocument();
   expect(screen.getByText(/^Bộ nhớ phiên \(1\)$/)).toBeInTheDocument();
 });
+
+it("synchronizes dynamic docPageSize with visible cards, navigates on [n] click, and preserves active document page on resize", async () => {
+  const base = { query_id: "q", run_id: "r", facts_revision: "f", snapshot_revision: null };
+  const docs = [1, 2, 3, 4, 5].map((idx) => ({
+    evidence_id: `ev_${idx}`,
+    document_id: `doc_${idx}`,
+    document_version_id: `ver_${idx}`,
+    node_id: `node_${idx}`,
+    document_number: `0${idx}/2025/TT-BCA`,
+    title: `Thông tư số 0${idx}/2025/TT-BCA`,
+    label: `Điều ${idx}`,
+    quote_exact: `Nội dung chi tiết của Điều ${idx} tại Thông tư 0${idx}/2025/TT-BCA.`,
+    page: 1,
+    source_hash: `hash_${idx}`,
+    as_of_date: "2026-01-01",
+    amendment_state: "active",
+    viewer_url: `/v/${idx}`,
+    outside_scope: false,
+  }));
+  const body = sse([
+    ["retrieval_started", { ...base, event_sequence: 1 }],
+    ["evidence_verified", { ...base, event_sequence: 2, evidence: docs }],
+    ["evidence_complete", { ...base, event_sequence: 3, evidence_count: 5 }],
+    ["analysis_ready", {
+      ...base,
+      event_sequence: 4,
+      status: "evidence_found",
+      claims: [],
+      suggestions: [],
+      missing_information: [],
+      coverage_checks: {},
+      answer_generated: true,
+      answer: {
+        outcome: "grounded",
+        summary: "Tổng hợp 5 văn bản liên quan.",
+        points: [
+          "Theo Điều 1 Thông tư 01/2025/TT-BCA quy định hồ sơ ban đầu.",
+          "Theo Điều 5 Thông tư 05/2025/TT-BCA quy định thẩm quyền phê duyệt.",
+        ],
+        topics: [],
+        notes: [],
+        understood_phrases: [],
+      },
+      evidence_groups: [],
+      disclaimer: "",
+    }],
+    ["answer_complete", { ...base, event_sequence: 5, status: "evidence_found" }],
+  ]);
+
+  let simulatedPaneHeight = 500;
+  vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(function (this: HTMLElement) {
+    if (this.classList?.contains("chat-results-scroll")) {
+      return simulatedPaneHeight;
+    }
+    return 0;
+  });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this.classList?.contains("chat-results-scroll")) {
+      return {
+        top: 0, bottom: simulatedPaneHeight, left: 0, right: 600,
+        width: 600, height: simulatedPaneHeight, x: 0, y: 0, toJSON: () => ({}),
+      };
+    }
+    if (this.classList?.contains("doc-list")) {
+      return {
+        top: 70, bottom: simulatedPaneHeight, left: 0, right: 600,
+        width: 600, height: simulatedPaneHeight - 70, x: 0, y: 70, toJSON: () => ({}),
+      };
+    }
+    if (this.classList?.contains("doc-card-slot")) {
+      return {
+        top: 0, bottom: 185, left: 0, right: 600,
+        width: 600, height: 185, x: 0, y: 0, toJSON: () => ({}),
+      };
+    }
+    return {
+      top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}),
+    };
+  });
+
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((url: string) => {
+    const known = baseRoutes(url);
+    if (known) return Promise.resolve(known);
+    return Promise.resolve(new Response(body, {
+      status: 200, headers: { "Content-Type": "text/event-stream", "X-Turn-Id": "turn_page" },
+    }));
+  }));
+
+  const { container } = render(<EvidenceChat accessToken="fixture-token" />);
+  fireEvent.change(screen.getByRole("textbox", { name: "Câu hỏi tra cứu" }), {
+    target: { value: "Tra cứu 5 văn bản" },
+  });
+  const submit = screen.getByRole("button", { name: "Tra cứu" });
+  await waitFor(() => expect(submit).toBeEnabled());
+  fireEvent.click(submit);
+
+  await screen.findByText("5 căn cứ");
+  act(() => {
+    window.dispatchEvent(new Event("resize"));
+  });
+
+  const pagination = await screen.findByRole("navigation", { name: "Phân trang kết quả" });
+  await waitFor(() => {
+    expect(pagination).toHaveAttribute("data-doc-page-size", "2");
+    expect(pagination).toHaveTextContent("Trang 1 / 3 (1–2 / 5 văn bản)");
+  });
+  expect(container.querySelectorAll(".doc-card-slot")).toHaveLength(2);
+
+  // Point 2 explicitly cites 05/2025/TT-BCA -> badge [5] (aria-label="Căn cứ 5", not [2])
+  const citeFiveButtons = screen.getAllByRole("button", { name: "Căn cứ 5" });
+  expect(citeFiveButtons.length).toBeGreaterThanOrEqual(2);
+  fireEvent.click(citeFiveButtons[0]);
+
+  await waitFor(() => {
+    expect(pagination).toHaveAttribute("data-doc-page", "3");
+    expect(pagination).toHaveTextContent("Trang 3 / 3 (5–5 / 5 văn bản)");
+  });
+  expect(container.querySelectorAll(".doc-card-slot")).toHaveLength(1);
+  expect(container.querySelector(".doc-card-slot.is-cited")).not.toBeNull();
+
+  // Resize taller so 3 cards fit per page: doc #5 should now stay visible on page 2 of 2 (4–5 / 5)
+  simulatedPaneHeight = 720;
+  act(() => {
+    window.dispatchEvent(new Event("resize"));
+  });
+  await waitFor(() => {
+    expect(pagination).toHaveAttribute("data-doc-page-size", "3");
+    expect(pagination).toHaveAttribute("data-doc-page", "2");
+    expect(pagination).toHaveTextContent("Trang 2 / 2 (4–5 / 5 văn bản)");
+  });
+  expect(container.querySelectorAll(".doc-card-slot")).toHaveLength(2);
+});

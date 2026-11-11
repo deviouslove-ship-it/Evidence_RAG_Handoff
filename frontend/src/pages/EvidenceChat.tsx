@@ -185,12 +185,29 @@ function buildViews(result?: QueryResponse) {
   return { evidence, clauseLabels: labels, documentViews, mainDocuments, referenceDocuments };
 }
 
-/** Card numbers [n] a sentence of the answer refers to (by document number). */
-function citedNumbers(text: string, documents: DocView[]): number[] {
+/** Card numbers [n] a sentence of the answer refers to (by document number or clause label). */
+function citedNumbers(text: string, documents: DocView[], fallbackIdx?: number): number[] {
   const hits: number[] = [];
+  const lower = text.toLowerCase();
   documents.forEach((document, index) => {
-    if (document.number && text.includes(document.number)) hits.push(index + 1);
+    const num = document.number?.trim().toLowerCase();
+    const bareNum = num?.replace(/^0+/, "");
+    if ((num && lower.includes(num)) || (bareNum && lower.includes(bareNum))) {
+      hits.push(index + 1);
+    }
   });
+  if (hits.length > 0) return hits;
+  documents.forEach((document, index) => {
+    const matchedClause = document.clauses.some((clause) => {
+      const label = clause.label?.trim().toLowerCase();
+      return Boolean(label && label.length >= 5 && lower.includes(label));
+    });
+    if (matchedClause) hits.push(index + 1);
+  });
+  if (hits.length > 0) return hits;
+  if (fallbackIdx !== undefined && fallbackIdx >= 0 && fallbackIdx < documents.length) {
+    return [fallbackIdx + 1];
+  }
   return hits;
 }
 
@@ -259,10 +276,10 @@ function ChatTurn({ entry, selected, onSelect, onCite }: ChatTurnProps) {
           </p>
           {answer && answer.points.length > 0 && (
             <ul className="answer-points">
-              {answer.points.map((point) => (
+              {answer.points.map((point, idx) => (
                 <li key={point}>
                   {point}{" "}
-                  <CiteLinks numbers={citedNumbers(point, mainDocuments)} onCite={onCite} />
+                  <CiteLinks numbers={citedNumbers(point, mainDocuments, idx)} onCite={onCite} />
                 </li>
               ))}
             </ul>
@@ -304,9 +321,13 @@ export function EvidenceChat({
   const [tab, setTab] = useState<"chat" | "results">("chat");
   const [leftPct, setLeftPct] = useState(readStoredSplit);
   const [cited, setCited] = useState<{ entryId: string; n: number; tick: number }>();
+  const [docPage, setDocPage] = useState(1);
+  const [docPageSize, setDocPageSize] = useState(8);
   const narrow = useNarrow();
   const splitRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const resultsScrollRef = useRef<HTMLDivElement | null>(null);
+  const docListRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const entrySeq = useRef(0);
   const [busy, setBusy] = useState(false);
@@ -403,16 +424,6 @@ export function EvidenceChat({
   }, [history]);
 
   useEffect(() => {
-    if (!cited) return;
-    const target = document.getElementById(`chat-doc-${cited.entryId}-${cited.n}`);
-    target?.scrollIntoView?.({ behavior: "smooth", block: "start" });
-    target?.focus?.({ preventScroll: true });
-    const timer = window.setTimeout(
-      () => setCited((current) => (current?.tick === cited.tick ? undefined : current)), 2600);
-    return () => window.clearTimeout(timer);
-  }, [cited]);
-
-  useEffect(() => {
     if (!accessToken) {
       setCategories([]);
       setCategoriesLoading(false);
@@ -454,6 +465,130 @@ export function EvidenceChat({
   const latestEntry = history[history.length - 1];
   const factsDirty = useMemo(() => facts.some((fact) => fact.dirty), [facts]);
   const answer = result?.answer ?? undefined;
+
+  const recalculateDocPageSize = useCallback((allowGrow = true) => {
+    const scrollEl = resultsScrollRef.current;
+    if (!scrollEl || scrollEl.clientHeight <= 0) {
+      setDocPageSize(Math.max(8, mainDocuments.length || 8));
+      return;
+    }
+    const paneHeight = scrollEl.clientHeight;
+    const listEl = docListRef.current;
+    const scrollRect = scrollEl.getBoundingClientRect();
+    const listRect = listEl?.getBoundingClientRect();
+    const rawTopOffset =
+      listRect && scrollRect.height > 0 && listRect.top >= scrollRect.top
+        ? listRect.top - scrollRect.top + scrollEl.scrollTop
+        : (listEl ? listEl.offsetTop : 88);
+    const headerAllowance = Math.min(Math.max(48, rawTopOffset), Math.floor(paneHeight * 0.42));
+    const budget = Math.max(140, paneHeight - headerAllowance - 20);
+    const cards = listEl
+      ? Array.from(listEl.querySelectorAll<HTMLElement>(":scope > .doc-card-slot"))
+      : [];
+    let nextSize = docPageSize;
+    if (cards.length === 0) {
+      const estimatedCardHeight = leftPct >= 52 ? 235 : 195;
+      nextSize = Math.max(1, Math.floor(budget / estimatedCardHeight));
+    } else {
+      let usedHeight = 0;
+      let fitCount = 0;
+      for (const card of cards) {
+        const h = card.getBoundingClientRect().height || card.offsetHeight || 190;
+        const nextUsed = usedHeight + (fitCount > 0 ? 10 : 0) + h;
+        if (fitCount > 0 && nextUsed > budget) {
+          break;
+        }
+        usedHeight = nextUsed;
+        fitCount += 1;
+      }
+      if (fitCount < cards.length) {
+        nextSize = Math.max(1, fitCount);
+      } else if (allowGrow) {
+        const avgHeight = Math.max(145, usedHeight / cards.length);
+        const remaining = budget - usedHeight;
+        const extraFit = remaining > avgHeight + 20 ? Math.floor(remaining / (avgHeight + 12)) : 0;
+        if (extraFit > 0 && cards.length < mainDocuments.length) {
+          nextSize = Math.min(mainDocuments.length, cards.length + extraFit);
+        } else if (cards.length >= mainDocuments.length && docPageSize < mainDocuments.length) {
+          nextSize = Math.max(1, cards.length);
+        }
+      }
+    }
+    if (nextSize !== docPageSize) {
+      const anchorOneBased =
+        cited && cited.entryId === selectedEntry?.id
+          ? cited.n
+          : (Math.max(1, docPage) - 1) * Math.max(1, docPageSize) + 1;
+      const maxPages = Math.max(1, Math.ceil(mainDocuments.length / nextSize));
+      const nextTargetPage = Math.min(
+        maxPages,
+        Math.max(1, Math.floor((anchorOneBased - 1) / nextSize) + 1),
+      );
+      setDocPageSize(nextSize);
+      if (nextTargetPage !== docPage) {
+        setDocPage(nextTargetPage);
+      }
+    }
+  }, [cited, docPage, docPageSize, leftPct, mainDocuments.length, selectedEntry?.id]);
+
+  useEffect(() => {
+    setDocPage(1);
+  }, [selectedEntry?.id]);
+
+  useEffect(() => {
+    recalculateDocPageSize(docPage === 1);
+    const scrollEl = resultsScrollRef.current;
+    const onResize = () => recalculateDocPageSize(true);
+    const onToggle = () => recalculateDocPageSize(docPage === 1);
+    window.addEventListener("resize", onResize);
+    scrollEl?.addEventListener("toggle", onToggle, true);
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined" && scrollEl) {
+      observer = new ResizeObserver(() => recalculateDocPageSize(true));
+      observer.observe(scrollEl);
+    }
+    return () => {
+      window.removeEventListener("resize", onResize);
+      scrollEl?.removeEventListener("toggle", onToggle, true);
+      observer?.disconnect();
+    };
+  }, [recalculateDocPageSize, leftPct, mainDocuments.length, docPage, narrow, tab]);
+
+  const safeDocPageSize = Math.max(1, docPageSize);
+  const totalDocPages = Math.max(1, Math.ceil(mainDocuments.length / safeDocPageSize));
+  const currentDocPage = Math.min(docPage, totalDocPages);
+  const pageStartIndex = (currentDocPage - 1) * safeDocPageSize;
+  const pagedMainDocuments = mainDocuments.slice(pageStartIndex, pageStartIndex + safeDocPageSize);
+
+  useEffect(() => {
+    if (docPage > totalDocPages) {
+      setDocPage(totalDocPages);
+    }
+  }, [docPage, totalDocPages]);
+
+  useEffect(() => {
+    if (!cited) return;
+    const targetPage = Math.min(
+      totalDocPages,
+      Math.max(1, Math.floor((cited.n - 1) / safeDocPageSize) + 1),
+    );
+    if (targetPage !== currentDocPage) {
+      setDocPage(targetPage);
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(`chat-doc-${cited.entryId}-${cited.n}`);
+      target?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      target?.focus?.({ preventScroll: true });
+    });
+    const timer = window.setTimeout(
+      () => setCited((current) => (current?.tick === cited.tick ? undefined : current)), 2600);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [cited, currentDocPage, safeDocPageSize, totalDocPages]);
+
   const canSubmit =
     Boolean(effectiveToken) &&
     !busy &&
@@ -1085,261 +1220,303 @@ export function EvidenceChat({
           className="chat-pane chat-pane-right"
           hidden={!showResultsPane}
         >
-          {!selectedEntry && (
-            <p className="chat-pane-empty">Kết quả và căn cứ sẽ hiển thị ở đây</p>
-          )}
-          {selectedEntry?.status === "loading" && (
-            <p className="chat-pane-empty" role="status">Đang tìm căn cứ…</p>
-          )}
-          {selectedEntry?.status === "error" && (
-            <div className="chat-pane-error">
-              <p className="status-pill status-danger" role="alert">
-                {selectedEntry.error ?? "Không thể tra cứu lúc này."}
-              </p>
-              <button
-                className="secondary-button"
-                disabled={busy || memoryBusy}
-                onClick={() => void runQuery(selectedEntry.question, {
-                  retry: true, entryId: selectedEntry.id,
-                })}
-                type="button"
-              >
-                Thử lại
-              </button>
-            </div>
-          )}
-
-          {result && selectedEntry && (
-            <>
-              <header className="results-header">
-                <h2>Kết quả và căn cứ</h2>
-                <span
-                  className={evidence.length === 0
-                    ? "status-pill status-warning" : "status-pill status-success"}
-                >
-                  {evidence.length} căn cứ
-                </span>
-              </header>
-              {answer && answer.topics.length > 0 && (
-                <div className="answer-topics">
-                  <h3>Theo nhóm nội dung</h3>
-                  <ul>
-                    {answer.topics.map((topic) => (
-                      <li key={topic.name}>
-                        <strong>{topic.name}:</strong> {topic.references.join("; ")}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {answer && answer.notes.length > 0 && (
-                <ul className="answer-notes" aria-label="Lưu ý">
-                  {answer.notes.map((note) => (
-                    <li key={note}>{note}</li>
-                  ))}
-                </ul>
-              )}
-              {mainDocuments.length > 0 && (
-                <AiInterpretation
-                  accessToken={effectiveToken}
-                  deepAnalysis={operatingMode === "API" && deepAnalysis}
-                  key={answer?.result_set_id}
-                  onExpired={() => {
-                    lastTurnRef.current = null;
-                    patchEntry(selectedEntry.id, {
-                      status: "error", error: EXPIRED_MESSAGE, result: undefined,
-                    });
-                    setQuestion(selectedEntry.question);
-                  }}
-                  resultSetId={answer?.result_set_id}
-                />
-              )}
-              {result.disclaimer && <p className="answer-disclaimer">{result.disclaimer}</p>}
-              {mainDocuments.length === 0 && (
-                <p className="evidence-meta">Không có văn bản liên quan để hiển thị.</p>
-              )}
-              {mainDocuments.length > 0 && (
-                <section aria-label="Văn bản liên quan" className="doc-list-section">
-                  <h2>Văn bản liên quan ({mainDocuments.length})</h2>
-                  <div className="doc-list">
-                    {mainDocuments.map((document, index) => (
-                      <div
-                        className={cited?.entryId === selectedEntry.id && cited.n === index + 1
-                          ? "doc-card-slot is-cited" : "doc-card-slot"}
-                        id={`chat-doc-${selectedEntry.id}-${index + 1}`}
-                        key={document.key}
-                        tabIndex={-1}
-                      >
-                        <DocumentCard
-                          accessToken={effectiveToken}
-                          document={document}
-                          index={index + 1}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {referenceDocuments.length > 0 && (
-                <details className="doc-reference">
-                  <summary>
-                    Văn bản chỉ nhắc đến nội dung này trong danh mục, liệt kê ({referenceDocuments.length})
-                  </summary>
-                  <p className="evidence-meta">
-                    Các đoạn dưới đây liệt kê tên văn bản khác có cụm từ của câu hỏi; không dùng làm căn
-                    cứ trực tiếp.
-                  </p>
-                  <div className="doc-list">
-                    {referenceDocuments.map((document) => (
-                      <DocumentCard
-                        accessToken={effectiveToken}
-                        document={document}
-                        key={document.key}
-                      />
-                    ))}
-                  </div>
-                </details>
-              )}
-              {onViewAllResults && (
-                <div className="chat-search-link">
-                  <button
-                    className="secondary-button"
-                    onClick={() => onViewAllResults(selectedEntry.question)}
-                    type="button"
-                  >
-                    Xem tất cả kết quả tìm kiếm
-                  </button>
-                  <span className="evidence-meta">
-                    Mở trang Tìm kiếm văn bản với câu hỏi này để xem toàn bộ kết quả và bộ lọc.
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-
-          <details className="chat-technical">
-            <summary>Thông tin kỹ thuật và phiên làm việc</summary>
-            <div className="chat-technical-body">
-              {answer && answer.understood_phrases.length > 0 && (
-                <p className="evidence-meta">
-                  Cụm từ dùng để tìm: {answer.understood_phrases.map((phrase) => `«${phrase}»`).join(" · ")}
+          <div
+            className="chat-results-scroll"
+            ref={resultsScrollRef}
+          >
+            {!selectedEntry && (
+              <p className="chat-pane-empty">Kết quả và căn cứ sẽ hiển thị ở đây</p>
+            )}
+            {selectedEntry?.status === "loading" && (
+              <p className="chat-pane-empty" role="status">Đang tìm căn cứ…</p>
+            )}
+            {selectedEntry?.status === "error" && (
+              <div className="chat-pane-error">
+                <p className="status-pill status-danger" role="alert">
+                  {selectedEntry.error ?? "Không thể tra cứu lúc này."}
                 </p>
-              )}
-              <div className="chat-facts">
-                <span className="evidence-meta">Dữ kiện đọc từ câu hỏi:</span>
-                {facts.length === 0 && <span className="evidence-meta"> chưa có.</span>}
-                {facts.length > 0 && !selectedIsLatest && (
-                  <span className="evidence-meta"> (của câu hỏi mới nhất)</span>
-                )}
-                <FactChips
-                  facts={facts}
-                  onChange={busy || memoryBusy ? undefined : (next) => void updateFacts(next)}
-                />
-                {factsDirty && result && selectedIsLatest && (
-                  <div className="status-pill status-warning" role="status">
-                    Đã chỉnh sửa dữ kiện — kết quả bên trên dựa trên dữ kiện trước đó.
-                    <button
-                      className="inline-action-button"
-                      disabled={busy || memoryBusy}
-                      onClick={() => {
-                        if (submittedQuestion && latestEntry) {
-                          void runQuery(submittedQuestion, { entryId: latestEntry.id });
-                        }
-                      }}
-                      type="button"
-                    >
-                      Cập nhật dữ kiện &amp; tra cứu lại
-                    </button>
-                  </div>
-                )}
+                <button
+                  className="secondary-button"
+                  disabled={busy || memoryBusy}
+                  onClick={() => void runQuery(selectedEntry.question, {
+                    retry: true, entryId: selectedEntry.id,
+                  })}
+                  type="button"
+                >
+                  Thử lại
+                </button>
               </div>
-              {result && (
-                <ul className="chat-technical-list">
-                  {result.status && (
-                    <li>Trạng thái kết quả: {RESULT_STATUS_LABELS[result.status] ?? result.status}.</li>
-                  )}
-                  {coverageEntries.length > 0 && (
-                    <li>
-                      Kiểm tra: {coverageEntries
-                        .map(([key, value]) =>
-                          `${COVERAGE_LABELS[key] ?? key}: ${COVERAGE_STATE_LABELS[value] ?? value}`)
-                        .join(" · ")}
-                    </li>
-                  )}
-                  {result.ai_selection_applied && (
-                    <li>Model đã hỗ trợ chọn căn cứ; nội dung hiển thị lấy nguyên văn từ nguồn.</li>
-                  )}
-                  {result.ai_limited && (
-                    <li>Đã chạm trần chi phí model; kết quả hiển thị không dùng model đó.</li>
-                  )}
-                  {result.claims.map((claim) => (
-                    <li key={`${claim.evidence_ids.join(",")}-${claim.text.slice(0, 24)}`}>
-                      Trích dẫn {clauseLabels.get(claim.evidence_ids[0]) ?? "căn cứ"}: mức hỗ trợ{" "}
-                      {CLAIM_STATUS_LABELS[claim.status] ?? claim.status}.
-                    </li>
-                  ))}
-                  {(result.missing_information ?? []).map((info) => (
-                    <li key={info}>{info}</li>
-                  ))}
-                </ul>
-              )}
-              {effectiveToken && (
-                <details className="memory-panel">
-                  <summary>Bộ nhớ phiên ({memoryItems.length})</summary>
-                  <label className="checkbox-row">
-                    <input
-                      checked={prefsEnabled}
-                      disabled={busy || memoryBusy || (!prefsEnabled &&
-                        (scopeMode !== "SELECTED" || selectedCategories.length === 0))}
-                      onChange={(event) => void togglePreferences(event.target.checked)}
-                      type="checkbox"
-                    />
-                    <span>
-                      Dùng phạm vi danh mục hiện tại làm mặc định cho các lượt sau (khi chọn "Tất cả
-                      danh mục")
-                    </span>
-                  </label>
-                  {memoryItems.length === 0 ? (
-                    <p className="evidence-meta">Chưa có mục nào được ghi nhớ trong phiên này.</p>
-                  ) : (
-                    <ul className="memory-list">
-                      {memoryItems.map((item) => (
-                        <li key={item.id}>
-                          <span title={item.content}>
-                            {item.kind === "preferences" ? "Sở thích: " : "Câu hỏi: "}
-                            {item.content.length > 80 ? `${item.content.slice(0, 78)}…` : item.content}
-                          </span>
-                          <button
-                            className="inline-action-button"
-                            disabled={busy || memoryBusy}
-                            onClick={() => void removeMemoryItem(item.id)}
-                            type="button"
-                          >
-                            Xóa
-                          </button>
+            )}
+
+            {result && selectedEntry && (
+              <>
+                <header className="results-header">
+                  <h2>Kết quả và căn cứ</h2>
+                  <span
+                    className={evidence.length === 0
+                      ? "status-pill status-warning" : "status-pill status-success"}
+                  >
+                    {evidence.length} căn cứ
+                  </span>
+                </header>
+                {answer && answer.topics.length > 0 && (
+                  <div className="answer-topics">
+                    <h3>Theo nhóm nội dung</h3>
+                    <ul>
+                      {answer.topics.map((topic) => (
+                        <li key={topic.name}>
+                          <strong>{topic.name}:</strong> {topic.references.join("; ")}
                         </li>
                       ))}
                     </ul>
-                  )}
+                  </div>
+                )}
+                {answer && answer.notes.length > 0 && (
+                  <ul className="answer-notes" aria-label="Lưu ý">
+                    {answer.notes.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ul>
+                )}
+                {mainDocuments.length > 0 && (
+                  <AiInterpretation
+                    accessToken={effectiveToken}
+                    deepAnalysis={operatingMode === "API" && deepAnalysis}
+                    key={answer?.result_set_id}
+                    onExpired={() => {
+                      lastTurnRef.current = null;
+                      patchEntry(selectedEntry.id, {
+                        status: "error", error: EXPIRED_MESSAGE, result: undefined,
+                      });
+                      setQuestion(selectedEntry.question);
+                    }}
+                    resultSetId={answer?.result_set_id}
+                  />
+                )}
+                {result.disclaimer && <p className="answer-disclaimer">{result.disclaimer}</p>}
+                {mainDocuments.length === 0 && (
+                  <p className="evidence-meta">Không có văn bản liên quan để hiển thị.</p>
+                )}
+                {mainDocuments.length > 0 && (
+                  <section aria-label="Văn bản liên quan" className="doc-list-section">
+                    <h2>Văn bản liên quan ({mainDocuments.length})</h2>
+                    <div className="doc-list" ref={docListRef}>
+                      {pagedMainDocuments.map((document, offset) => {
+                        const docIndex = pageStartIndex + offset;
+                        return (
+                          <div
+                            className={cited?.entryId === selectedEntry.id && cited.n === docIndex + 1
+                              ? "doc-card-slot is-cited" : "doc-card-slot"}
+                            id={`chat-doc-${selectedEntry.id}-${docIndex + 1}`}
+                            key={document.key}
+                            tabIndex={-1}
+                          >
+                            <DocumentCard
+                              accessToken={effectiveToken}
+                              document={document}
+                              index={docIndex + 1}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+                {referenceDocuments.length > 0 && (
+                  <details className="doc-reference">
+                    <summary>
+                      Văn bản chỉ nhắc đến nội dung này trong danh mục, liệt kê ({referenceDocuments.length})
+                    </summary>
+                    <p className="evidence-meta">
+                      Các đoạn dưới đây liệt kê tên văn bản khác có cụm từ của câu hỏi; không dùng làm căn
+                      cứ trực tiếp.
+                    </p>
+                    <div className="doc-list">
+                      {referenceDocuments.map((document) => (
+                        <DocumentCard
+                          accessToken={effectiveToken}
+                          document={document}
+                          key={document.key}
+                        />
+                      ))}
+                    </div>
+                  </details>
+                )}
+                {onViewAllResults && (
+                  <div className="chat-search-link">
+                    <button
+                      className="secondary-button"
+                      onClick={() => onViewAllResults(selectedEntry.question)}
+                      type="button"
+                    >
+                      Xem tất cả kết quả tìm kiếm
+                    </button>
+                    <span className="evidence-meta">
+                      Mở trang Tìm kiếm văn bản với câu hỏi này để xem toàn bộ kết quả và bộ lọc.
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+
+            <details className="chat-technical">
+              <summary>Thông tin kỹ thuật và phiên làm việc</summary>
+              <div className="chat-technical-body">
+                {answer && (answer.understood_phrases ?? []).length > 0 && (
                   <p className="evidence-meta">
-                    Dữ liệu phiên chỉ nằm trong RAM, tự xóa khi hết hạn hoặc đăng xuất. Xóa một mục sẽ
-                    làm mới ngữ cảnh nối tiếp của phiên.
+                    Cụm từ dùng để tìm: {(answer.understood_phrases ?? []).map((phrase) => `«${phrase}»`).join(" · ")}
                   </p>
-                </details>
-              )}
-              {(facts.length > 0 || history.length > 0 || memoryItems.length > 0) && (
-                <button
-                  className="secondary-button"
-                  disabled={memoryBusy}
-                  onClick={() => void clearSessionMemory()}
-                  title="Xóa dữ kiện và lịch sử tạm thời trong RAM của phiên này"
-                  type="button"
-                >
-                  Xóa dữ liệu tạm ({facts.length + history.length + memoryItems.length})
-                </button>
-              )}
-            </div>
-          </details>
+                )}
+                <div className="chat-facts">
+                  <span className="evidence-meta">Dữ kiện đọc từ câu hỏi:</span>
+                  {facts.length === 0 && <span className="evidence-meta"> chưa có.</span>}
+                  {facts.length > 0 && !selectedIsLatest && (
+                    <span className="evidence-meta"> (của câu hỏi mới nhất)</span>
+                  )}
+                  <FactChips
+                    facts={facts}
+                    onChange={busy || memoryBusy ? undefined : (next) => void updateFacts(next)}
+                  />
+                  {factsDirty && result && selectedIsLatest && (
+                    <div className="status-pill status-warning" role="status">
+                      Đã chỉnh sửa dữ kiện — kết quả bên trên dựa trên dữ kiện trước đó.
+                      <button
+                        className="inline-action-button"
+                        disabled={busy || memoryBusy}
+                        onClick={() => {
+                          if (submittedQuestion && latestEntry) {
+                            void runQuery(submittedQuestion, { entryId: latestEntry.id });
+                          }
+                        }}
+                        type="button"
+                      >
+                        Cập nhật dữ kiện &amp; tra cứu lại
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {result && (
+                  <ul className="chat-technical-list">
+                    {result.status && (
+                      <li>Trạng thái kết quả: {RESULT_STATUS_LABELS[result.status] ?? result.status}.</li>
+                    )}
+                    {coverageEntries.length > 0 && (
+                      <li>
+                        Kiểm tra: {coverageEntries
+                          .map(([key, value]) =>
+                            `${COVERAGE_LABELS[key] ?? key}: ${COVERAGE_STATE_LABELS[value] ?? value}`)
+                          .join(" · ")}
+                      </li>
+                    )}
+                    {result.ai_selection_applied && (
+                      <li>Model đã hỗ trợ chọn căn cứ; nội dung hiển thị lấy nguyên văn từ nguồn.</li>
+                    )}
+                    {result.ai_limited && (
+                      <li>Đã chạm trần chi phí model; kết quả hiển thị không dùng model đó.</li>
+                    )}
+                    {result.claims.map((claim) => (
+                      <li key={`${claim.evidence_ids.join(",")}-${claim.text.slice(0, 24)}`}>
+                        Trích dẫn {clauseLabels.get(claim.evidence_ids[0]) ?? "căn cứ"}: mức hỗ trợ{" "}
+                        {CLAIM_STATUS_LABELS[claim.status] ?? claim.status}.
+                      </li>
+                    ))}
+                    {(result.missing_information ?? []).map((info) => (
+                      <li key={info}>{info}</li>
+                    ))}
+                  </ul>
+                )}
+                {effectiveToken && (
+                  <details className="memory-panel">
+                    <summary>Bộ nhớ phiên ({memoryItems.length})</summary>
+                    <label className="checkbox-row">
+                      <input
+                        checked={prefsEnabled}
+                        disabled={busy || memoryBusy || (!prefsEnabled &&
+                          (scopeMode !== "SELECTED" || selectedCategories.length === 0))}
+                        onChange={(event) => void togglePreferences(event.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>
+                        Dùng phạm vi danh mục hiện tại làm mặc định cho các lượt sau (khi chọn "Tất cả
+                        danh mục")
+                      </span>
+                    </label>
+                    {memoryItems.length === 0 ? (
+                      <p className="evidence-meta">Chưa có mục nào được ghi nhớ trong phiên này.</p>
+                    ) : (
+                      <ul className="memory-list">
+                        {memoryItems.map((item) => (
+                          <li key={item.id}>
+                            <span title={item.content}>
+                              {item.kind === "preferences" ? "Sở thích: " : "Câu hỏi: "}
+                              {item.content.length > 80 ? `${item.content.slice(0, 78)}…` : item.content}
+                            </span>
+                            <button
+                              className="inline-action-button"
+                              disabled={busy || memoryBusy}
+                              onClick={() => void removeMemoryItem(item.id)}
+                              type="button"
+                            >
+                              Xóa
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="evidence-meta">
+                      Dữ liệu phiên chỉ nằm trong RAM, tự xóa khi hết hạn hoặc đăng xuất. Xóa một mục sẽ
+                      làm mới ngữ cảnh nối tiếp của phiên.
+                    </p>
+                  </details>
+                )}
+                {(facts.length > 0 || history.length > 0 || memoryItems.length > 0) && (
+                  <button
+                    className="secondary-button"
+                    disabled={memoryBusy}
+                    onClick={() => void clearSessionMemory()}
+                    title="Xóa dữ kiện và lịch sử tạm thời trong RAM của phiên này"
+                    type="button"
+                  >
+                    Xóa dữ liệu tạm ({facts.length + history.length + memoryItems.length})
+                  </button>
+                )}
+              </div>
+            </details>
+          </div>
+          {result && selectedEntry && mainDocuments.length > 0 && (
+            <nav
+              aria-label="Phân trang kết quả"
+              className="search-pagination chat-pagination"
+              data-doc-page={currentDocPage}
+              data-doc-page-size={safeDocPageSize}
+            >
+              <button
+                className="secondary-button"
+                disabled={currentDocPage <= 1}
+                onClick={() => {
+                  setDocPage((page) => Math.max(1, page - 1));
+                  resultsScrollRef.current?.scrollTo?.({ top: 0, behavior: "smooth" });
+                }}
+                type="button"
+              >
+                ‹ Trang trước
+              </button>
+              <span className="search-page-indicator">
+                Trang {currentDocPage} / {totalDocPages} ({pageStartIndex + 1}–{Math.min(mainDocuments.length, pageStartIndex + pagedMainDocuments.length)} / {mainDocuments.length} văn bản)
+              </span>
+              <button
+                className="secondary-button"
+                disabled={currentDocPage >= totalDocPages}
+                onClick={() => {
+                  setDocPage((page) => Math.min(totalDocPages, page + 1));
+                  resultsScrollRef.current?.scrollTo?.({ top: 0, behavior: "smooth" });
+                }}
+                type="button"
+              >
+                Trang sau ›
+              </button>
+            </nav>
+          )}
         </section>
       </div>
     </div>

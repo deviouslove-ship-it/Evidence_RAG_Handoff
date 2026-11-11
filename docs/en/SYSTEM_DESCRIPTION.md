@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](../TAI_LIEU_MO_TA_HE_THONG.md) · English
 
-English counterpart of `docs/TAI_LIEU_MO_TA_HE_THONG.md` (the Vietnamese original). Checked against the source on 2026-11-08. This document describes the code in the repository; configuration, data and versions of an actual deployment package may differ. Step-by-step operation is in [USER_ADMIN_AND_AI_GUIDE.md](USER_ADMIN_AND_AI_GUIDE.md).
+English counterpart of `docs/TAI_LIEU_MO_TA_HE_THONG.md` (the Vietnamese original). Checked against the source on 2026-11-11. This document describes the code in the repository; configuration, data and versions of an actual deployment package may differ. Step-by-step operation is in [USER_ADMIN_AND_AI_GUIDE.md](USER_ADMIN_AND_AI_GUIDE.md).
 
 ## Contents
 
@@ -126,7 +126,7 @@ sequenceDiagram
 
 The backend combines lexical channels such as phrases, accented/unaccented keywords, titles and document numbers with a semantic channel when embeddings exist. RRF fuses the channel rankings; reranking by LLM or cross-encoder is optional, and it should not be assumed enabled everywhere. The most recently reported configuration used RRF, a relative semantic threshold of 0.8 and rerank off; the actual configuration must be checked on the running machine. Candidate, time and concurrency limits keep the system responsive; they also limit the completeness of each query.
 
-Effectivity is modelled with time intervals, verification state and amendment/replacement relations. The system distinguishes a machine proposal from a verified state and lets reviewers handle it in the **Hiệu lực** (Effectivity) section; unverified information is never presented as a firm conclusion. Retrieval picks the version suitable for the date and policy in use; historical comparison may show results different from the default search.
+Effectivity is modelled with time intervals, verification state and amendment/replacement relations. The system distinguishes a machine proposal from a verified state and lets reviewers handle it in the **Hiệu lực** (Effectivity) section; unverified information is never presented as a firm conclusion. Node-scoped relations (`replace`, `suspend`, `modify`, `repeal_partial`) read each item's own effective date when stated, split sentences naming multiple target Articles/Clauses into one proposal per target, and leave the target empty (blocking approval with `RELATION_TARGET_REQUIRED`) when a sentence states "replaces part of / some articles" without naming a specific Article; after approval, repealed/replaced/suspended nodes become no longer in force (hidden from default search), while amended nodes receive `modified` (`unverified`). Retrieval picks the version suitable for the date and policy in use; historical comparison may show results different from the default search.
 
 Embedding turns approved nodes into vectors stored in PostgreSQL/pgvector with an HNSW index per model and dimension. When the model changes, preflight tests connectivity, vector output, dimension, permission and node count; after confirmation a worker creates/fills vectors and builds and checks the new index. The switch happens only if checks succeed; the old index is kept and keeps serving during the build. A job can be paused, resumed, retried or cancelled. Nodes approved later can be filled in; the query model must match the serving index.
 

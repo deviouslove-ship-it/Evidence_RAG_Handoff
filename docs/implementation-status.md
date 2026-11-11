@@ -2,9 +2,33 @@
 
 > **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 
-Cập nhật 09/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành**; diễn biến từng đợt nằm
+Cập nhật 11/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành**; diễn biến từng đợt nằm
 trong các báo cáo ở mục “Lịch sử”. Không coi ứng dụng là đã nghiệm thu: chưa có văn bản
 nghiệp vụ được duyệt, chưa có Gold [Không triển khai – xem ADR-010]; model thật mới chỉ được thử trên DB tạm (G1–G5).
+
+## Tinh chỉnh đề xuất và phạm vi node cho hiệu lực cấp Điều/Khoản/Điểm (11/11/2026)
+
+- **Phân biệt `replace` và `modify`, bảo toàn `source_path`/`target_path`** (`backend/app/effectivity/extract.py`, `store.py`, `node_paths.py`):
+  mẫu câu chủ động/bị động thay thế đơn vị cụ thể ("Điều X thay thế Điều Y", "Thay thế khoản 2 Điều 4 như sau",
+  "Quy định tại Điều 5 thay thế quy định tại Điều 3", Phụ lục, Mẫu) tạo đề xuất `action="replace"`, `scope="node"`,
+  giữ đủ cả `source_path` và `target_path`; chỉ hạ xuống `modify` khi câu là `thay thế (cụm )từ`. Hai đề xuất thay thế
+  cùng một đích từ hai nguồn hoặc hai ngày khác nhau đều được giữ lại qua khóa phân biệt (`|src=...|from=...`).
+- **Ngày hiệu lực riêng của từng mục**: mỗi mục sửa đổi/thay thế/bãi bỏ ưu tiên đọc `"từ ngày D"` trong chính lời dẫn
+  của mục đó (bỏ qua phần trích dẫn trong ngoặc kép và phần sau `"như sau"`), không có mới dùng `effective_from` của cả
+  văn bản; nếu một mục nêu nhiều ngày khác nhau thì để `valid_from=None` để người duyệt nhập.
+- **Tách nhiều đích trong cùng câu**: câu dạng `"Điều 5 và Điều 6 thay thế Điều 3 và Điều 4"` hoặc `"khoản 1 và khoản 2 Điều 4"`
+  được tách thành một đề xuất riêng cho từng đơn vị đích, giữ nguyên nhóm nguồn (`"Điều 5 và Điều 6"`).
+- **Thay thế một phần không nêu Điều cụ thể**: câu `"Thay thế một phần / một số điều của Thông tư X"` (khi các khoản con
+  chưa bao phủ qua `covered_by_items`) tạo bản nháp `replace` với `scope="node"` và `target_path=None` (độ tin cậy `0.7`,
+  khóa `|partial`); hệ thống chặn phê duyệt (`RELATION_TARGET_REQUIRED`) cho đến khi người duyệt gắn `target_node_id`.
+- **Phạm vi `node` cho `modify` và `repeal_partial`** (`extract.py`, `store.py`, `storage/chat_retrieval.py`, `storage/comprehensive.py`):
+  khi câu nêu rõ Điều/Khoản/Điểm đích ("Sửa đổi khoản 2 Điều 4 của Thông tư X", "Bãi bỏ Điều 3 của Thông tư X"), quan hệ
+  mang `scope="node"` và gắn vào nút đích. Sau khi duyệt, nút bị bãi bỏ nhận trạng thái `repealed` (`verified`, ẩn khỏi
+  kết quả tìm kiếm mặc định qua `lookup_visibility.py`), nút bị sửa nhận `modified` (`unverified`); nhãn quan hệ và nhóm
+  văn bản trong tìm kiếm toàn diện/chat vẫn tính các quan hệ cấp nút này.
+- **Kiểm thử**: bộ kiểm thử backend đạt **312 passed** với PostgreSQL (`277 passed, 35 skipped` khi không đặt `EVIDENCE_TEST_DATABASE_URL`),
+  bổ sung kiểm thử đơn vị trong `backend/tests/test_effectivity_rules.py` và kiểm thử tích hợp PostgreSQL trong
+  `backend/tests/test_effectivity_node_scope_pg.py`.
 
 ## Quản lý văn bản (09/11/2026)
 
@@ -291,6 +315,7 @@ Chưa kiểm qua hai lần nhập: kênh theo nghĩa (HNSW xấp xỉ) và kênh
 
 - Danh sách căn cứ bắt buộc, 31 quan hệ đối chiếu G3 và tên 11 nhóm nội dung do tác tử lập từ văn bản,
   **chưa được cán bộ nghiệp vụ xác nhận**; dữ liệu thử được duyệt hàng loạt.
+- Tô sáng tọa độ hộp ký tự (PDF bbox highlight) trên trình xem PDF và cổng WP 0.3/1.5: **[Không triển khai]** (trình xem mở đúng trang PDF kèm trích đoạn nguyên văn `quote_exact`, xem [pdf-anchor-coordinate-contract.md](pdf-anchor-coordinate-contract.md)).
 - `qwen3:1.7b` trên CPU trả lời chậm (tóm tắt có lượt quá 30 s, bị tính "unreachable" và tạm bỏ qua 60 s);
   chất lượng diễn giải local thấp hơn API. Chưa đo trên máy Windows đích, chưa có GPU.
 - Bộ kết quả cố định và trạng thái tổng hợp chỉ ở RAM một tiến trình; nhiều worker cần store chung.

@@ -74,7 +74,9 @@ def resolve_amendment_chain(
             return "unknown"
         if edge.action in {"repeal", "suspend"}:
             return edge.action
-        if edge.action in {"modify", "replace", "add"}:
+        if edge.action == "replace":
+            return "replaced"
+        if edge.action in {"modify", "add"}:
             return "modified"
         return child_status
 

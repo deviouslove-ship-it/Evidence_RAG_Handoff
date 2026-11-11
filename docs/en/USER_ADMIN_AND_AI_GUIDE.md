@@ -44,6 +44,12 @@ These sections appear according to the CURATOR/REVIEWER permissions granted.
 
 If a correction changes the grounds of an Article/Clause/Point-level relation, review it again in **Hiệu lực**. When the system cannot match the target by legal path, the relation must have the correct target node set through the review API before approval. The interface currently has no target-node picker. Permission to view content is granted per scope, including for administrator accounts.
 
+**Article/Clause-level effectivity proposals.** The system only *proposes*; a person with effectivity-confirmation rights decides.
+- An item with its own "from date D" (for example "Replace clause 2 of Article 4 … from 01/01/2027") uses that date D; only when it has none is the effective date of the whole document used. An item that states several different dates leaves the date empty and the reviewer must enter it.
+- "Articles 5 and 6 replace Articles 3 and 4" is split into one proposal per target Article (the source stays the group "Articles 5 and 6").
+- "Replaces part of / some articles of document X" without naming an Article creates a *replace* proposal with an empty target: it cannot be approved until a target node is chosen (the system answers `RELATION_TARGET_REQUIRED`).
+- "Amend clause 2 of Article 4 of document X" or "Repeal Article 3 of document X" is attached to the exact target node. After approval the repealed Article shows as **no longer in force**, so it disappears from default search results; the amended clause shows as **amended**.
+
 ## 3. Categories, accounts and audit
 
 - **Danh mục** (Categories): SYS_ADMIN creates/edits categories, codes, names and the option that allows remote processing. Ticking the option does not bypass egress policy or account permission. Soft-deleting a category affects the corresponding access.

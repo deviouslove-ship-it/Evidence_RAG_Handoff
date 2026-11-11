@@ -10,7 +10,7 @@ trang “Tìm kiếm văn bản” và bước truy xuất căn cứ của chat.
 - PostgreSQL chạy, migration tự áp dụng khi backend khởi động (`apply_migrations`). Kiểm:
 
 ```sql
-SELECT name FROM schema_migrations ORDER BY name;      -- 0001 … 0007
+SELECT name FROM schema_migrations ORDER BY name;      -- 0001 … 0016 (Search v1: 0006, 0007)
 SELECT indexname FROM pg_indexes WHERE tablename = 'document_nodes';
 -- phải có document_nodes_search_word_gin, document_nodes_search_folded_gin
 ```
@@ -183,5 +183,5 @@ Case `approved_by=null` bị tách vào `hucau_metrics`; không có case duyệt
   gắn `exact_phrase` có đúng cụm từ; mẫu số: tổng khoản gắn `exact_phrase`; ca âm = 0).
 - Chuẩn hóa `doc_type` free-text cũ (giao diện nạp mới đã chọn từ
   `decree/circular/decision/other`).
-- OCR cho PDF scan (không có node thì không tìm được); highlight bbox trong PDF.
+- OCR cho PDF scan (đã nối Tesseract OCR kèm rà soát từng trang ở migration `0015_ocr_page_review.sql` và `documents/ocr.py` từ 08/11/2026); highlight bbox trong PDF (**[Không triển khai]** — trình xem mở đúng trang PDF kèm trích đoạn nguyên văn).
 - Rate limit/giới hạn đồng thời dùng store chung trước khi chạy nhiều worker.

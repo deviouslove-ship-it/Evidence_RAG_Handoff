@@ -30,7 +30,7 @@ This guide ships with **Evidence RAG - Windows Web LAN Portable** and describes 
 
 **Folders.** `app\` (web and backend), `runtime\` (Python, PostgreSQL, Ollama, Tesseract), `models\ollama\` (AI models), `data\documents\` (original documents), `data\postgres\` (database, created on the first run), `seed\` (original data for the first build), `config\evidence.env` (settings, 8.6), `secrets\` (randomly generated database password and DPAPI-encrypted API keys; do not share), `logs\`, `backups\`, `tools\`.
 
-**Accounts in the package and per-category permissions (ABAC).** The package has 5 accounts. Each account has its own **demo password**, usable right after extraction (no forced change at the first login). The passwords are **not** in the package, README, logs or source code (only scrypt hashes are stored); they are handed over to the recipient separately. They are demo passwords, not operational ones: **change them right after receiving them** (Change password) or reset them in Admin Portal → Accounts & Permissions before any real use.
+**Accounts in the package and per-category permissions (ABAC).** The package has 5 accounts. Each account has its own **demo password**, usable right after extraction (no forced change at the first login). The passwords are **not** in the package, README, logs or source code (only scrypt hashes are stored); they are handed over separately in the file `Acount_Demo.md` placed next to the ZIP (not inside the ZIP). They are demo passwords, not operational ones: **change them right after receiving them** (Change password) or reset them in Admin Portal → Accounts & Permissions before any real use.
 
 | Account | Role | Category permissions |
 |---|---|---|
@@ -74,6 +74,12 @@ These sections appear according to the CURATOR/REVIEWER permissions granted.
 5. SYS_ADMIN selects one or more documents to **Tạm ngừng** (Suspend), **Mở lại tra cứu** (Resume lookup), **Xóa mềm** (Soft delete) or **Khôi phục văn bản** (Restore document). Check the selected list, enter a reason and confirm. Use the **Đã xóa** (Deleted) filter to restore soft-deleted documents. A document that was suspended needs **Mở lại tra cứu** separately. A draft awaiting approval must still pass review before publication.
 
 If a correction changes the grounds of an Article/Clause/Point-level relation, review it again in **Hiệu lực**. When the system cannot match the target by legal path, the relation must have the correct target node set through the review API before approval. The interface currently has no target-node picker. Permission to view content is granted per scope, including for administrator accounts.
+
+**Article/Clause-level effectivity proposals (this build).** The system only *proposes*; a person with effectivity-confirmation rights decides.
+- An item with its own "from date D" (for example "Replace clause 2 of Article 4 … from 01/01/2027") uses that date D; only when it has none is the effective date of the whole document used. An item that states several different dates leaves the date empty and the reviewer must enter it.
+- "Articles 5 and 6 replace Articles 3 and 4" is split into one proposal per target Article (the source stays the group "Articles 5 and 6").
+- "Replaces part of / some articles of document X" without naming an Article creates a *replace* proposal with an empty target: it cannot be approved until a target node is chosen (the system answers `RELATION_TARGET_REQUIRED`).
+- "Amend clause 2 of Article 4 of document X" or "Repeal Article 3 of document X" is attached to the exact target node. After approval the repealed Article shows as **no longer in force**, so it disappears from default search results; the amended clause shows as **amended**.
 
 ## 3. Categories, accounts and audit
 

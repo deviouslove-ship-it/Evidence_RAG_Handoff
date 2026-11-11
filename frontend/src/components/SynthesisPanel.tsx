@@ -39,17 +39,44 @@ export function SynthesisPanel({ accessToken, resultSetId, onlyRelevant = false,
     }
   }
 
+  const verbatimNumbers = new Map<string, number>();
+  if (result) {
+    let seq = 0;
+    for (const group of result.layers.verbatim) {
+      for (const item of group.evidence) {
+        if (!verbatimNumbers.has(item.evidence_id)) {
+          seq += 1;
+          verbatimNumbers.set(item.evidence_id, seq);
+        }
+      }
+    }
+  }
+
   const points = (items: SynthesisPoint[]) => (
     <ul>
-      {items.map((point, index) => (
-        <li key={index}>
-          {point.text}{" "}
-          <small>
-            [{point.evidence_ids.map((id) => id.slice(3, 11)).join(", ")}]
-            {point.status === "unverified" ? " · chưa kiểm chứng" : " · đã kiểm bằng mã"}
-          </small>
-        </li>
-      ))}
+      {items.map((point, index) => {
+        const mapped = point.evidence_ids
+          .map((id) => ({ id, n: verbatimNumbers.get(id) }))
+          .filter((entry): entry is { id: string; n: number } => entry.n !== undefined);
+        return (
+          <li key={index}>
+            {point.text}{" "}
+            <small>
+              {mapped.length > 0 ? (
+                mapped.map((entry, idx) => (
+                  <span key={entry.id}>
+                    {idx > 0 ? " " : ""}
+                    <a className="cite-ref" href={`#synth-ev-${entry.id}`}>[{entry.n}]</a>
+                  </span>
+                ))
+              ) : (
+                `[${point.evidence_ids.map((_, idx) => idx + 1).join(", ")}]`
+              )}
+              {point.status === "unverified" ? " · chưa kiểm chứng" : " · đã kiểm bằng mã"}
+            </small>
+          </li>
+        );
+      })}
     </ul>
   );
 
@@ -109,18 +136,22 @@ export function SynthesisPanel({ accessToken, resultSetId, onlyRelevant = false,
               <details key={group.group} open={result.layers.verbatim.length <= 3}>
                 <summary>{group.group} ({group.evidence.length})</summary>
                 <ul>
-                  {group.evidence.map((item) => (
-                    <li key={item.evidence_id}>
-                      <strong>{item.document_number ?? item.title}</strong> · {item.label}
-                      {item.page ? ` · Trang ${item.page}` : ""}{" "}
-                      <EffectivityBadges view={item.effectivity} compact />
-                      <blockquote className="quote">
-                        {item.quote_exact.length > 600
-                          ? `${item.quote_exact.slice(0, 600).trimEnd()} …`
-                          : item.quote_exact}
-                      </blockquote>
-                    </li>
-                  ))}
+                  {group.evidence.map((item) => {
+                    const num = verbatimNumbers.get(item.evidence_id);
+                    return (
+                      <li id={`synth-ev-${item.evidence_id}`} key={item.evidence_id}>
+                        {num !== undefined && <span className="doc-card-index">[{num}]</span>}{" "}
+                        <strong>{item.document_number ?? item.title}</strong> · {item.label}
+                        {item.page ? ` · Trang ${item.page}` : ""}{" "}
+                        <EffectivityBadges view={item.effectivity} compact />
+                        <blockquote className="quote">
+                          {item.quote_exact.length > 600
+                            ? `${item.quote_exact.slice(0, 600).trimEnd()} …`
+                            : item.quote_exact}
+                        </blockquote>
+                      </li>
+                    );
+                  })}
                 </ul>
               </details>
             ))}

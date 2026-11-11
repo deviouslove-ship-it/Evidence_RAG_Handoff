@@ -135,8 +135,25 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
   const [busy, setBusy] = useState(false);
   const [loadingDocument, setLoadingDocument] = useState<string>();
   const [error, setError] = useState<string>();
+  const [pageSize, setPageSize] = useState<number>(() => {
+    if (typeof window === "undefined" || document.documentElement.clientHeight <= 0) {
+      return PAGE_SIZE;
+    }
+    return Math.max(2, Math.min(20, Math.floor((window.innerHeight - 280) / 195)));
+  });
   const autoRun = useRef(false);
   const currentResultId = useRef<string>();
+
+  useEffect(() => {
+    const updatePageSize = () => {
+      if (typeof window === "undefined" || document.documentElement.clientHeight <= 0) {
+        return;
+      }
+      setPageSize(Math.max(2, Math.min(20, Math.floor((window.innerHeight - 280) / 195))));
+    };
+    window.addEventListener("resize", updatePageSize);
+    return () => window.removeEventListener("resize", updatePageSize);
+  }, []);
 
   useEffect(() => {
     if (!accessToken) {
@@ -155,8 +172,8 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
   const pageFilters = useCallback((tiers: string[], status = statusFilter,
                                    verification = verificationFilter) => ({
     tier: tiers, status: status || undefined, verification: verification || undefined,
-    view: "documents" as const, pageSize: PAGE_SIZE, clausesPerDocument: 3,
-  }), [statusFilter, verificationFilter]);
+    view: "documents" as const, pageSize, clausesPerDocument: 3,
+  }), [pageSize, statusFilter, verificationFilter]);
 
   const expireResults = useCallback((resultSetId = currentResultId.current) => {
     if (resultSetId !== currentResultId.current) return;
@@ -195,7 +212,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
         category_ids: next.categoryIds.length ? next.categoryIds : undefined,
         doc_types: next.docType ? [next.docType] : undefined,
         ...(next.asOfDate ? { as_of_date: next.asOfDate } : {}),
-        view: "documents", page_size: PAGE_SIZE, clauses_per_document: 3,
+        view: "documents", page_size: pageSize, clauses_per_document: 3,
         tier: RELEVANT_TIERS,
       });
       setStatusFilter("");
@@ -208,7 +225,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
     } finally {
       setBusy(false);
     }
-  }, [accessToken, excluded, form, reportError]);
+  }, [accessToken, excluded, form, pageSize, reportError]);
 
   const initialForm = useRef(form);
   useEffect(() => {
@@ -306,8 +323,9 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
   const tiers = result?.tiers ?? {};
   const weakCount = tiers.weak ?? 0;
   const relevantCount = (tiers.direct ?? 0) + (tiers.related ?? 0) + (tiers.unscored ?? 0);
+  const effectivePageSize = result?.page_size || pageSize || PAGE_SIZE;
   const totalPages = result?.total_documents
-    ? Math.max(1, Math.ceil(result.total_documents / PAGE_SIZE)) : 1;
+    ? Math.max(1, Math.ceil(result.total_documents / effectivePageSize)) : 1;
   const kindHint = KIND_OPTIONS.find((option) => option.value === form.kind)?.hint;
   const terminated = result?.sections.find((section) => section.key === "terminated");
 
@@ -527,14 +545,14 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
               <DocumentCard
                 accessToken={accessToken}
                 document={document}
-                index={(result.page - 1) * PAGE_SIZE + index + 1}
+                index={(result.page - 1) * effectivePageSize + index + 1}
                 key={document.key}
                 loadingMore={loadingDocument === document.key}
                 onLoadMore={() => void loadMore(document.key)}
               />
             ))}
           </div>
-          {(result.total_documents ?? 0) > PAGE_SIZE && (
+          {(result.total_documents ?? 0) > effectivePageSize && (
             <nav aria-label="Phân trang kết quả" className="search-pagination">
               <button className="secondary-button" disabled={busy || result.page <= 1}
                       onClick={() => void goTo(result.page - 1)} type="button">
@@ -583,7 +601,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
                       );
                     })}
                   </div>
-                  {weak && (weak.total_documents ?? 0) > PAGE_SIZE && (
+                  {weak && (weak.total_documents ?? 0) > (weak.page_size || effectivePageSize) && (
                     <nav aria-label="Phân trang kết quả khớp một phần"
                          className="search-pagination">
                       <button className="secondary-button" disabled={weak.page <= 1}

@@ -9,5 +9,5 @@
 - [x] 5. Per-page source spans (`spans.py`, `node_writer.py`)
 - [x] 6. Evidence validators reject model-supplied quotes (`evidence/validators.py`, `synthesis/checks.py`)
 - [x] 7. "Open original" button for PDF, Word and TXT (`OpenOriginalButton.tsx`)
-- [ ] 8. Real PDF fixtures proving highlight accuracy (open gate per anchor contract)
+- [ ] 8. [Not implemented] Real PDF fixtures and viewer bbox highlight overlay (WP 0.3/1.5 dropped; viewer opens page + verbatim quote per `docs/pdf-anchor-coordinate-contract.md`)
 - [ ] 9. "Open original" check in the Tauri desktop shell and for TXT sources (reported as not verified in `docs/evidence/2026-11-08-user-lookup/REPORT.md`)

@@ -28,7 +28,7 @@ from ..schemas import (
     Excerpt,
     TextSpan,
 )
-from ..vietnamese_nlp.unicode_norm import fold_text
+from ..vietnamese_nlp.unicode_norm import canonical_document_number, fold_text
 
 DOC_TYPE_LABELS = {
     "law": "Luật", "code": "Bộ luật", "ordinance": "Pháp lệnh", "resolution": "Nghị quyết",
@@ -301,7 +301,19 @@ def compose(
                 original_url=item.get("original_url"),
             ))
         relations = list((verified_relations or {}).get(document_id, []))
-        relations += title_relations(first["document_number"], first["title"])
+        verified_targets = {
+            canonical_document_number(rel.target_number)
+            for rel in relations
+            if rel.target_number
+        }
+        for title_rel in title_relations(first["document_number"], first["title"]):
+            target_key = (
+                canonical_document_number(title_rel.target_number)
+                if title_rel.target_number
+                else ""
+            )
+            if not target_key or target_key not in verified_targets:
+                relations.append(title_rel)
         composition.documents.append(AnswerDocument(
             document_id=UUID(document_id), document_version_id=UUID(first["document_version_id"]),
             doc_type=first.get("doc_type") or "other",

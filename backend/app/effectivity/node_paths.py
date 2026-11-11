@@ -6,6 +6,7 @@ import re
 from collections.abc import Sequence
 from datetime import date
 
+from .extract import _paths
 from .resolver import Interval, Relation
 
 _PART = re.compile(
@@ -13,7 +14,7 @@ _PART = re.compile(
     r"(?:Điều|điều)\s+(?P<article>\d+[a-z]?)\b"
 )
 NODE_ACTIONS = {
-    "modify": "modified", "add": "modified", "replace": "modified",
+    "modify": "modified", "add": "modified", "replace": "replaced",
     "repeal": "repealed", "repeal_partial": "repealed", "suspend": "suspended",
 }
 
@@ -22,13 +23,17 @@ def parse_target_path(text: str) -> list[str]:
     """Regexes for ``document_nodes.path`` of every part cited in ``text``."""
 
     patterns: list[str] = []
-    for match in _PART.finditer(text):
-        segment = f"dieu:{match.group('article')}"
-        if match.group("clause"):
-            segment += f"/khoan:{match.group('clause')}"
-        if match.group("point"):
-            segment += f"/diem:{match.group('point')}"
-        patterns.append(rf"(^|[:/]){re.escape(segment)}$")
+    expanded = _paths(text) or [text]
+    for part_text in expanded:
+        for match in _PART.finditer(part_text):
+            segment = f"dieu:{match.group('article')}"
+            if match.group("clause"):
+                segment += f"/khoan:{match.group('clause')}"
+            if match.group("point"):
+                segment += f"/diem:{match.group('point')}"
+            pattern = rf"(^|[:/]){re.escape(segment)}$"
+            if pattern not in patterns:
+                patterns.append(pattern)
     return patterns
 
 
@@ -61,7 +66,9 @@ def node_exception_intervals(relations: Sequence[Relation]) -> list[Interval]:
             ))
             continue
         status = NODE_ACTIONS.get(item.action, "unknown")
-        verification = "verified" if status in {"repealed", "suspended"} else "unverified"
+        verification = (
+            "verified" if status in {"repealed", "suspended", "replaced"} else "unverified"
+        )
         intervals.append(Interval(
             item.valid_from, item.valid_to, status, verification,
             verification_source="relation" if verification == "verified" else None,

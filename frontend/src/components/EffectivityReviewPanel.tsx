@@ -193,7 +193,11 @@ export function EffectivityReviewPanel({ accessToken }: { accessToken: string })
                       type="checkbox"
                     />
                   </td>
-                  <td>{ACTION_LABELS[item.action] ?? item.action}</td>
+                  <td>
+                    {item.action === "repeal" && (item.scope === "node" || Boolean(item.target_path))
+                      ? ACTION_LABELS.repeal_partial
+                      : (ACTION_LABELS[item.action] ?? item.action)}
+                  </td>
                   <td>
                     {item.target_document_number ?? item.target_number ?? "—"}
                     {item.target_label ? ` · ${item.target_label}` : ""}

@@ -32,7 +32,7 @@ sequenceDiagram
 
 - Evidence ID embeds the node ID, so no free-text reference from a model can create evidence.
 - OCR text coordinates are page-level, not per-character; the UI must not suggest exact word positions.
-- The anchor contract notes that no real PDF fixtures in the repository prove highlight accuracy; gates WP 0.3 and 1.5 are recorded as open in `docs/pdf-anchor-coordinate-contract.md`.
+- The anchor contract notes that PDF bbox highlight overlay on the viewer and real PDF fixtures proving highlight accuracy (gates WP 0.3 and 1.5) are not implemented (`docs/pdf-anchor-coordinate-contract.md`); the viewer opens the target PDF page and displays the verbatim quote.
 
 ## Known limits
 

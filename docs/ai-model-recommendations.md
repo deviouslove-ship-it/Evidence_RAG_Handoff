@@ -1,8 +1,14 @@
 # Đề xuất mô hình AI theo từng mục cấu hình
 
-Cập nhật 06/11/2026. Đây là báo cáo tham khảo, **chưa cấu hình mô hình nào** trong app. Tên mô hình và giá
+Cập nhật 06/11/2026 (bổ sung ghi chú trạng thái mã nguồn 11/11/2026 bên dưới). Đây là báo cáo tham khảo, **chưa cấu hình mô hình nào** trong app tại thời điểm lập báo cáo. Tên mô hình và giá
 đổi nhanh; xác nhận lại trên trang nhà cung cấp trước khi chọn. Tốc độ chạy Local là ước tính, chưa đo trên
 máy đích (cách đo ở mục 5).
+
+> **Trạng thái mã nguồn hiện hành (cập nhật sau đợt G1.0–G5 ngày 07–09/11/2026, xem [implementation-status.md](implementation-status.md), [ADR-007](architecture-decisions/ADR-007-stage-policy-hybrid-auto.md), [ADR-009](architecture-decisions/ADR-009-comprehensive-search-synthesis.md)):**
+> - **Các giai đoạn trong Model Registry đã nối mã đầy đủ (`ACTIVE_STAGES` trong `backend/app/model_registry/stages.py`):** `answer`, `summarize` (Diễn giải AI có kiểm chứng bằng mã), `expand` (mở rộng khái niệm), `relation` (đề xuất quan hệ hiệu lực), `label` (đề xuất nhãn nội dung), `embedding` (tạo vector qua `storage/embeddings.py` và `storage/embedding_jobs.py`), `rerank` (xếp hạng lại tùy chọn qua LLM hoặc `scripts/local_reranker_server.py`, mặc định tắt `EVIDENCE_RERANK_DEFAULT=false`).
+> - **Kho khóa API (`secret_store.py`):** ngoài cú pháp `env:TEN_BIEN`, Admin Portal đã hỗ trợ nhập trực tiếp API Key và lưu mã hóa bằng Windows DPAPI (`secret:<tên>` trong `EVIDENCE_SECRET_STORE_DIR`).
+> - **Chiều vector (`0012_comprehensive_search.sql`):** bảng `node_embeddings` đã bỏ cố định 768 chiều, hỗ trợ chỉ mục HNSW riêng theo từng model và số chiều trong `embedding_indices` (cấu hình tham chiếu đã thử dùng `qwen3-embedding:0.6b` 1024 chiều qua Ollama).
+> - Các bảng ước tính phần cứng và mô hình từ mục 1 đến mục 7 bên dưới được giữ nguyên làm tài liệu tham khảo thời điểm 06/11/2026.
 
 ## 1. App có những mục cấu hình nào
 

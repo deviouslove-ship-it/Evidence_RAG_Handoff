@@ -1,6 +1,6 @@
 # Requirements: Document and Clause Effectivity
 
-> Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Source of the rules: `docs/architecture-decisions/ADR-008-effectivity-two-axes.md` and `docs/thiet-ke-tra-cuu-hieu-luc.md`.
+> Spec reconstructed from the implemented code on 2026-11-09 (updated 2026-11-11). This is not a historical Kiro-generated spec. Source of the rules: `docs/architecture-decisions/ADR-008-effectivity-two-axes.md` and `docs/thiet-ke-tra-cuu-hieu-luc.md`.
 
 ## Introduction
 
@@ -31,7 +31,7 @@ Effectivity is modelled on two axes: legal status (axis A) and verification stat
 
 #### Acceptance Criteria
 
-1. WHEN a document is approved THE SYSTEM SHALL read issue date, issuing body, effective date, replace/repeal/amend/suspend relations and consolidation by rules (`effectivity/extract.py`).
+1. WHEN a document is approved THE SYSTEM SHALL read issue date, issuing body, effective date, replace/repeal/amend/suspend relations and consolidation by rules (`effectivity/extract.py`), reading per-item effective dates (`item_valid_from`) when stated in an item, splitting multi-target sentences into one proposal per target unit, and creating a node-scoped `replace` proposal with an empty target (`target_path=None`) when a sentence states "replaces part of / some articles" without naming a specific Article.
 2. WHEN a sentence contains relation keywords the rules cannot read THE SYSTEM SHALL count it as a candidate for the AI `relation` stage, which only proposes.
 3. IF reading relations fails THEN THE SYSTEM SHALL still allow source approval and record `EFFECTIVITY_PROCESSING_FAILED` in the audit log.
 4. WHEN a target number is matched THE SYSTEM SHALL normalise the number, then type, then issue date, and mark multiple candidates `ambiguous` and no candidate `unresolved` (`effectivity/store.py::match_target`).
@@ -43,13 +43,15 @@ Effectivity is modelled on two axes: legal status (axis A) and verification stat
 1. WHEN a proposal is reviewed THE SYSTEM SHALL require a REVIEWER with `can_review` on the source or new target document's category.
 2. THE SYSTEM SHALL NOT let a proposer approve their own proposal, and SYS_ADMIN SHALL NOT approve.
 3. WHEN a reviewer edits action, date or target THE SYSTEM SHALL save a new record and keep the proposal as history.
+4. IF a node-scoped proposal has no bound `target_node_id` THEN THE SYSTEM SHALL refuse approval with `RELATION_TARGET_REQUIRED` (`effectivity/service.py::_approve`).
 
 ### Requirement 5: Clause-level effectivity
 
 #### Acceptance Criteria
 
-1. THE SYSTEM SHALL record node-level exceptions for a node and its subtree, and a document-level terminating status SHALL override node exceptions.
-2. THE SYSTEM SHALL compute `clause_level_reviewed` and show the general warning only while results include documents below that level.
+1. THE SYSTEM SHALL record node-level exceptions (`replace`, `suspend`, `modify`, `repeal_partial`) for a node and its subtree (`effectivity/store.py`, `resolver.py`), and a document-level terminating status SHALL override node exceptions.
+2. WHEN a node-scoped `replace`, `repeal_partial` or `suspend` is approved THE SYSTEM SHALL mark the target node as no longer in force (`replaced`/`repealed`/`suspended`, `verified`, hidden from default search); WHEN a node-scoped `modify` is approved THE SYSTEM SHALL mark the target node `modified` (`unverified`).
+3. THE SYSTEM SHALL compute `clause_level_reviewed` and show the general warning only while results include documents below that level.
 
 ### Requirement 6: Snapshots
 

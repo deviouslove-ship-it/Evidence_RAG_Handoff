@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](en/SYSTEM_DESCRIPTION.md)
 
-Đối chiếu source ngày 08/11/2026. Tài liệu mô tả mã trong repository; cấu hình, dữ liệu và phiên bản thực tế của từng gói triển khai có thể khác. Hướng dẫn thao tác ở [HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md](HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md).
+Đối chiếu source ngày 11/11/2026. Tài liệu mô tả mã trong repository; cấu hình, dữ liệu và phiên bản thực tế của từng gói triển khai có thể khác. Hướng dẫn thao tác ở [HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md](HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md).
 
 ## Mục lục
 
@@ -149,7 +149,7 @@ sequenceDiagram
 
 Backend kết hợp các kênh lexical như cụm từ, từ khóa có/không dấu, tiêu đề, số hiệu và kênh ngữ nghĩa khi có embedding. RRF hợp nhất thứ hạng các kênh; rerank bằng LLM hoặc cross-encoder là tùy chọn, không nên mặc định rằng mọi bản đang bật. Cấu hình được báo cáo gần nhất dùng RRF, ngưỡng ngữ nghĩa tương đối 0,8 và tắt rerank; cấu hình thực tế phải kiểm tra tại máy chạy. Các giới hạn ứng viên, thời gian và đồng thời nhằm giữ hệ thống đáp ứng; chúng cũng giới hạn độ đầy đủ của từng truy vấn.
 
-Hiệu lực được mô hình hóa bằng khoảng thời gian, trạng thái xác minh và quan hệ sửa đổi/thay thế. Hệ thống phân biệt đề xuất máy đọc với trạng thái đã xác minh, cho reviewer xử lý trong mục **Hiệu lực**; một thông tin chưa xác minh không được trình bày như kết luận chắc chắn. Truy xuất chọn phiên bản phù hợp theo thời điểm và chính sách đang dùng; đối chiếu lịch sử có thể hiển thị kết quả khác tìm mặc định.
+Hiệu lực được mô hình hóa bằng khoảng thời gian, trạng thái xác minh và quan hệ sửa đổi/thay thế. Hệ thống phân biệt đề xuất máy đọc với trạng thái đã xác minh, cho reviewer xử lý trong mục **Hiệu lực**; một thông tin chưa xác minh không được trình bày như kết luận chắc chắn. Quan hệ cấp nút (`replace`, `suspend`, `modify`, `repeal_partial`) đọc ngày hiệu lực riêng của từng mục nếu có, tách từng đích khi một câu nêu nhiều Điều/Khoản đích, và giữ đích rỗng (chặn duyệt với `RELATION_TARGET_REQUIRED`) khi câu chỉ ghi "thay thế một phần/một số điều" mà chưa nêu Điều cụ thể; sau khi duyệt, nút bị bãi bỏ/thay thế/tạm ngưng chuyển sang trạng thái hết hiệu lực (ẩn khỏi tìm kiếm mặc định), còn nút bị sửa mang trạng thái `modified` (`unverified`). Truy xuất chọn phiên bản phù hợp theo thời điểm và chính sách đang dùng; đối chiếu lịch sử có thể hiển thị kết quả khác tìm mặc định.
 
 Embedding biến nút đã duyệt thành vector lưu trong PostgreSQL/pgvector với chỉ mục HNSW theo model và số chiều. Khi đổi model, preflight thử kết nối, vector, chiều, quyền và số nút; sau xác nhận, worker tạo/bổ sung vector, xây và kiểm chỉ mục mới. Chỉ chuyển khi kiểm tra thành công; chỉ mục cũ được giữ và tiếp tục phục vụ trong thời gian tạo. Có thể tạm dừng, tiếp tục, thử lại hoặc hủy tác vụ. Nút được duyệt sau đó có thể được bổ sung; model câu hỏi phải khớp chỉ mục đang phục vụ.
 

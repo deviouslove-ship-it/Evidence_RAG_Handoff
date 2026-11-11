@@ -9,13 +9,13 @@ kho PDF bất biến theo SHA-256 phục vụ **User Portal** (hỏi đáp, tìm
 
 ## Tải ứng dụng (cho giám khảo)
 
-- **Gói:** `Evidence-RAG-Portable-20261109-r2.rar` (~3,43 GiB, 3.679.113.027 byte; gồm tài liệu và model AI cục bộ). Giải nén bằng WinRAR hoặc 7-Zip.
-- **Tải về:** https://drive.google.com/file/d/1oyOhY76EwH2846iCtnOl6JekAeH5Luzw/view?usp=sharing
-- **SHA-256:** `8d3813337290451d6f5d1252265fb4f2d3d82a094268385fde14499feff84a3f` (kiểm: `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.rar -Algorithm SHA256`)
+- **Gói:** `Evidence-RAG-Portable-20261111-r4.zip` (~3,52 GiB, 3.777.436.554 byte; gồm tài liệu và model AI cục bộ). Giải nén bằng 7-Zip hoặc trình giải nén của Windows.
+- **Tải về:** https://drive.google.com/file/d/1C9bSKqt_7Rwuqe5NqtTZNzhABVqd7dj6/view?usp=sharing
+- **SHA-256:** `989848708e2c1cd3be0d4a0e8978737bc03201f6c75415a37f2a434806636ed8` (kiểm: `Get-FileHash .\Evidence-RAG-Portable-20261111-r4.zip -Algorithm SHA256`)
 - **Cấu hình tối thiểu:** Windows 10 / Server 2016 trở lên (x64), RAM khoảng 8 GB, trống 6 GB đĩa (theo `deploy/lan-portable/README.txt`; model AI chạy bằng CPU).
 - **Khuyến nghị (đã thử):** Intel Core i3, RAM DDR4 32 GB, SSD 512 GB.
 - **Khởi động:** giải nén TOÀN BỘ gói bằng WinRAR hoặc 7-Zip vào thư mục có đường dẫn ngắn (không chạy trong tệp nén), bấm đúp `Start-Server.bat`, chờ cửa sổ in địa chỉ dạng `http://<IP LAN>:8800/` rồi mở bằng trình duyệt. Lần đầu mất thêm 1-3 phút. Dừng bằng `Stop-Server.bat`. Chi tiết: [`deploy/lan-portable/README.txt`](deploy/lan-portable/README.txt) (tiếng Anh: [`README.en.txt`](deploy/lan-portable/README.en.txt)).
-- **Tài khoản thử:** thông tin đăng nhập demo nằm trong biểu mẫu nộp bài Devpost. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**). Gói r2 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
+- **Tài khoản thử:** thông tin đăng nhập demo nằm trong file tài khoản `Acount_Demo.md` ở thư mục gốc của gói zip. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**). Gói r4 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
 ## Phát triển bằng Kiro (Kiroween 2026)
 
 Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) từ 30/10/2026 đến hết 09/11/2026, theo xác nhận của chủ dự án.
@@ -105,9 +105,11 @@ quyền hay trạng thái duyệt.
   scan cần OCR (Tesseract). Nạp hàng loạt theo cây thư mục: `scripts/import_official_corpus.py`
   (xem [`test-data/README.md`](test-data/README.md)).
 - **AI**: chế độ `API` hoặc `LOCAL` (Ollama/vLLM/llama.cpp hoặc dịch vụ tương thích
-  OpenAI: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`). Model chỉ chọn tối
-  đa 3 căn cứ trong số căn cứ đã kiểm nguồn; không sinh trích dẫn. Model lỗi/chậm thì lượt
-  chat vẫn trả căn cứ gốc. Mô hình đề xuất và cấu hình máy:
+  OpenAI: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`) định tuyến theo giai
+  đoạn (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`). Trong hỏi
+  đáp, model chỉ chọn tối đa 3 căn cứ trong số căn cứ đã kiểm nguồn; ở "Diễn giải AI" (`summarize`),
+  mỗi ý được kiểm bằng mã trên căn cứ đính kèm; model không bao giờ sinh trích dẫn nguyên văn.
+  Model lỗi/chậm thì hệ thống vẫn trả căn cứ gốc. Mô hình đề xuất và cấu hình máy:
   [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md).
 - **Desktop Windows**: Orb nổi, kéo thả theo vùng làm việc đa màn hình/DPI, khay hệ thống.
 
@@ -131,7 +133,7 @@ skip chúng. Đo hiệu năng: `scripts/benchmark_search.py`; smoke HTTP:
 |---|---|
 | `00_README.md` | Chỉ mục hồ sơ bàn giao và thứ tự ưu tiên đặc tả |
 | `docs/HOSO_BAN_GIAO.md`, `docs/SRS_v1.3.md` | Hồ sơ chính và đặc tả kỹ thuật hiện hành |
-| `docs/architecture-decisions/ADR-000…009` | Quyết định kiến trúc |
+| `docs/architecture-decisions/ADR-000…010` | Quyết định kiến trúc |
 | `docs/TAI_LIEU_MO_TA_HE_THONG.md` | Mô tả hệ thống và vòng đời văn bản (bản tiếng Anh: `docs/en/SYSTEM_DESCRIPTION.md`) |
 | `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | Hướng dẫn sử dụng và quản trị, gồm Quản lý văn bản (bản tiếng Anh: `docs/en/USER_ADMIN_AND_AI_GUIDE.md`) |
 | `docs/vi/ARCHITECTURE_OVERVIEW.md` | Tổng quan kiến trúc (bản tiếng Anh: `docs/en/ARCHITECTURE_OVERVIEW.md`) |

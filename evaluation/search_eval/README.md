@@ -1,6 +1,6 @@
 # Đánh giá Search v1 — bộ case HƯ CẤU và harness đo chỉ số
 
-> ⚠️ **HƯ CẤU** — Toàn bộ case trong thư mục này dùng **số hiệu/định danh văn bản, node và nội dung hư cấu** (`HU-CAU/2026/ND-CP`, `HC-ND-CP-N01`, …), **không phải văn bản pháp luật** và **không phải Gold**. Tất cả case đang có `approved_by = null`; vì vậy `evaluate_search.py` chỉ báo `hucau_metrics` và ghi `quality_status = "not_evaluated"`. Không được dùng số liệu trong report để tuyên bố chất lượng tìm kiếm.
+> ⚠️ **HƯ CẤU & [Không triển khai Gold – xem ADR-010]** — Toàn bộ case trong thư mục này dùng **số hiệu/định danh văn bản, node và nội dung hư cấu** (`HU-CAU/2026/ND-CP`, `HC-ND-CP-N01`, …), **không phải văn bản pháp luật** và **không phải Gold**. Theo [ADR-010](../../docs/architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md), dự án không triển khai bộ câu hỏi Gold; tất cả case đang có `approved_by = null`, vì vậy `evaluate_search.py` chỉ báo `hucau_metrics` và ghi `quality_status = "not_evaluated"`. Không được dùng số liệu trong report để tuyên bố chất lượng tìm kiếm.
 
 ## Mục đích
 
@@ -111,8 +111,8 @@ Exit code:
 
 ## Giới hạn / chưa làm
 
-- **Chưa chạy end-to-end với API thật**: backend chưa có route `GET /api/v1/search` tại thời điểm viết; chưa có token USER để gọi. Toàn bộ test hiện dùng response giả lập.
-- **Chưa có Gold thật**: 0 case `approved_by != null`; mọi report sẽ là `quality_status = "not_evaluated"`, `official_metrics = null`.
+- **Chưa chạy end-to-end với API thật tại thời điểm viết README này**: khi khởi tạo bộ đánh giá này, backend chưa có route `GET /api/v1/search` nên `self_test.py` dùng response giả lập (route `GET /api/v1/search` đã được triển khai sau đó trong `backend/app/api/v1/search.py` theo [ADR-005](../../docs/architecture-decisions/ADR-005-search-v1.md)).
+- **Không triển khai Gold thật ([ADR-010](../../docs/architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md))**: 0 case `approved_by != null`; mọi report sẽ là `quality_status = "not_evaluated"`, `official_metrics = null`.
 - Chưa kiểm tra các "kiểm tra cứng" mục 9-A (ACL, nhãn hiệu lực, highlight offset, giới hạn phân trang, ký tự đặc biệt, lỗi chuẩn) — các mục này cần test backend/API riêng.
 - Chưa đo tải/p95 trên máy Windows đích với ~100k node; p95 hiện chỉ là latency của request trong lần chạy thực tế.
 - Metric `exact_phrase_precision` dùng định nghĩa owner (tự xác minh quote, ca âm = 0, case dương mẫu số 0 = null); khi có Gold người duyệt xác nhận lại quy ước này. Hiện chưa có Gold thật nên chưa có số liệu official.

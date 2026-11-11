@@ -44,7 +44,7 @@ Mọi căn cứ hiển thị cho người dùng được ghim vào một phiên 
 
 Luồng: người dùng mở `ev_<node>` → API kiểm ACL, trạng thái tra cứu, phiên bản, nguồn trong PostgreSQL → đọc `originals/<sha256>` và kiểm digest → trả trang PDF hoặc tệp Word/TXT gốc.
 
-Quyết định: ID căn cứ chứa ID nút nên tham chiếu tự do từ model không thể tạo căn cứ. Tọa độ chữ OCR chỉ tới mức trang. Hợp đồng neo ghi rõ chưa có fixture PDF thật trong repository chứng minh độ chính xác tô vị trí; cổng WP 0.3 và 1.5 còn mở.
+Quyết định: ID căn cứ chứa ID nút nên tham chiếu tự do từ model không thể tạo căn cứ. Tọa độ chữ OCR chỉ tới mức trang. Hợp đồng neo ghi rõ việc tô sáng tọa độ hộp ký tự (PDF bbox highlight) trên trình xem PDF và fixture PDF chứng minh độ chính xác tô vị trí (cổng WP 0.3 và 1.5) không triển khai (`docs/pdf-anchor-coordinate-contract.md`); trình xem mở đúng trang PDF và hiển thị trích đoạn nguyên văn.
 
 Giới hạn: ở bộ thử G0, 0/21.724 khoản không neo (số liệu do phiên báo cáo, xem `KIRO_WORK_SUMMARY.vi.md` A8); chưa chạy lại khi viết spec.
 
@@ -56,5 +56,5 @@ Giới hạn: ở bộ thử G0, 0/21.724 khoản không neo (số liệu do phi
 - [x] 5. Span nguồn theo trang
 - [x] 6. Validator từ chối lời trích do model đưa
 - [x] 7. Nút "Mở văn bản gốc" cho PDF, Word, TXT
-- [ ] 8. Fixture PDF thật chứng minh độ chính xác tô vị trí (cổng còn mở)
+- [ ] 8. [Không triển khai] Tô sáng tọa độ hộp ký tự (PDF bbox highlight) trên trình xem PDF và fixture chứng minh độ chính xác tô vị trí (cổng WP 0.3/1.5 bỏ không triển khai)
 - [ ] 9. Kiểm "Mở văn bản gốc" trong vỏ Tauri và với nguồn TXT (báo cáo ghi chưa kiểm)

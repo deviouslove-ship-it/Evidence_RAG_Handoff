@@ -59,6 +59,12 @@ Nếu bản sửa làm thay đổi căn cứ của quan hệ cấp Điều/Kho�
 xác định đúng nút đích qua API rà soát trước khi phê duyệt. Giao diện hiện chưa có bộ chọn
 nút đích. Quyền xem nội dung được cấp riêng cho từng phạm vi, kể cả với tài khoản quản trị.
 
+**Đề xuất hiệu lực cấp Điều/Khoản.** Hệ thống chỉ *đề xuất*; người có quyền xác nhận hiệu lực quyết định.
+- Mục có ghi "kể từ ngày D" riêng (ví dụ "Thay thế khoản 2 Điều 4 … kể từ ngày 01/01/2027") dùng đúng ngày D đó; không có thì mới dùng ngày hiệu lực của cả văn bản. Mục ghi nhiều ngày khác nhau để trống ngày, người duyệt phải nhập.
+- "Điều 5 và Điều 6 thay thế Điều 3 và Điều 4" được tách thành một đề xuất cho mỗi Điều đích (nguồn giữ nguyên là nhóm "Điều 5 và Điều 6").
+- "Thay thế một phần / một số điều của văn bản X" mà không nêu Điều cụ thể tạo đề xuất *thay thế* có đích để trống: không thể duyệt cho đến khi chọn nút đích (hệ thống trả lỗi `RELATION_TARGET_REQUIRED`).
+- "Sửa đổi khoản 2 Điều 4 của văn bản X" hoặc "Bãi bỏ Điều 3 của văn bản X" được gắn đúng nút đích. Sau khi duyệt, Điều bị bãi bỏ hiện **đã hết hiệu lực** nên không xuất hiện trong kết quả tìm kiếm mặc định; khoản được sửa hiện **đã sửa đổi**.
+
 ## 3. Danh mục, tài khoản và kiểm toán
 
 - **Danh mục**: SYS_ADMIN tạo/sửa danh mục, mã, tên và tùy chọn cho phép xử lý từ xa. Đánh dấu cho phép không tự vượt qua chính sách egress hay quyền tài khoản. Xóa mềm danh mục ảnh hưởng quyền truy cập tương ứng.

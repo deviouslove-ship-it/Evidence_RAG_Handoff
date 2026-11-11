@@ -55,6 +55,13 @@ code {
   background: var(--color-background);
 }
 
+.app-shell:has(.user-view:not([hidden]) .chat-split-page),
+.app-shell:has(> .chat-split-page) {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
 .app-main {
   flex: 1;
   min-height: 0;
@@ -1492,7 +1499,7 @@ body.orb-window #root {
   .viewer-pane {
     height: 540px;
   }
-  .chat-pane {
+  .evidence-workspace .chat-pane {
     grid-column: 1 / -1;
     height: auto;
     min-height: 520px;
@@ -3497,13 +3504,20 @@ body.orb-window #root {
 /* results and evidence of the selected question on the right.         */
 /* ------------------------------------------------------------------ */
 .chat-split-page {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  height: calc(100vh - 72px);
-  min-height: 480px;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
   overflow: hidden;
   padding: 12px clamp(12px, 2vw, 24px);
+}
+
+.app-shell .chat-split-page {
+  height: auto;
+  max-height: 100%;
 }
 
 .chat-header-compact h1 {
@@ -3592,9 +3606,39 @@ body.orb-window #root {
 }
 
 .chat-pane-right {
+  overflow: hidden;
+  padding: 0;
+}
+
+.chat-results-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  padding: 14px 16px 76px;
+  padding: 14px 16px 20px;
+}
+
+.search-pagination {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--color-surface);
+}
+
+.chat-pagination {
+  position: static;
+  flex-shrink: 0;
+  padding: 8px 14px;
 }
 
 .chat-resizer {
@@ -3719,12 +3763,76 @@ body.orb-window #root {
   margin-top: auto;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1150px), (max-height: 760px) {
+  .app-topbar {
+    min-height: 46px;
+    padding: 6px clamp(10px, 1.5vw, 18px);
+    gap: 6px 10px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .brand strong {
+    font-size: 0.92rem;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .topbar-controls,
+  .session-bar,
+  .surface-switch,
+  .action-group {
+    gap: 6px;
+  }
+
+  .topbar-button,
+  .mode-badge {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 0.78rem;
+  }
+
+  .user-pill {
+    max-width: 150px;
+    font-size: 0.78rem;
+  }
+
+  .chat-split-page {
+    gap: 6px;
+    padding: 8px clamp(10px, 1.5vw, 16px);
+  }
+
+  .chat-header-compact h1 {
+    font-size: 1.02rem;
+    margin: 0;
+  }
+
   .chat-header-compact p {
     display: none;
   }
 
-  .chat-pane-right {
-    padding-bottom: 76px;
+  .chat-composer.composer {
+    max-height: 44%;
+    padding: 8px 10px;
+  }
+
+  .chat-pagination {
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .chat-header-compact p {
+    display: none;
   }
 }

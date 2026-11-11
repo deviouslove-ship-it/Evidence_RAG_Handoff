@@ -17,6 +17,7 @@ from .extract import (
     detect_dates,
     extract_relations,
     is_consolidated,
+    item_valid_from,
     node_amendment_items,
     node_effective_dates,
     number_key,
@@ -228,14 +229,18 @@ async def extract_version_relations(connection: Any, version_id: UUID) -> dict[s
         state, target = await match_target(
             connection, proposal.target, exclude_document=meta["id"]
         )
+        target_node = (
+            await _resolve_node_path(connection, target, proposal.target_path)
+            if target and proposal.target_path else None
+        )
         inserted = await connection.fetchval(
             """INSERT INTO node_amendments
-                 (source_node_id, source_document_id, target_document_id, scope, action,
-                  valid_from, evidence_source, review_status, target_number, target_doc_type,
-                  target_issue_date, target_path, target_expression, resolution_state,
-                  condition_text, proposed_by, confidence, source_quote, source_page,
-                  extraction_key, model_version)
-               VALUES ($1, $2, $3, 'document', $4, $5, $6, 'draft', $7, $8, $9, $10, $11,
+                 (source_node_id, source_document_id, target_document_id, target_node_id,
+                  scope, action, valid_from, evidence_source, review_status, target_number,
+                  target_doc_type, target_issue_date, target_path, target_expression,
+                  resolution_state, condition_text, proposed_by, confidence, source_quote,
+                  source_page, extraction_key, model_version)
+               VALUES ($1, $2, $3, $19, $18, $4, $5, $6, 'draft', $7, $8, $9, $10, $11,
                        $12, $13, 'rule', $14, $15, $16, $17, $6)
                ON CONFLICT (source_node_id, extraction_key) WHERE extraction_key IS NOT NULL
                DO NOTHING RETURNING id""",
@@ -244,7 +249,7 @@ async def extract_version_relations(connection: Any, version_id: UUID) -> dict[s
             proposal.target.doc_type, proposal.target.issue_date, proposal.target_path,
             f"{proposal.target.type_word} {proposal.target.number}", state,
             proposal.condition, proposal.confidence, proposal.quote, proposal.page,
-            proposal.key,
+            proposal.key, proposal.scope, target_node,
         )
         counts["relations"] += int(inserted is not None)
     for reference in extraction.references:
@@ -295,7 +300,8 @@ async def _store_node_amendments(
                ON CONFLICT (source_node_id, extraction_key) WHERE extraction_key IS NOT NULL
                DO NOTHING RETURNING id""",
             UUID(node.node_id), meta["id"], document, target_node, action,
-            meta["effective_from"], EXTRACTOR_REVISION, ref.number, ref.doc_type, path,
+            item_valid_from(node.text, meta["effective_from"]), EXTRACTOR_REVISION,
+            ref.number, ref.doc_type, path,
             f"{path} {ref.type_word} {ref.number}",
             "resolved" if target_node else ("ambiguous" if state == "ambiguous" else
                                             "unresolved"),
@@ -428,6 +434,7 @@ async def publish_snapshot(connection: Any, *, actor_id: UUID | None) -> dict[st
     relations = await connection.fetch(
         """SELECT a.id, a.target_document_id, a.target_node_id, a.scope, a.action,
                   a.valid_from, a.valid_to, a.review_status, a.condition_text,
+                  a.target_path,
                   COALESCE(sd.document_number, sd.title) AS source_label,
                   a.reviewed_by::text AS reviewer, a.reviewed_at
            FROM node_amendments a
@@ -452,7 +459,8 @@ async def publish_snapshot(connection: Any, *, actor_id: UUID | None) -> dict[st
         if row["scope"] == "node":
             if row["target_node_id"] is not None:
                 node_relations[row["target_node_id"]].append(row)
-            continue
+            if row["action"] == "commence":
+                continue
         by_doc[row["target_document_id"]].append(_relation(row))
     att_by_doc: dict[UUID, list[Attestation]] = defaultdict(list)
     for row in attestations:
@@ -534,6 +542,8 @@ def _relation(row: Any) -> Relation:
         condition=row["condition_text"], source_label=row["source_label"] or "văn bản khác",
         reviewed_by=row["reviewer"],
         reviewed_at=row["reviewed_at"].isoformat() if row["reviewed_at"] else None,
+        scope=row["scope"] if "scope" in row and row["scope"] else "document",
+        target_path=row["target_path"] if "target_path" in row else None,
     )
 
 
@@ -697,7 +707,8 @@ def clause_view(
     if document is None:
         return None
     if document.status == AmendmentStatus.MODIFIED and not document.clause_level_reviewed:
-        return document.model_copy(update={"notes": [*document.notes, NOTE_PARTIAL_UNMAPPED]})
+        if NOTE_PARTIAL_UNMAPPED not in document.notes:
+            return document.model_copy(update={"notes": [*document.notes, NOTE_PARTIAL_UNMAPPED]})
     return document
 
 

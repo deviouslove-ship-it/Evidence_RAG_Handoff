@@ -8,10 +8,10 @@ This is the English counterpart of `README.md`. The Vietnamese file is the origi
 
 ## Download the app (for judges)
 
-- **Package:** `Evidence-RAG-Portable-20261109-r2.rar` (~3.43 GiB, 3,679,113,027 bytes; includes documents and local AI models). Extract with WinRAR or 7-Zip.
-- **Download:** https://drive.google.com/file/d/1oyOhY76EwH2846iCtnOl6JekAeH5Luzw/view?usp=sharing
-- **SHA-256:** `8d3813337290451d6f5d1252265fb4f2d3d82a094268385fde14499feff84a3f`
-- **Verify on Windows:** `Get-FileHash .\Evidence-RAG-Portable-20261109-r2.rar -Algorithm SHA256`
+- **Package:** `Evidence-RAG-Portable-20261111-r4.zip` (~3.52 GiB, 3,777,436,554 bytes; includes documents and local AI models). Extract with 7-Zip or Windows' built-in extractor.
+- **Download:** https://drive.google.com/file/d/1C9bSKqt_7Rwuqe5NqtTZNzhABVqd7dj6/view?usp=sharing
+- **SHA-256:** `989848708e2c1cd3be0d4a0e8978737bc03201f6c75415a37f2a434806636ed8`
+- **Verify on Windows:** `Get-FileHash .\Evidence-RAG-Portable-20261111-r4.zip -Algorithm SHA256`
 - **Minimum:** Windows 10 / Server 2016 or later (x64), about 8 GB RAM, 6 GB free disk space (per `deploy/lan-portable/README.en.txt`; the AI models run on CPU).
 - **Recommended (tested):** Intel Core i3, 32 GB DDR4 RAM, 512 GB SSD.
 
@@ -25,7 +25,7 @@ This is the English counterpart of `README.md`. The Vietnamese file is the origi
 
 Complete guides inside the package: `USER_GUIDE.en.md` (English) and `HUONG_DAN_SU_DUNG.vi.md` (Vietnamese).
 
-**Test accounts:** Demo credentials are provided in the Devpost submission form. `chuyenvien` can search right away. To test the full workflow, the admin grants `curator` the lookup categories, and grants `reviewer` both the lookup and the validity-confirmation categories (**Tài khoản & Phân quyền**, boxes **Danh mục được phép tra cứu (ABAC)** and **Danh mục được xác nhận hiệu lực (người duyệt)**). This r2 package already ships with all 9 categories granted to `curator` and `reviewer`; the admin can change them there. A user cannot approve their own submission.
+**Test accounts:** Demo credentials are in the account file `Acount_Demo.md` at the root of the zip package. `chuyenvien` can search right away. To test the full workflow, the admin grants `curator` the lookup categories, and grants `reviewer` both the lookup and the validity-confirmation categories (**Tài khoản & Phân quyền**, boxes **Danh mục được phép tra cứu (ABAC)** and **Danh mục được xác nhận hiệu lực (người duyệt)**). This r4 package already ships with all 9 categories granted to `curator` and `reviewer`; the admin can change them there. A user cannot approve their own submission.
 ## Built with Kiro (Kiroween 2026)
 
 The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from 2026-10-30 to 2026-11-09, as confirmed by the project owner.
@@ -88,7 +88,7 @@ The seed does not approve any document and creates no model profile. Re-running 
 - **Document search** (one page, built on comprehensive search G2): by meaning, all words, exact phrase; filters for category, document type, effectivity and time; grouped by document with paging; partial matches in their own group.
 - **Admin Portal**: [Document management](docs/en/USER_ADMIN_AND_AI_GUIDE.md#document-management) supports search/filter, detail, version history, OCR edits, suspension and soft delete by permission. The portal also has source intake and review, categories, RBAC/ABAC accounts, AI models (profiles, stage routing for evidence selection, connection tests) and a hash-chained audit log.
 - **Document intake**: PDF, Word (`.docx`, `.doc`) and TXT. Word/TXT are rendered into a text-layer PDF (same content, same result each time) so one citation path serves all formats; the original file is kept with its own hash (`document_versions.source_format`, `source_file_sha256`). Scanned PDFs need OCR (Tesseract). Bulk import by folder tree: `scripts/import_official_corpus.py` (see [`test-data/README.md`](test-data/README.md)).
-- **AI**: `API` or `LOCAL` mode (Ollama/vLLM/llama.cpp or OpenAI-compatible services: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`). The model picks at most 3 evidence items from already verified evidence and does not write citations. If the model fails or is slow, a chat turn still returns the original evidence. Recommended models and machine settings: [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md) (Vietnamese).
+- **AI**: `API` or `LOCAL` mode (Ollama/vLLM/llama.cpp or OpenAI-compatible services: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`) routed per stage (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`). In Q&A, the model picks at most 3 evidence items from already verified evidence; in optional "AI interpretation" (`summarize`), each statement is checked by code against attached evidence; the model never writes verbatim quotes or citations. If the model fails or is slow, a chat turn still returns the original evidence. Recommended models and machine settings: [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md) (Vietnamese).
 - **Windows desktop**: floating Orb, drag-and-drop across multi-monitor/DPI work areas, system tray.
 
 ## Testing
@@ -109,7 +109,7 @@ Original files are Vietnamese unless stated; English counterparts are listed.
 |---|---|---|
 | `00_README.md` | Handoff index and specification priority | – |
 | `docs/HOSO_BAN_GIAO.md`, `docs/SRS_v1.3.md` | Main handoff file and current technical specification | Not translated (large specification) |
-| `docs/architecture-decisions/ADR-000…009` | Architecture decisions | Not translated |
+| `docs/architecture-decisions/ADR-000…010` | Architecture decisions | Not translated |
 | `docs/TAI_LIEU_MO_TA_HE_THONG.md` | System description and document lifecycle | [`docs/en/SYSTEM_DESCRIPTION.md`](docs/en/SYSTEM_DESCRIPTION.md) |
 | `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | User and administrator guide, including Document management | [`docs/en/USER_ADMIN_AND_AI_GUIDE.md`](docs/en/USER_ADMIN_AND_AI_GUIDE.md) |
 | `deploy/lan-portable/README.txt` | Windows LAN Portable operator guide | [`README.en.txt`](deploy/lan-portable/README.en.txt) |

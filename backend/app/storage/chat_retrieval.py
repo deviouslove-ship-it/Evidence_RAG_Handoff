@@ -224,7 +224,7 @@ class ChatRetrieval:
                 rows = await connection.fetch(
                     "WITH allowed AS (" + ALLOWED_DOCUMENTS_SQL + """)
                        SELECT a.source_document_id::text AS source, a.target_document_id::text
-                              AS target, a.action, a.target_number,
+                              AS target, a.action, a.target_number, a.target_path,
                               sd.document_number AS source_number,
                               td.document_number AS target_doc_number
                        FROM node_amendments a
@@ -233,6 +233,8 @@ class ChatRetrieval:
                        JOIN allowed td_allowed ON td_allowed.document_id = a.target_document_id
                        JOIN documents td ON td.id = td_allowed.document_id
                        WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
+                         AND (a.scope = 'document'
+                              OR a.action IN ('modify', 'repeal_partial'))
                          AND (a.source_document_id = ANY($1::uuid[])
                               OR a.target_document_id = ANY($1::uuid[]))
                        LIMIT 200""",
@@ -242,15 +244,20 @@ class ChatRetrieval:
             return {}
         found: dict[str, list[DocumentRelation]] = {}
         for row in rows:
-            label = _ACTION_LABELS.get(row["action"], row["action"])
+            action_key = (
+                "repeal_partial"
+                if row["action"] == "repeal" and row.get("target_path")
+                else row["action"]
+            )
+            label = _ACTION_LABELS.get(action_key, action_key)
             if row["source"] in document_ids:
                 number = row["target_doc_number"] or row["target_number"]
                 found.setdefault(row["source"], []).append(DocumentRelation(
-                    kind=row["action"], label=f"{label} {number or 'văn bản khác'}",
+                    kind=action_key, label=f"{label} {number or 'văn bản khác'}",
                     target_number=number, verified=True, source="Đã xác minh"))
             if row["target"] in document_ids and row["source_number"]:
                 found.setdefault(row["target"], []).append(DocumentRelation(
-                    kind=f"{row['action']}_by",
+                    kind=f"{action_key}_by",
                     label=f"Bị {label.lower()} bởi {row['source_number']}",
                     target_number=row["source_number"], verified=True, source="Đã xác minh"))
         for key, values in found.items():

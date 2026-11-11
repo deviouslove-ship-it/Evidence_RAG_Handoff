@@ -1,13 +1,13 @@
 # Design: Effectivity
 
-> Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Evidence is cited by repository path.
+> Spec reconstructed from the implemented code on 2026-11-09 (updated 2026-11-11). This is not a historical Kiro-generated spec. Evidence is cited by repository path.
 
 ## Components
 
 | Concern | Files |
 |---|---|
 | Rule reader | `backend/app/effectivity/extract.py` |
-| Hard rules, status computation | `effectivity/resolver.py`, test `backend/tests/test_effectivity_rules.py` |
+| Hard rules, status computation | `effectivity/resolver.py`, tests `backend/tests/test_effectivity_rules.py`, `backend/tests/test_effectivity_node_scope_pg.py` |
 | Storage, target matching | `effectivity/store.py`, `effectivity/service.py` |
 | Clause paths | `effectivity/node_paths.py`, `documents/node_effectivity.py` |
 | AI proposals (propose only) | `effectivity/ai.py` |

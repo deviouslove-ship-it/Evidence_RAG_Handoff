@@ -7,7 +7,7 @@
 - [x] 3. Resolver with hard rules and tests (`resolver.py`, `test_effectivity_rules.py`)
 - [x] 4. Target matching (`store.py::match_target`)
 - [x] 5. Review, attestation, revoke and snapshot API (`api/v1/effectivity.py`)
-- [x] 6. Clause-level relations (`node_paths.py`, `documents/node_effectivity.py`)
+- [x] 6. Clause-level relations (`node_paths.py`, `documents/node_effectivity.py`, `test_effectivity_node_scope_pg.py`)
 - [x] 7. AI relation proposals, propose-only (`effectivity/ai.py`)
 - [x] 8. Review UI and badges (`EffectivityReviewPanel.tsx`, `EffectivityBadges.tsx`)
 - [x] 9. Extraction script (`scripts/extract_effectivity.py`)

@@ -30,7 +30,7 @@ Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và 
 
 **Các thư mục.** `app\` (web và backend), `runtime\` (Python, PostgreSQL, Ollama, Tesseract), `models\ollama\` (model AI), `data\documents\` (tài liệu gốc), `data\postgres\` (cơ sở dữ liệu, tạo ở lần chạy đầu), `seed\` (bản dữ liệu gốc để dựng lần đầu), `config\evidence.env` (cấu hình, mục 8.6), `secrets\` (mật khẩu DB sinh ngẫu nhiên và khóa API mã hóa DPAPI; không chia sẻ), `logs\`, `backups\`, `tools\`.
 
-**Tài khoản trong gói và quyền theo danh mục (ABAC).** Gói có 5 tài khoản. Mỗi tài khoản có một **mật khẩu demo riêng**, dùng được ngay sau khi giải nén (không buộc đổi ở lần đăng nhập đầu). Mật khẩu **không** nằm trong gói, README, nhật ký hay mã nguồn (gói chỉ lưu dạng băm scrypt); chúng được bàn giao riêng cho người nhận. Đây là mật khẩu demo, không phải mật khẩu vận hành: hãy **đổi ngay sau khi nhận** (Đổi mật khẩu) hoặc đặt lại trong Admin Portal → Tài khoản & Phân quyền trước khi đưa vào sử dụng thật.
+**Tài khoản trong gói và quyền theo danh mục (ABAC).** Gói có 5 tài khoản. Mỗi tài khoản có một **mật khẩu demo riêng**, dùng được ngay sau khi giải nén (không buộc đổi ở lần đăng nhập đầu). Mật khẩu **không** nằm trong gói, README, nhật ký hay mã nguồn (gói chỉ lưu dạng băm scrypt); chúng được bàn giao riêng trong tệp `Acount_Demo.md` đặt cạnh tệp ZIP (không nằm trong ZIP). Đây là mật khẩu demo, không phải mật khẩu vận hành: hãy **đổi ngay sau khi nhận** (Đổi mật khẩu) hoặc đặt lại trong Admin Portal → Tài khoản & Phân quyền trước khi đưa vào sử dụng thật.
 
 | Tài khoản | Vai trò | Quyền trên danh mục |
 |---|---|---|
@@ -42,7 +42,7 @@ Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và 
 
 Chín danh mục: Luật, Nghị định, Thông tư, Thông tư liên tịch, Quyết định, Chỉ thị, Các loại văn bản khác, Tài liệu thử chưa duyệt (PUBLIC_PDF_TEST), Thử nghiệm OCR (THU_NGHIEM_OCR). Hai danh mục cuối là dữ liệu thử, chưa xác minh nghiệp vụ. Người duyệt không được duyệt bản nháp do chính mình chuẩn bị. Tài khoản có hai vai trò (`curator`, `reviewer`) mở được cả trang người dùng (Hỏi đáp, Tìm kiếm, mở tài liệu gốc) và Admin Portal; quyền nhìn thấy tài liệu luôn do danh mục được cấp (ABAC) quyết định, vai trò quản trị không tự cấp quyền đọc. Quyền có thể sửa trong Admin Portal → Tài khoản & Phân quyền. Phiên đăng nhập cũ không được mang theo trong gói.
 
-**Dữ liệu trong gói.** 105 văn bản, 7.447 đoạn có vector (qwen3-embedding:0.6b, 1024 chiều), 1.566 trang nguồn, 191 tệp tài liệu gốc. Chưa có bộ kiểm thử vàng do chuyên gia nghiệp vụ xác nhận; không dùng gói này làm căn cứ khẳng định độ chính xác hay mức sẵn sàng triển khai.
+**Dữ liệu trong gói.** 105 văn bản, 7.447 đoạn có vector (qwen3-embedding:0.6b, 1024 chiều), 1.566 trang nguồn, 191 tệp tài liệu gốc. Không dùng bộ câu hỏi Gold để chấm điểm AI (ADR-010); AI chỉ hỗ trợ và cán bộ chuyên môn quyết định. Không dùng gói này làm căn cứ khẳng định độ chính xác hay mức sẵn sàng triển khai.
 
 **OCR trong gói.** Tesseract đi kèm trong `runtime\tesseract` được backend dùng tự động (ngôn ngữ `vie+eng`); không cần cài hay cấu hình đường dẫn. Thời gian chờ mỗi trang và mỗi PDF chỉnh bằng `EVIDENCE_OCR_PAGE_TIMEOUT_SECONDS`, `EVIDENCE_PDF_TIMEOUT_SECONDS` trong `config\evidence.env`. Quy trình duyệt trang OCR ở mục 2.
 
@@ -89,6 +89,12 @@ Nếu bản sửa làm thay đổi căn cứ của quan hệ cấp Điều/Kho�
 **Hiệu lực**. Khi hệ thống chưa ghép được đích theo đường dẫn pháp lý, quan hệ cần được
 xác định đúng nút đích qua API rà soát trước khi phê duyệt. Giao diện hiện chưa có bộ chọn
 nút đích. Quyền xem nội dung được cấp riêng cho từng phạm vi, kể cả với tài khoản quản trị.
+
+**Đề xuất hiệu lực cấp Điều/Khoản (bản này).** Hệ thống chỉ *đề xuất*; người có quyền xác nhận hiệu lực quyết định.
+- Mục có ghi "kể từ ngày D" riêng (ví dụ "Thay thế khoản 2 Điều 4 … kể từ ngày 01/01/2027") dùng đúng ngày D đó; không có thì mới dùng ngày hiệu lực của cả văn bản. Mục ghi nhiều ngày khác nhau để trống ngày, người duyệt phải nhập.
+- "Điều 5 và Điều 6 thay thế Điều 3 và Điều 4" được tách thành một đề xuất cho mỗi Điều đích (nguồn giữ nguyên là nhóm "Điều 5 và Điều 6").
+- "Thay thế một phần / một số điều của văn bản X" mà không nêu Điều cụ thể tạo đề xuất *thay thế* có đích để trống: không thể duyệt cho đến khi chọn nút đích (hệ thống trả lỗi `RELATION_TARGET_REQUIRED`).
+- "Sửa đổi khoản 2 Điều 4 của văn bản X" hoặc "Bãi bỏ Điều 3 của văn bản X" được gắn đúng nút đích. Sau khi duyệt, Điều bị bãi bỏ hiện **đã hết hiệu lực** nên không xuất hiện trong kết quả tìm kiếm mặc định; khoản được sửa hiện **đã sửa đổi**.
 
 ## 3. Danh mục, tài khoản và kiểm toán
 

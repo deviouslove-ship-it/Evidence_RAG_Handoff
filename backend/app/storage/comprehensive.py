@@ -877,7 +877,7 @@ class ComprehensiveSearch:
                SELECT a.source_document_id::text AS member, a.target_document_id::text AS root,
                       a.action AS role
                FROM live_amendments a
-               WHERE a.scope = 'document' AND a.target_document_id IS NOT NULL
+               WHERE a.target_document_id IS NOT NULL
                  AND a.action IN ('modify', 'add', 'repeal_partial')
                  AND a.source_document_id = ANY($1::uuid[])
                UNION

@@ -46,6 +46,8 @@ class Relation:
     source_label: str = ""
     reviewed_by: str | None = None
     reviewed_at: str | None = None
+    scope: str = "document"
+    target_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,23 @@ def _covers(start: date | None, end: date | None, day: date) -> bool:
     return start is not None and start <= day and (end is None or day < end)
 
 
+def _is_partial(item: Relation) -> bool:
+    if item.action in PARTIAL:
+        return True
+    if item.action in TERMINATING and (item.scope == "node" or bool(item.target_path)):
+        return True
+    return False
+
+
+def _partial_note(item: Relation, start: date) -> str:
+    when = _fmt(item.valid_from or start)
+    if item.action == "replace":
+        return f"Được thay thế một phần từ {when} theo {item.source_label}."
+    if item.action == "suspend":
+        return f"Bị ngưng hiệu lực một phần từ {when} theo {item.source_label}."
+    return f"Được sửa đổi một phần từ {when} theo {item.source_label}."
+
+
 def resolve_intervals(
     *,
     effective_from: date | None,
@@ -89,7 +108,10 @@ def resolve_intervals(
 ) -> list[Interval]:
     """Intervals covering every date from ``UNBOUNDED_START`` onwards."""
 
-    approved = [item for item in relations if item.approved]
+    approved = [
+        item for item in relations
+        if item.approved and not (item.action == "commence" and item.scope == "node")
+    ]
     pending = any(not item.approved for item in relations)
     usable = [item for item in attestations if item.status == "valid"]
     stale = [item for item in attestations if item.status == "needs_reverify"]
@@ -139,16 +161,22 @@ def _segment(
     if effective_from is not None:
         notes.append(f"Có hiệu lực từ {_fmt(effective_from)} (theo văn bản).")
     for item in approved:
-        if item.valid_from is not None and item.valid_from > start and item.action in TERMINATING:
+        if (
+            item.valid_from is not None and item.valid_from > start
+            and item.action in TERMINATING and not _is_partial(item)
+        ):
             notes.append(
                 f"Sẽ {_ACTION_TEXT[item.action]} từ {_fmt(item.valid_from)}"
                 f" theo {item.source_label}."
             )
     conditional = [item for item in active_relations if item.condition]
     terminating = [
-        item for item in active_relations if item.action in TERMINATING and not item.condition
+        item for item in active_relations
+        if item.action in TERMINATING and not _is_partial(item) and not item.condition
     ]
-    partial = [item for item in active_relations if item.action in PARTIAL and not item.condition]
+    partial = [
+        item for item in active_relations if _is_partial(item) and not item.condition
+    ]
     # Segment bounds include every attestation bound, so a segment is either fully
     # inside an attested period or fully outside it.
     attestation = next(
@@ -186,10 +214,7 @@ def _segment(
         )
     if attestation is not None:
         for item in partial:
-            notes.append(
-                f"Được sửa đổi một phần từ {_fmt(item.valid_from or start)}"
-                f" theo {item.source_label}."
-            )
+            notes.append(_partial_note(item, start))
         return _attested(start, end, attestation, chain, notes)
     if effective_from is not None and start < effective_from:
         return Interval(
@@ -207,10 +232,7 @@ def _segment(
     verification = "unverified" if earlier else "not_found"
     if partial:
         for item in partial:
-            notes.append(
-                f"Được sửa đổi một phần từ {_fmt(item.valid_from or start)}"
-                f" theo {item.source_label}."
-            )
+            notes.append(_partial_note(item, start))
         notes.append(NOTE_NO_TERMINATION)
         return Interval(start, end, "modified", "unverified", chain=chain, notes=tuple(notes))
     # Hard rule 2: absence of a repeal is not evidence of being in force.
