@@ -278,7 +278,7 @@ Danh sách từng tệp, tệp bị loại và tệp ứng viên chưa tính: [`
 
 ## Cập nhật sau giai đoạn build (11/11/2026)
 
-Các bổ sung sau giai đoạn 30/10–09/11 được thực hiện trong Kiro IDE với Claude Sonnet 4.5. Số liệu phiên Kiro và thống kê đóng góp ở các mục phía trên không bao gồm đợt này.
+Các bổ sung sau giai đoạn 30/10–09/11 được thực hiện trong Kiro IDE với Claude Sonnet 5.5. Số liệu phiên Kiro và thống kê đóng góp ở các mục phía trên không bao gồm đợt này.
 
 - Hoàn thiện màn hình Hỏi đáp hai khung: lịch sử hỏi đáp trong phiên ở khung trái, căn cứ ở khung phải; phân trang căn cứ theo chiều cao khung và bấm `[n]` để nhảy tới căn cứ.
 - Bổ sung quan hệ hiệu lực cấp Điều/Khoản/Điểm: đề xuất thay thế, sửa đổi, bổ sung, bãi bỏ; ngày hiệu lực theo từng mục, hỗ trợ tra cứu theo thời điểm và hiển thị ghi chú cảnh báo màu vàng khi hiệu lực cấp nút chưa được xác minh hoặc ngày tra cứu vượt ngày dữ liệu.

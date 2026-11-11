@@ -275,7 +275,7 @@ File-by-file list, excluded files and uncounted candidates: [`KIRO_STATS_APPENDI
 
 ## Update after the build period (Nov 11, 2026)
 
-The additions after the Oct 30–Nov 9 period were made in Kiro IDE with Claude Sonnet 4.5. The Kiro-session and contribution statistics above exclude this work.
+The additions after the Oct 30–Nov 9 period were made in Kiro IDE with Claude Sonnet 5.5. The Kiro-session and contribution statistics above exclude this work.
 
 - Completed the two-pane Q&A screen: session history on the left, evidence on the right; evidence pagination adapts to pane height, and clicking `[n]` jumps to its citation.
 - Added Article/Clause/Point effectivity relations: proposed replacements, amendments, additions and repeals; item-level effective dates, as-of lookup, and yellow warning notes when node-level effectivity is unverified or the query date is later than the store's data date.
