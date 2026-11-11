@@ -28,7 +28,7 @@ Complete guides inside the package: `USER_GUIDE.en.md` (English) and `HUONG_DAN_
 **Test accounts:** Demo credentials are in the account file `Acount_Demo.md` at the root of the zip package. `chuyenvien` can search right away. To test the full workflow, the admin grants `curator` the lookup categories, and grants `reviewer` both the lookup and the validity-confirmation categories (**Tài khoản & Phân quyền**, boxes **Danh mục được phép tra cứu (ABAC)** and **Danh mục được xác nhận hiệu lực (người duyệt)**). This r4 package already ships with all 9 categories granted to `curator` and `reviewer`; the admin can change them there. A user cannot approve their own submission.
 ## Built with Kiro (Kiroween 2026)
 
-The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from 2026-10-30 to 2026-11-09, as confirmed by the project owner.
+The project was developed with Kiro (Claude Sonnet 5.5 and Claude Opus 5.5) from 2026-10-30 through 2026-11-11, as confirmed by the project owner.
 
 - Evidence and limits: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md), per-file statistics appendix [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md)
 - Architecture overview: [`docs/en/ARCHITECTURE_OVERVIEW.md`](docs/en/ARCHITECTURE_OVERVIEW.md)

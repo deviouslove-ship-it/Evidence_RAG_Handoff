@@ -19,7 +19,7 @@ FastAPI, một PostgreSQL và một kho tài liệu bất biến theo SHA-256 ph
 - **Tài khoản thử:** thông tin đăng nhập demo nằm trong file tài khoản `Acount_Demo.md` ở thư mục gốc của gói zip. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**). Gói r4 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
 ## Phát triển bằng Kiro (Kiroween 2026)
 
-Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) từ 30/10/2026 đến hết 09/11/2026, theo xác nhận của chủ dự án.
+Dự án được phát triển bằng Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) từ 30/10/2026 đến hết 11/11/2026, theo xác nhận của chủ dự án.
 
 - Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md), phụ lục thống kê từng tệp [`KIRO_STATS_APPENDIX.vi.md`](KIRO_STATS_APPENDIX.vi.md)
 - Tổng quan kiến trúc: [`docs/vi/ARCHITECTURE_OVERVIEW.md`](docs/vi/ARCHITECTURE_OVERVIEW.md)
