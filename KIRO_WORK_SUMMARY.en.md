@@ -272,3 +272,12 @@ File-by-file list, excluded files and uncounted candidates: [`KIRO_STATS_APPENDI
 - The current-turn tool-call count is a snapshot at the time of this count and keeps growing while the session continues.
 - The "files with `fs_write`" measure and the line counts are upper bounds on Kiro's authorship; the file count is a lower bound because files created by shell commands are not counted (29 uncounted candidates, see the appendix).
 - Work in 30 Oct – 4 Nov, on the other machine and between 11-08 17:21 and 11-09 17:19 rests on the owner's confirmation and is not added to the figures.
+
+## Update after the build period (Nov 11, 2026)
+
+The additions after the Oct 30–Nov 9 period were made in Kiro IDE with Claude Sonnet 4.5. The Kiro-session and contribution statistics above exclude this work.
+
+- Completed the two-pane Q&A screen: session history on the left, evidence on the right; evidence pagination adapts to pane height, and clicking `[n]` jumps to its citation.
+- Added Article/Clause/Point effectivity relations: proposed replacements, amendments, additions and repeals; item-level effective dates, as-of lookup, and yellow warning notes when node-level effectivity is unverified or the query date is later than the store's data date.
+- Source commit: `861fa34`. Windows LAN Portable r4 contains 105 documents and 7,447 vectors.
+- Test results recorded today: backend **277 passed, 35 skipped** when `EVIDENCE_TEST_DATABASE_URL` is unset; frontend **95 passed**.

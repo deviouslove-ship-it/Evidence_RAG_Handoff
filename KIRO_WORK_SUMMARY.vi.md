@@ -275,3 +275,12 @@ Danh sách từng tệp, tệp bị loại và tệp ứng viên chưa tính: [`
 - Số lệnh công cụ của lượt hiện tại là ảnh chụp tại lúc lập thống kê và còn tăng khi phiên tiếp tục.
 - Chỉ số "tệp có `fs_write`" và số dòng đều là cận trên về quyền tác giả của Kiro; số tệp là cận dưới vì không đếm tệp tạo bằng lệnh shell (29 ứng viên chưa tính, xem phụ lục).
 - Công việc trong 30/10–04/11, trên máy còn lại và trong khoảng 08/11 17:21 → 09/11 17:19 dựa trên xác nhận của chủ dự án và không được cộng vào số liệu.
+
+## Cập nhật sau giai đoạn build (11/11/2026)
+
+Các bổ sung sau giai đoạn 30/10–09/11 được thực hiện trong Kiro IDE với Claude Sonnet 4.5. Số liệu phiên Kiro và thống kê đóng góp ở các mục phía trên không bao gồm đợt này.
+
+- Hoàn thiện màn hình Hỏi đáp hai khung: lịch sử hỏi đáp trong phiên ở khung trái, căn cứ ở khung phải; phân trang căn cứ theo chiều cao khung và bấm `[n]` để nhảy tới căn cứ.
+- Bổ sung quan hệ hiệu lực cấp Điều/Khoản/Điểm: đề xuất thay thế, sửa đổi, bổ sung, bãi bỏ; ngày hiệu lực theo từng mục, hỗ trợ tra cứu theo thời điểm và hiển thị ghi chú cảnh báo màu vàng khi hiệu lực cấp nút chưa được xác minh hoặc ngày tra cứu vượt ngày dữ liệu.
+- Mã nguồn tại commit `861fa34`; gói Windows LAN Portable r4 gồm 105 văn bản và 7.447 vector.
+- Kết quả kiểm thử ghi nhận hôm nay: backend **277 passed, 35 skipped** khi không đặt `EVIDENCE_TEST_DATABASE_URL`; frontend **95 passed**.

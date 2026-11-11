@@ -452,3 +452,48 @@ Các tệp dưới đây được nhắc trong lệnh shell của Kiro có độ
 ## Đường dẫn Kiro đã ghi nhưng không nằm trong Git
 
 110 đường dẫn trong repository có lệnh ghi của Kiro nhưng không có trong Git ở commit này (bị `.gitignore`, như `.agents/`, `test-data/van-ban`; đã xóa; hoặc là bản tạm). Không tính vào số liệu tệp trong Git.
+
+## Snapshot 11/11/2026 (commit 861fa34)
+
+Bảng riêng này ghi số dòng thực tế trong các blob của commit `861fa34`, đếm bằng `git show <commit>:<tệp>`. Bảng lịch sử đóng góp phía trên vẫn giữ nguyên phạm vi commit `34cff8b`.
+
+| Tệp | Dòng |
+|---|---:|
+| `.kiro/specs/citation-pinning/design.md` | 39 |
+| `.kiro/specs/citation-pinning/tasks.md` | 13 |
+| `.kiro/specs/effectivity/design.md` | 41 |
+| `.kiro/specs/effectivity/requirements.md` | 61 |
+| `.kiro/specs/effectivity/tasks.md` | 15 |
+| `README.en.md` | 152 |
+| `README.md` | 178 |
+| `backend/app/documents/node_effectivity.py` | 92 |
+| `backend/app/effectivity/extract.py` | 967 |
+| `backend/app/effectivity/node_paths.py` | 106 |
+| `backend/app/effectivity/resolver.py` | 316 |
+| `backend/app/effectivity/store.py` | 748 |
+| `backend/app/storage/chat_retrieval.py` | 268 |
+| `backend/app/storage/comprehensive.py` | 1.165 |
+| `backend/app/workflow/chat_answer.py` | 520 |
+| `backend/tests/test_effectivity_node_scope_pg.py` | 167 |
+| `backend/tests/test_effectivity_rules.py` | 638 |
+| `deploy/lan-portable/HUONG_DAN_SU_DUNG.vi.md` | 179 |
+| `deploy/lan-portable/USER_GUIDE.en.md` | 164 |
+| `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | 140 |
+| `docs/TAI_LIEU_MO_TA_HE_THONG.md` | 186 |
+| `docs/ai-model-recommendations.md` | 130 |
+| `docs/amendments-and-effective-snapshots.md` | 11 |
+| `docs/en/SYSTEM_DESCRIPTION.md` | 163 |
+| `docs/en/USER_ADMIN_AND_AI_GUIDE.md` | 125 |
+| `docs/implementation-status.md` | 384 |
+| `docs/pdf-anchor-coordinate-contract.md` | 16 |
+| `docs/schema-node-effectivity.md` | 19 |
+| `docs/search-v1-runbook.md` | 187 |
+| `docs/vi/kiro/specs/citation-pinning.vi.md` | 60 |
+| `docs/vi/kiro/specs/effectivity.vi.md` | 76 |
+| `evaluation/search_eval/README.md` | 120 |
+| `frontend/src/components/EffectivityReviewPanel.tsx` | 280 |
+| `frontend/src/components/SynthesisPanel.tsx` | 164 |
+| `frontend/src/pages/EvidenceChat.test.tsx` | 652 |
+| `frontend/src/pages/EvidenceChat.tsx` | 1.524 |
+| `frontend/src/pages/SearchPage.tsx` | 662 |
+| `frontend/src/styles.css` | 3.838 |

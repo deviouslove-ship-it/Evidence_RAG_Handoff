@@ -45,6 +45,9 @@ Nguyên nhân tìm được:
   (DB thử: 0 quan hệ đã duyệt). Diễn giải AI là nút riêng, chỉ trên khoản liên quan (`only_relevant`).
 - Tệp gốc: `GET /api/v1/citations/{id}/original` kiểm ACL, phiên bản, SHA-256; PDF (kể cả scan) trả đúng
   tệp đã nạp, Word/TXT trả tệp gốc ở `sources/` theo `source_file_sha256`, không trả PDF dựng.
+
+> Ghi nhận ngày 08/11, trước khi có giao diện hai khung (11/11/2026).
+
 - Giao diện: một cột đọc; câu trả lời ngắn, thẻ từng văn bản (loại, số hiệu, ngày, cơ quan, trích yếu,
   tệp gốc, hiệu lực, Điều/Khoản, trích dẫn mở rộng được, “Mở văn bản gốc”); PDF mở tab riêng tại trang,
   Word/TXT tải đúng định dạng; dữ kiện, bộ nhớ phiên, kiểm tra độ phủ chuyển vào vùng “Thông tin kỹ

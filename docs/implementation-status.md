@@ -6,6 +6,13 @@ Cập nhật 11/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành
 trong các báo cáo ở mục “Lịch sử”. Không coi ứng dụng là đã nghiệm thu: chưa có văn bản
 nghiệp vụ được duyệt, chưa có Gold [Không triển khai – xem ADR-010]; model thật mới chỉ được thử trên DB tạm (G1–G5).
 
+## Hỏi đáp hai khung và gói Portable r4 (11/11/2026)
+
+- Màn hình Hỏi đáp chia hai khung: lịch sử câu hỏi/trả lời của phiên hiện tại ở bên trái, câu trả lời và căn cứ ở bên phải. Danh sách căn cứ tự tính số thẻ vừa chiều cao khung và tính lại khi đổi kích thước; bấm `[n]` trong câu trả lời để cuộn đến căn cứ tương ứng và đánh dấu thẻ đó.
+- Quan hệ hiệu lực cấp Điều/Khoản/Điểm hỗ trợ thay thế, sửa đổi, bổ sung và bãi bỏ; cán bộ được phân quyền duyệt đề xuất, xác nhận ngày áp dụng riêng. Tra cứu có thể chọn ngày để xem trạng thái tại thời điểm đó. Ngày hiệu lực của quan hệ thay thế có thể lùi về trước; ghi chú cảnh báo màu vàng cho biết tình trạng cấp nút chưa được xác minh hoặc ngày truy vấn vượt ngày dữ liệu.
+- Gói Windows LAN Portable hiện tại: `Evidence-RAG-Portable-20261111-r4.zip`, gồm 105 văn bản và 7.447 vector. [Tải gói](https://drive.google.com/file/d/1C9bSKqt_7Rwuqe5NqtTZNzhABVqd7dj6/view?usp=sharing); SHA-256 `989848708e2c1cd3be0d4a0e8978737bc03201f6c75415a37f2a434806636ed8`.
+- Mã nguồn được mô tả tại commit `861fa34`. Số liệu G5 ở phần lịch sử bên dưới dùng DB thử nghiệm cũ; chúng không phải số liệu của DB Portable r4.
+
 ## Tinh chỉnh đề xuất và phạm vi node cho hiệu lực cấp Điều/Khoản/Điểm (11/11/2026)
 
 - **Phân biệt `replace` và `modify`, bảo toàn `source_path`/`target_path`** (`backend/app/effectivity/extract.py`, `store.py`, `node_paths.py`):
@@ -265,7 +272,7 @@ Giao diện không gửi `rerank`; trước đây API mặc định `true`.
 mặc định thực tế là RRF thuần, rerank LLM (`EVIDENCE_RERANK_BACKEND=llm`) và Qwen3-Reranker (`cross_encoder`) giữ làm tùy chọn, đã kiểm cả hai
 còn chạy khi `rerank:true`. Ngưỡng theo nghĩa giữ 0,8 (`EVIDENCE_SEMANTIC_RELATIVE_THRESHOLD`, 0,6 chỉ để thử). Bộ kiểm thử 17 chủ đề, 50 câu,
 74 cặp (26 câu mới soạn từ văn bản, chưa xác nhận nghiệp vụ). RRF thuần trên 50 câu: Recall@10/20/50/toàn bộ 0,865/0,892/0,932/0,960,
-MRR@10 0,790, NDCG@10 0,594, trung vị 2,2 giây. DB `evidence_rerank_eval` (100 văn bản, 7.230 vector) dựng lại một lần (embedding 42 phút),
+MRR@10 0,790, NDCG@10 0,594, trung vị 2,2 giây. DB thử nghiệm G5 cũ `evidence_rerank_eval` (100 văn bản, 7.230 vector; không phải DB của Portable r4) dựng lại một lần (embedding 42 phút),
 sao lưu ngay bằng `pg_dump -Fc` (37 MB) và khôi phục thử thành công (`scripts/verify_db_restore.py`: số dòng, tổng kiểm văn bản và vector, 98 chỉ mục,
 HNSW đều khớp). Không xóa DB, kho tài liệu, model hay bản sao lưu. Hồi quy `verify.ps1` 12/12 (backend 218, frontend 74).
 

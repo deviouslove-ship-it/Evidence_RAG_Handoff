@@ -2,8 +2,9 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
 
-Tra cứu pháp lý tiếng Việt có căn cứ nguồn. Một backend FastAPI, một PostgreSQL và một
-kho PDF bất biến theo SHA-256 phục vụ **User Portal** (hỏi đáp, tìm kiếm văn bản),
+Tra cứu văn bản hành chính, nghiệp vụ của cơ quan bằng tiếng Việt, có căn cứ nguồn. Một backend
+FastAPI, một PostgreSQL và một kho tài liệu bất biến theo SHA-256 phục vụ **User Portal** (hỏi
+đáp, tìm kiếm văn bản),
 **Admin Portal** và **ứng dụng Windows USER (Tauri 2)**. Trạng thái hiện hành:
 [`docs/implementation-status.md`](docs/implementation-status.md).
 
@@ -87,7 +88,10 @@ quyền hay trạng thái duyệt.
 
 ## Chức năng
 
-- **Hỏi đáp có căn cứ**: câu trả lời ngắn có cấu trúc, mỗi văn bản một thẻ (loại, số hiệu,
+- **Hỏi đáp có căn cứ**: giao diện hai khung; khung trái lưu lịch sử câu hỏi/trả lời trong phiên
+  (RAM), khung phải hiển thị câu trả lời và căn cứ. Căn cứ tự phân trang theo chiều cao khung
+  và tính lại khi khung đổi kích thước; bấm `[n]` trong câu trả lời để cuộn tới căn cứ tương ứng.
+  Câu trả lời ngắn có cấu trúc, mỗi văn bản một thẻ (loại, số hiệu,
   ngày, cơ quan, trích yếu, Điều/Khoản, trích dẫn nguyên văn ngắn, hiệu lực) và nút “Mở văn
   bản gốc” (PDF mở tab riêng đúng trang, Word/TXT tải đúng tệp đã nạp); khớp theo cụm từ,
   danh mục liệt kê văn bản tách riêng; SSE có dừng/thử lại; bộ nhớ phiên chỉ trong RAM.
@@ -111,6 +115,11 @@ quyền hay trạng thái duyệt.
   mỗi ý được kiểm bằng mã trên căn cứ đính kèm; model không bao giờ sinh trích dẫn nguyên văn.
   Model lỗi/chậm thì hệ thống vẫn trả căn cứ gốc. Mô hình đề xuất và cấu hình máy:
   [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md).
+- **Quan hệ hiệu lực cấp Điều/Khoản/Điểm**: hỗ trợ đề xuất thay thế, sửa đổi, bổ sung và bãi bỏ;
+  người có quyền duyệt xác nhận quan hệ và ngày áp dụng riêng của từng mục. Quan hệ thay thế có
+  thể mang ngày hiệu lực lùi về trước; tra cứu theo thời điểm dùng ngày áp dụng đó. Ghi chú cảnh
+  báo màu vàng xuất hiện khi hiệu lực cấp nút chưa được xác minh hoặc ngày tra cứu vượt ngày dữ
+  liệu của kho.
 - **Desktop Windows**: Orb nổi, kéo thả theo vùng làm việc đa màn hình/DPI, khay hệ thống.
 
 ## Kiểm thử

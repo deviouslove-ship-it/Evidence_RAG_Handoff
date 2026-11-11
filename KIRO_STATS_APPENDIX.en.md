@@ -452,3 +452,48 @@ The files below are mentioned in Kiro shell commands that contain a write verb (
 ## Paths Kiro wrote that are not in Git
 
 110 paths in the repository folder have Kiro write commands but are not in Git at this commit (ignored by `.gitignore`, such as `.agents/` and `test-data/van-ban`; deleted; or temporary). They are not in the Git file counts.
+
+## Snapshot 11/11/2026 (commit 861fa34)
+
+This separate table gives the actual line counts in the blobs at commit `861fa34`, counted with `git show <commit>:<file>`. The historical contribution table above remains scoped to commit `34cff8b`.
+
+| File | Lines |
+|---|---:|
+| `.kiro/specs/citation-pinning/design.md` | 39 |
+| `.kiro/specs/citation-pinning/tasks.md` | 13 |
+| `.kiro/specs/effectivity/design.md` | 41 |
+| `.kiro/specs/effectivity/requirements.md` | 61 |
+| `.kiro/specs/effectivity/tasks.md` | 15 |
+| `README.en.md` | 152 |
+| `README.md` | 178 |
+| `backend/app/documents/node_effectivity.py` | 92 |
+| `backend/app/effectivity/extract.py` | 967 |
+| `backend/app/effectivity/node_paths.py` | 106 |
+| `backend/app/effectivity/resolver.py` | 316 |
+| `backend/app/effectivity/store.py` | 748 |
+| `backend/app/storage/chat_retrieval.py` | 268 |
+| `backend/app/storage/comprehensive.py` | 1,165 |
+| `backend/app/workflow/chat_answer.py` | 520 |
+| `backend/tests/test_effectivity_node_scope_pg.py` | 167 |
+| `backend/tests/test_effectivity_rules.py` | 638 |
+| `deploy/lan-portable/HUONG_DAN_SU_DUNG.vi.md` | 179 |
+| `deploy/lan-portable/USER_GUIDE.en.md` | 164 |
+| `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | 140 |
+| `docs/TAI_LIEU_MO_TA_HE_THONG.md` | 186 |
+| `docs/ai-model-recommendations.md` | 130 |
+| `docs/amendments-and-effective-snapshots.md` | 11 |
+| `docs/en/SYSTEM_DESCRIPTION.md` | 163 |
+| `docs/en/USER_ADMIN_AND_AI_GUIDE.md` | 125 |
+| `docs/implementation-status.md` | 384 |
+| `docs/pdf-anchor-coordinate-contract.md` | 16 |
+| `docs/schema-node-effectivity.md` | 19 |
+| `docs/search-v1-runbook.md` | 187 |
+| `docs/vi/kiro/specs/citation-pinning.vi.md` | 60 |
+| `docs/vi/kiro/specs/effectivity.vi.md` | 76 |
+| `evaluation/search_eval/README.md` | 120 |
+| `frontend/src/components/EffectivityReviewPanel.tsx` | 280 |
+| `frontend/src/components/SynthesisPanel.tsx` | 164 |
+| `frontend/src/pages/EvidenceChat.test.tsx` | 652 |
+| `frontend/src/pages/EvidenceChat.tsx` | 1,524 |
+| `frontend/src/pages/SearchPage.tsx` | 662 |
+| `frontend/src/styles.css` | 3,838 |

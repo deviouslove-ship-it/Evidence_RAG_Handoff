@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](README.md) · English
 
-Grounded lookup of Vietnamese legal documents. One FastAPI backend, one PostgreSQL database and a SHA-256-immutable PDF store serve the **User Portal** (Q&A, document search), the **Admin Portal** and the **Windows USER app (Tauri 2)**. Current state: [`docs/implementation-status.md`](docs/implementation-status.md) (Vietnamese).
+Grounded lookup of Vietnamese agency administrative and operational documents. One FastAPI backend, one PostgreSQL database and a SHA-256-immutable document store serve the **User Portal** (Q&A, document search), the **Admin Portal** and the **Windows USER app (Tauri 2)**. Current state: [`docs/implementation-status.md`](docs/implementation-status.md) (Vietnamese).
 
 This is the English counterpart of `README.md`. The Vietnamese file is the original.
 
@@ -84,11 +84,12 @@ The seed does not approve any document and creates no model profile. Re-running 
 
 ## Features
 
-- **Grounded Q&A**: a short structured answer, one card per document (type, number, date, body, summary, Article/Clause, short verbatim quote, effectivity) and an "Open original" button (PDF opens in its own tab at the right page; Word/TXT downloads the uploaded file); phrase matching, a separate list for catalogue-style documents; SSE with stop/retry; session memory in RAM only.
+- **Grounded Q&A**: a two-pane screen, with the current session's question/answer history (RAM) on the left and the answer/evidence on the right. Evidence cards paginate to fit the pane height and recalculate when it resizes; click `[n]` in an answer to scroll to that citation. Each document card shows type, number, date, body, summary, Article/Clause, a short verbatim quote and effectivity; "Open original" opens a PDF in a separate tab at the cited page or downloads the uploaded Word/TXT file. Phrase matching, a separate list for catalogue-style documents, SSE stop/retry, and session memory in RAM only.
 - **Document search** (one page, built on comprehensive search G2): by meaning, all words, exact phrase; filters for category, document type, effectivity and time; grouped by document with paging; partial matches in their own group.
 - **Admin Portal**: [Document management](docs/en/USER_ADMIN_AND_AI_GUIDE.md#document-management) supports search/filter, detail, version history, OCR edits, suspension and soft delete by permission. The portal also has source intake and review, categories, RBAC/ABAC accounts, AI models (profiles, stage routing for evidence selection, connection tests) and a hash-chained audit log.
 - **Document intake**: PDF, Word (`.docx`, `.doc`) and TXT. Word/TXT are rendered into a text-layer PDF (same content, same result each time) so one citation path serves all formats; the original file is kept with its own hash (`document_versions.source_format`, `source_file_sha256`). Scanned PDFs need OCR (Tesseract). Bulk import by folder tree: `scripts/import_official_corpus.py` (see [`test-data/README.md`](test-data/README.md)).
 - **AI**: `API` or `LOCAL` mode (Ollama/vLLM/llama.cpp or OpenAI-compatible services: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`) routed per stage (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`). In Q&A, the model picks at most 3 evidence items from already verified evidence; in optional "AI interpretation" (`summarize`), each statement is checked by code against attached evidence; the model never writes verbatim quotes or citations. If the model fails or is slow, a chat turn still returns the original evidence. Recommended models and machine settings: [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md) (Vietnamese).
+- **Article/Clause/Point effectivity relations**: supports proposed replacements, amendments, additions and repeals. An authorized reviewer confirms each relation and its item-level effective date. A replacement may carry an earlier effective date; as-of lookup applies that date. Yellow warning notes appear when node-level effectivity is unverified or the query date is later than the store's data date.
 - **Windows desktop**: floating Orb, drag-and-drop across multi-monitor/DPI work areas, system tray.
 
 ## Testing
