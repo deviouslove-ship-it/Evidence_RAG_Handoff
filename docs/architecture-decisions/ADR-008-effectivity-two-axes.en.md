@@ -1,0 +1,33 @@
+**Language / Ngôn ngữ:** [Tiếng Việt](ADR-008-effectivity-two-axes.md) · English
+
+English counterpart of `docs/architecture-decisions/ADR-008-effectivity-two-axes.md`. The Vietnamese file is the original.
+
+# ADR-008 — Two-axis effectivity (hiệu lực), proposed relations, attestations, and snapshots (G1, G3)
+
+- Date: 2026-11-07
+- Status: Implemented
+- Basis (căn cứ): the finalized design `docs/thiet-ke-tra-cuu-hieu-luc.md`, sections 3, 4, 5, and 9; decisions D1, D2, D7, D9, D10, D12, and D14; consistency points 1, 7, 8, and 11.
+
+## 1. Decision
+
+1. **Two axes.** Axis A uses the existing `effective_status` enum at Article (Điều)/Clause (Khoản)/Point (Điểm) level, and a text column (the same set of values, plus `replaced` = “Bị thay thế” (“Replaced”)) at administrative-document (văn bản) level; axis B is the `verification_state` column (`verified`, `unverified`, `not_found`) on `document_effective_intervals` (new) and `node_effective_intervals`. The API only **adds** the `effectivity` field (it does not change `amendment_state`), and adds `clause_level_warning` and `data_date` for search.
+2. **One relations table.** `node_amendments` is extended (migration `0011`): administrative-document or node scope, an administrative-document target, a target not yet in the corpus (document number, type, date, Article/Clause/Point path), a condition, the proposal source (rule, AI, person), confidence, the reader or model version, the approval-batch code, and `superseded_by`. `node_references.reference_kind` covers evidence (căn cứ), guidance, consolidation (hợp nhất), and cross-reference. History is the hash-chain audit log plus `superseded_by`; there is no separate event table.
+3. **The hard rules live in code** (`backend/app/effectivity/resolver.py`, trigger `effectivity_mark_reverify`), with tests in `backend/tests/test_effectivity_rules.py`:
+   1. “In effect + Verified” (“Còn hiệu lực + Đã xác minh”) is produced only from `effectivity_attestations`; the query layer downgrades it when the source is anything else (`cap_verification`).
+   2. No terminating relation → “Undetermined” (“Chưa xác định”) + “No information found in the corpus” (“Không tìm thấy thông tin trong kho”), together with “In effect from D1” (“Có hiệu lực từ D1”).
+   3. An unapproved proposal does not change axis A; it only adds the note “có đề xuất chưa xác nhận” (“there is an unconfirmed proposal”).
+   4. A conditional or transitional relation → “Undetermined” (“Chưa xác định”) + the condition.
+   5. A new relation that touches the target after the verification time → the trigger moves the attestation to `needs_reverify`; that attestation no longer verifies anything.
+4. **The interpretation that was chosen** (the design does not spell this out): an approved terminating relation (repeal (bãi bỏ), replace (thay thế), suspend) gives axis B “Verified” (“Đã xác minh”), because a person approved it and there is a time and a source sentence (D1); an approved partial amendment (sửa đổi) gives axis A “Partially amended” (“Sửa đổi một phần”) and axis B “Unverified” (“Chưa xác minh”) (it is known to have been amended; it is not yet known whether it remains in effect). In the entry-into-force provisions, “X hết hiệu lực kể từ ngày [văn bản này] có hiệu lực” (“X ceases to have effect from the date [this administrative document] takes effect”) is proposed as “thay thế” (“replace”); “bãi bỏ” (“repeal”) is “bãi bỏ” (“repeal”). The approver may correct the action, the date, and the target while approving (a new record is stored; the proposal is kept as history).
+5. **Point in time (D14).** Every status is computed from `as_of_date` on the snapshot’s intervals; an attestation of “in effect” (“còn hiệu lực”) may be asserted only through the verification date (`ATTESTATION_FUTURE_DATE`); if the lookup date is after the corpus data date, axis B is at most “Unverified” (“Chưa xác minh”).
+6. **Reading by rules** (`effectivity/extract.py`): the issue date and the issuing body from the header; the effectivity (hiệu lực) date (“X này có hiệu lực ... từ ngày” (“this X takes effect ... from the date”), “kể từ ngày ký” (“from the date of signing”)); replace (thay thế) and repeal (bãi bỏ) (in whole or in part, including a list introduced by “sau đây:” (“as follows:”)), amend (sửa đổi), and suspend; a catalogue of instruments no longer in effect (table rows, confidence 0.5, and the approver fills in the date); the header of a consolidated document (văn bản hợp nhất) → a `consolidation` relation. A sentence that contains a relation keyword the rules cannot read is counted as a candidate for the AI `relation` stage (a proposal only).
+7. **Matching a document number** (`store.match_target`): the normalized document number (plus the form with the “(A11)” suffix removed) → type → issue date → the main administrative document (văn bản) (the one that has an effectivity date) rather than an annex with the same number. If several candidates remain → `ambiguous` (a person chooses). If there is none → `unresolved`; approving a new administrative document matches them again automatically.
+8. **Permissions (D10).** `category_acl.can_review`; only a `REVIEWER` who has `can_review` on the category of the source or target administrative document can see and approve; the proposer does not approve their own proposal; `SYS_ADMIN` does not approve.
+9. **Snapshot.** Published automatically after each source approval, relation approval, and attestation or revocation; the 3 most recent are kept; `data_date` = the publication date (≥ the approval date of the newest administrative document).
+10. **Article/Clause/Point level (G3).** A node-level exception is recorded on the node and its subtree; a terminating status of the administrative document overrides the exception. The clause-level review level is **computed** (`clause_level_reviewed`): every relation aimed at the administrative document has been approved, and every partial amendment (sửa đổi) has at least one approved node-level relation. The shared warning bar appears only while some administrative document in the results has not reached that level.
+
+## 2. Consequences
+
+- Source approval is not blocked when reading a relation fails (`EFFECTIVITY_PROCESSING_FAILED` is written to the audit log).
+- Trial data of 286 administrative documents (văn bản): 671 relation proposals and 293 related relations; most targets are “chưa có trong kho” (“not yet in the corpus”), because the trial corpus is only part of the Ministry’s administrative documents.
+- Downgrading migration `0011` deletes relations the old schema cannot represent (no date, `repeal_partial`, `commence`).
