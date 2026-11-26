@@ -186,6 +186,20 @@ _MESSAGES = {
     "SEARCH_TIMEOUT": (
         "Tìm kiếm mất quá nhiều thời gian. Thu hẹp bộ lọc hoặc bớt từ khóa rồi thử lại."
     ),
+    "COMPARE_SAME_TARGET": (
+        "Hai vế so sánh trùng nhau; hãy chọn hai phiên bản hoặc hai văn bản khác nhau."
+    ),
+    "COMPARE_VERSION_NOT_FOUND": (
+        "Không tìm thấy phiên bản đã duyệt và kiểm chứng nguồn trong phạm vi của bạn."
+    ),
+    "COMPARE_DOCUMENT_TOO_LARGE": (
+        "Văn bản vượt quá 1500 nút mỗi bên; hãy chọn phạm vi hẹp hơn (Chương/Điều) "
+        "rồi so sánh lại."
+    ),
+    "COMPARE_MODE_MISMATCH": (
+        "Chế độ so sánh không khớp lựa chọn: chế độ 'versions' cần cùng một văn bản "
+        "và hai phiên bản khác nhau."
+    ),
 }
 
 

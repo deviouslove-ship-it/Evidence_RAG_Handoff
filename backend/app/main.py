@@ -21,6 +21,7 @@ from starlette.staticfiles import StaticFiles
 from .admin_services import list_authorized_categories
 from .api.v1.admin import router as admin_router
 from .api.v1.auth import router as auth_router
+from .api.v1.comparison import router as comparison_router
 from .api.v1.comprehensive import router as comprehensive_router
 from .api.v1.dependencies import no_store
 from .api.v1.effectivity import router as effectivity_router
@@ -185,6 +186,7 @@ def create_app() -> FastAPI:
     app.include_router(effectivity_router)
     app.include_router(comprehensive_router)
     app.include_router(synthesis_router)
+    app.include_router(comparison_router)
     configure_openapi(app)
     cors_settings = Settings.from_env()
     cors_headers = [

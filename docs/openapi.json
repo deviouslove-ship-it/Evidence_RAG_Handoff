@@ -23,6 +23,46 @@
         "title": "AiProposalRequest",
         "type": "object"
       },
+      "AmendmentLinkView": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "source_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quote"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          }
+        },
+        "title": "AmendmentLinkView",
+        "type": "object"
+      },
       "AmendmentStatus": {
         "description": "Axis A (effective status) at the requested date.",
         "enum": [
@@ -679,6 +719,69 @@
         "title": "CategoryCreateRequest",
         "type": "object"
       },
+      "ChangeSignalsView": {
+        "properties": {
+          "amounts_changed": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SpanView"
+            },
+            "title": "Amounts Changed",
+            "type": "array"
+          },
+          "dates_changed": {
+            "default": [],
+            "items": {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Dates Changed",
+            "type": "array"
+          },
+          "deadlines_changed": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SpanView"
+            },
+            "title": "Deadlines Changed",
+            "type": "array"
+          },
+          "exception_changed": {
+            "default": false,
+            "title": "Exception Changed",
+            "type": "boolean"
+          },
+          "impact_level": {
+            "default": "low",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Impact Level",
+            "type": "string"
+          },
+          "modality_shifted": {
+            "default": false,
+            "title": "Modality Shifted",
+            "type": "boolean"
+          }
+        },
+        "title": "ChangeSignalsView",
+        "type": "object"
+      },
       "ChatAnswer": {
         "additionalProperties": false,
         "description": "Structured answer written from retrieved metadata and labels only (no model).",
@@ -802,6 +905,303 @@
           "text"
         ],
         "title": "Claim",
+        "type": "object"
+      },
+      "CompareRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          },
+          "include_embeddings": {
+            "default": true,
+            "title": "Include Embeddings",
+            "type": "boolean"
+          },
+          "left_document_id": {
+            "format": "uuid",
+            "title": "Left Document Id",
+            "type": "string"
+          },
+          "left_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left Version Id"
+          },
+          "mode": {
+            "enum": [
+              "versions",
+              "amendment_pair",
+              "cross_document"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "only_changes": {
+            "default": false,
+            "title": "Only Changes",
+            "type": "boolean"
+          },
+          "right_document_id": {
+            "format": "uuid",
+            "title": "Right Document Id",
+            "type": "string"
+          },
+          "right_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right Version Id"
+          }
+        },
+        "required": [
+          "mode",
+          "left_document_id",
+          "right_document_id"
+        ],
+        "title": "CompareRequest",
+        "type": "object"
+      },
+      "CompareResponse": {
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "left_doc": {
+            "$ref": "#/components/schemas/DocumentSide"
+          },
+          "mode": {
+            "enum": [
+              "versions",
+              "amendment_pair",
+              "cross_document"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "right_doc": {
+            "$ref": "#/components/schemas/DocumentSide"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/CompareSummary"
+          }
+        },
+        "required": [
+          "comparison_id",
+          "mode",
+          "as_of_date",
+          "left_doc",
+          "right_doc",
+          "summary",
+          "items",
+          "disclaimer"
+        ],
+        "title": "CompareResponse",
+        "type": "object"
+      },
+      "CompareSummary": {
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "deterministic_highlights": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Deterministic Highlights",
+            "type": "array"
+          },
+          "explicit_amendment_links": {
+            "title": "Explicit Amendment Links",
+            "type": "integer"
+          },
+          "high_impact_changes": {
+            "title": "High Impact Changes",
+            "type": "integer"
+          },
+          "modified": {
+            "title": "Modified",
+            "type": "integer"
+          },
+          "moved_or_renumbered": {
+            "title": "Moved Or Renumbered",
+            "type": "integer"
+          },
+          "removed": {
+            "title": "Removed",
+            "type": "integer"
+          },
+          "total_items": {
+            "title": "Total Items",
+            "type": "integer"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_items",
+          "added",
+          "removed",
+          "modified",
+          "moved_or_renumbered",
+          "unchanged",
+          "high_impact_changes",
+          "explicit_amendment_links"
+        ],
+        "title": "CompareSummary",
+        "type": "object"
+      },
+      "ComparisonItem": {
+        "properties": {
+          "alignment_method": {
+            "anyOf": [
+              {
+                "enum": [
+                  "explicit_amendment",
+                  "structural_key",
+                  "semantic_lexical"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alignment Method"
+          },
+          "alignment_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alignment Score"
+          },
+          "amendment_link": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AmendmentLinkView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "change_kind": {
+            "enum": [
+              "unchanged",
+              "modified",
+              "moved_or_renumbered",
+              "added",
+              "removed"
+            ],
+            "title": "Change Kind",
+            "type": "string"
+          },
+          "content_also_modified": {
+            "default": false,
+            "title": "Content Also Modified",
+            "type": "boolean"
+          },
+          "diff_segments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DiffSegmentView"
+            },
+            "title": "Diff Segments",
+            "type": "array"
+          },
+          "impact_level": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Impact Level",
+            "type": "string"
+          },
+          "item_key": {
+            "title": "Item Key",
+            "type": "string"
+          },
+          "left": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SideView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "right": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SideView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signals": {
+            "$ref": "#/components/schemas/ChangeSignalsView"
+          }
+        },
+        "required": [
+          "item_key",
+          "change_kind",
+          "impact_level",
+          "signals"
+        ],
+        "title": "ComparisonItem",
         "type": "object"
       },
       "ComprehensiveSearchRequest": {
@@ -1034,6 +1434,29 @@
         "title": "CoverageState",
         "type": "string"
       },
+      "DiffSegmentView": {
+        "properties": {
+          "op": {
+            "enum": [
+              "equal",
+              "delete",
+              "insert"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "text"
+        ],
+        "title": "DiffSegmentView",
+        "type": "object"
+      },
       "DocumentActionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1188,6 +1611,52 @@
         "title": "DocumentEditRequest",
         "type": "object"
       },
+      "DocumentMeta": {
+        "properties": {
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issuing_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Body"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "doc_type"
+        ],
+        "title": "DocumentMeta",
+        "type": "object"
+      },
       "DocumentOcrEdit": {
         "additionalProperties": false,
         "properties": {
@@ -1264,6 +1733,95 @@
           "revision"
         ],
         "title": "DocumentRevisionRequest",
+        "type": "object"
+      },
+      "DocumentSide": {
+        "properties": {
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "effectivity": {
+            "$ref": "#/components/schemas/EffectivityView"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issuing_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Body"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "doc_type",
+          "version_id",
+          "version_number",
+          "effectivity"
+        ],
+        "title": "DocumentSide",
+        "type": "object"
+      },
+      "DocumentVersionsResponse": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/DocumentMeta"
+          },
+          "related_amendment_documents": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedAmendmentDocument"
+            },
+            "title": "Related Amendment Documents",
+            "type": "array"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/VersionInfo"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "document",
+          "versions",
+          "related_amendment_documents"
+        ],
+        "title": "DocumentVersionsResponse",
         "type": "object"
       },
       "EffectivityView": {
@@ -1708,6 +2266,52 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "KeyChangeView": {
+        "properties": {
+          "check_notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Check Notes",
+            "type": "array"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "item_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Item Keys",
+            "type": "array"
+          },
+          "point": {
+            "title": "Point",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "verified",
+              "needs_review"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "point",
+          "item_keys",
+          "evidence_ids",
+          "status"
+        ],
+        "title": "KeyChangeView",
         "type": "object"
       },
       "LabelDecision": {
@@ -2170,6 +2774,277 @@
           "revision"
         ],
         "title": "ModelProfileRequest",
+        "type": "object"
+      },
+      "NodeAmendmentView": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "evidence_source": {
+            "title": "Evidence Source",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "document",
+              "node"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "source_document": {
+            "$ref": "#/components/schemas/DocumentMeta"
+          },
+          "source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Label"
+          },
+          "source_node_id": {
+            "format": "uuid",
+            "title": "Source Node Id",
+            "type": "string"
+          },
+          "source_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quote"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "scope",
+          "evidence_source",
+          "source_node_id",
+          "source_document"
+        ],
+        "title": "NodeAmendmentView",
+        "type": "object"
+      },
+      "NodeDiffResponse": {
+        "properties": {
+          "alignment_method": {
+            "anyOf": [
+              {
+                "enum": [
+                  "explicit_amendment",
+                  "structural_key",
+                  "semantic_lexical"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alignment Method"
+          },
+          "alignment_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alignment Score"
+          },
+          "amendments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NodeAmendmentView"
+            },
+            "title": "Amendments",
+            "type": "array"
+          },
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "change_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "unchanged",
+                  "modified",
+                  "moved_or_renumbered",
+                  "added",
+                  "removed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Kind"
+          },
+          "content_also_modified": {
+            "default": false,
+            "title": "Content Also Modified",
+            "type": "boolean"
+          },
+          "current": {
+            "$ref": "#/components/schemas/SideView"
+          },
+          "diff_segments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DiffSegmentView"
+            },
+            "title": "Diff Segments",
+            "type": "array"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/DocumentMeta"
+          },
+          "effectivity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EffectivityView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_previous": {
+            "title": "Has Previous",
+            "type": "boolean"
+          },
+          "impact_level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact Level"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "node_id": {
+            "format": "uuid",
+            "title": "Node Id",
+            "type": "string"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SideView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "previous_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NodeVersionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signals": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChangeSignalsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "$ref": "#/components/schemas/NodeVersionRef"
+          }
+        },
+        "required": [
+          "node_id",
+          "document",
+          "version",
+          "as_of_date",
+          "current",
+          "has_previous",
+          "disclaimer"
+        ],
+        "title": "NodeDiffResponse",
+        "type": "object"
+      },
+      "NodeVersionRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version_number"
+        ],
+        "title": "NodeVersionRef",
         "type": "object"
       },
       "OcrAiApplyRequest": {
@@ -3076,6 +3951,72 @@
         "title": "QueryResponse",
         "type": "object"
       },
+      "RelatedAmendmentDocument": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "directions": {
+            "items": {
+              "enum": [
+                "amends_this_document",
+                "amended_by_this_document"
+              ],
+              "type": "string"
+            },
+            "title": "Directions",
+            "type": "array"
+          },
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issuing_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Body"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "doc_type",
+          "directions",
+          "actions"
+        ],
+        "title": "RelatedAmendmentDocument",
+        "type": "object"
+      },
       "RelationDecision": {
         "additionalProperties": false,
         "properties": {
@@ -3754,6 +4695,95 @@
         "title": "SessionResponse",
         "type": "object"
       },
+      "SideView": {
+        "properties": {
+          "citation_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citation Label"
+          },
+          "member_node_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Member Node Ids",
+            "type": "array"
+          },
+          "node_id": {
+            "format": "uuid",
+            "title": "Node Id",
+            "type": "string"
+          },
+          "page_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page End"
+          },
+          "page_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Start"
+          },
+          "structural_key": {
+            "title": "Structural Key",
+            "type": "string"
+          },
+          "text_original": {
+            "title": "Text Original",
+            "type": "string"
+          }
+        },
+        "required": [
+          "node_id",
+          "member_node_ids",
+          "structural_key",
+          "text_original"
+        ],
+        "title": "SideView",
+        "type": "object"
+      },
+      "SpanView": {
+        "properties": {
+          "raw_text": {
+            "title": "Raw Text",
+            "type": "string"
+          },
+          "unit_normalized": {
+            "title": "Unit Normalized",
+            "type": "string"
+          },
+          "value_num": {
+            "title": "Value Num",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value_num",
+          "unit_normalized",
+          "raw_text"
+        ],
+        "title": "SpanView",
+        "type": "object"
+      },
       "StagePolicyRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3871,6 +4901,97 @@
           "profile_id"
         ],
         "title": "StageRouteUpsertRequest",
+        "type": "object"
+      },
+      "SummarizeResponse": {
+        "properties": {
+          "ai_limited": {
+            "default": false,
+            "title": "Ai Limited",
+            "type": "boolean"
+          },
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "deterministic_highlights": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Deterministic Highlights",
+            "type": "array"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "executive_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executive Summary"
+          },
+          "external_api_used": {
+            "default": false,
+            "title": "External Api Used",
+            "type": "boolean"
+          },
+          "key_changes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/KeyChangeView"
+            },
+            "title": "Key Changes",
+            "type": "array"
+          },
+          "mode_used": {
+            "enum": [
+              "ai",
+              "deterministic_fallback"
+            ],
+            "title": "Mode Used",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "summary_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Status"
+          }
+        },
+        "required": [
+          "comparison_id",
+          "mode_used",
+          "disclaimer"
+        ],
+        "title": "SummarizeResponse",
         "type": "object"
       },
       "SynthesisRequest": {
@@ -4229,6 +5350,78 @@
           "review_note"
         ],
         "title": "VersionApproveRequest",
+        "type": "object"
+      },
+      "VersionInfo": {
+        "properties": {
+          "based_on_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Based On Version Id"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "publication_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Date"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version_number",
+          "is_current"
+        ],
+        "title": "VersionInfo",
         "type": "object"
       },
       "VersionRejectRequest": {
@@ -12407,6 +13600,309 @@
         "summary": "Citation Pdf"
       }
     },
+    "/api/v1/compare/documents": {
+      "post": {
+        "operationId": "compare_documents_route_api_v1_compare_documents_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompareResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Compare Documents Route",
+        "tags": [
+          "comparison"
+        ]
+      }
+    },
+    "/api/v1/compare/summarize": {
+      "post": {
+        "operationId": "summarize_route_api_v1_compare_summarize_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummarizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Summarize Route",
+        "tags": [
+          "comparison"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/versions": {
+      "get": {
+        "operationId": "get_document_versions_api_v1_documents__document_id__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentVersionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get Document Versions",
+        "tags": [
+          "comparison"
+        ]
+      }
+    },
     "/api/v1/documents/{document_id}/versions/{version_id}/page-text": {
       "post": {
         "operationId": "request_page_text_route_api_v1_documents__document_id__versions__version_id__page_text_post",
@@ -13253,6 +14749,124 @@
           }
         },
         "summary": "Delete Memory Item"
+      }
+    },
+    "/api/v1/nodes/{node_id}/diff": {
+      "get": {
+        "operationId": "get_node_diff_api_v1_nodes__node_id__diff_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of Date"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeDiffResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get Node Diff",
+        "tags": [
+          "comparison"
+        ]
       }
     },
     "/api/v1/page-text-tasks/{task_id}": {
