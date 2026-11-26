@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](en/USER_ADMIN_AND_AI_GUIDE.md)
 
-Đối chiếu giao diện và source ngày 09/11/2026. Tên nút dưới đây thuộc source hiện tại; gói đang chạy có thể là bản khác. Xem [mô tả hệ thống](TAI_LIEU_MO_TA_HE_THONG.md) để hiểu kiến trúc và giới hạn. Chỉ thực hiện các thao tác quản trị, thay model, phục hồi hoặc thay cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống.
+Đối chiếu giao diện và source ngày 17/11/2026. Tên nút dưới đây thuộc source hiện tại; gói đang chạy có thể là bản khác. Xem [mô tả hệ thống](TAI_LIEU_MO_TA_HE_THONG.md) để hiểu kiến trúc và giới hạn. Chỉ thực hiện các thao tác quản trị, thay model, phục hồi hoặc thay cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống.
 
 ## Mục lục
 
@@ -24,6 +24,12 @@
 4. Trong Hỏi đáp hoặc kết quả tìm kiếm, chọn **Diễn giải AI** nếu cần một bản diễn giải từ những căn cứ phù hợp. Đọc phần thiếu căn cứ, cảnh báo và **Căn cứ hỗ trợ**; dùng **Diễn giải tiếp** nếu có. Các ý được kiểm tự động vẫn cần đối chiếu trước khi sử dụng.
 5. Chọn **Mở văn bản gốc** trên thẻ căn cứ. PDF mở riêng tại trang nguồn; Word/TXT tải đúng tệp gốc. Nếu bị từ chối, không có nghĩa tệp bị xóa: phiên, quyền, trạng thái nguồn hoặc kiểm tra toàn vẹn có thể không đạt.
 
+### Đọc riêng một trang PDF trong Hỏi đáp
+
+Sau khi tra cứu và chọn một lượt có văn bản nguồn, nhập “Cho tôi nội dung text trang 17 của văn bản này”, hoặc nêu rõ tên/số hiệu văn bản. Nếu có nhiều văn bản, chọn đúng tài liệu được hỏi. “Trang 17” là trang thứ 17 trong PDF; nếu hỏi “trang in 17”, giao diện yêu cầu xác nhận số trang PDF tương ứng.
+
+Hệ thống trả nguyên chữ đã trích xuất/duyệt của đúng trang khi có, không cần gọi model. Khi thiếu chữ hoặc khi yêu cầu “Đọc lại từ ảnh trang 17 của văn bản này”, chỉ ảnh trang được chọn được gửi tới OCR AI cục bộ. Khung kết quả ghi rõ **AI đọc từ ảnh — chưa đối chiếu thủ công**, giữ cảnh báo và phần không đọc rõ. Dùng **Sao chép nội dung trang**, **Mở trang gốc** để đối chiếu hoặc **Hủy đọc trang** khi đang chờ; **Dừng**, xóa dữ liệu tạm và đăng xuất cũng hủy tác vụ đang theo dõi. Kết quả AI có TTL một giờ, không sửa bản nguồn, không tự tạo vector và không trở thành trích dẫn đã xác minh. Thao tác chỉnh kho phải đi qua đề xuất quản trị và quy trình duyệt riêng.
+
 ## 2. Nhập, OCR và duyệt nguồn
 
 Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
@@ -41,7 +47,7 @@ Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
 2. Chọn **Chi tiết** để xem metadata, danh mục và các phiên bản. Nếu có quyền đọc, mở tệp
    gốc, chuyển trang OCR, xem Điều/Khoản/Điểm và số mục đã có embedding trong chỉ mục
    đang dùng. Mở **Lịch sử xử lý** để xem thao tác gần đây.
-3. CURATOR có quyền dùng **Sửa thông tin** (rồi **Lưu thông tin**), **Sửa chữ OCR** của trang scan (rồi **Lưu sửa OCR**) hoặc **Xử lý lại từ tệp gốc** (rồi **Xác nhận xử lý lại**). Xử lý lại chạy bộ trích xuất/OCR đã cấu hình và đưa kết quả về nháp. Khi đã duyệt
+3. CURATOR có quyền dùng **Sửa thông tin** (rồi **Lưu thông tin**), **Sửa chữ OCR** của trang scan (rồi **Lưu sửa OCR**), **Đọc lại trang này bằng OCR AI** (chỉ đọc từng trang PDF bằng model Ollama vision cục bộ, hiện khác biệt để đối chiếu trước khi bấm **Áp dụng đề xuất vào bản nháp**, luôn giữ nguyên bản đã duyệt và vẫn cần REVIEWER khác xác nhận trước khi phát hành) hoặc **Xử lý lại từ tệp gốc** (rồi **Xác nhận xử lý lại**). Xử lý lại chạy bộ trích xuất/OCR đã cấu hình và đưa kết quả về nháp. Khi đã duyệt
    hoặc từ chối, thao tác tạo phiên bản nháp mới. Có thể **Thêm phiên bản từ tệp mới** để đính một PDF, Word hoặc TXT mới vào cùng văn bản, rồi chọn **Tạo phiên bản nháp**. Xác minh thông tin của tệp trước khi
    gửi duyệt.
 4. Trong hồ sơ văn bản chọn **Gửi duyệt**, hoặc chọn nhiều bản nháp trong danh sách rồi **Gửi duyệt các bản đã chọn** (xác nhận bằng **Xác nhận gửi duyệt**). Kiểm tra kết quả từng bản. REVIEWER khác mở phiên bản đang chờ, chọn **Mở PDF và thẩm định**, xem tệp nguồn, xử lý tác vụ và xác nhận lại từng
@@ -97,10 +103,12 @@ Khóa nhập qua giao diện đi từ trình duyệt đến server; LAN Portable
 
 | Việc cần đổi | Thao tác | Ảnh hưởng vector |
 |---|---|---|
-| Model cho **Diễn giải AI** | Trong **2. Phân công AI**, chọn dòng Diễn giải AI, kiểm tra và áp dụng | Không tự tạo lại vector/index. |
+| Model cho **Diễn giải AI** / **OCR AI** | Trong **2. Phân công AI**, chọn dòng Diễn giải AI hoặc chức năng `ocr` (chỉ nhận hồ sơ Ollama cục bộ hỗ trợ vision, tối đa 300 giây), kiểm tra và áp dụng | Không tự tạo lại vector/index. |
 | Model tìm theo nghĩa | Tạo hồ sơ vai trò embedding; mở **Embedding (tìm theo nghĩa)** | Preflight và xác nhận tác vụ tạo/bổ sung vector, kiểm chỉ mục mới rồi chuyển; giữ chỉ mục cũ trong thời gian xây dựng và sau khi chuyển. |
 
 Để đổi embedding: tại **Chọn / đổi model embedding**, chọn hồ sơ, quy mô lô và chỉ chọn **Tạo chỉ mục mới từ đầu** khi thực sự cần; bấm **Kiểm tra model**. Xem số chiều, số nút cần tạo, ước tính và các kiểm tra. Nếu đạt, xác nhận tạo tác vụ. Theo dõi tiến độ, lỗi và dùng tạm dừng/tiếp tục/thử lại/hủy theo trạng thái. Worker phải bật; nếu thất bại, chỉ mục đang phục vụ được giữ. Các nút duyệt mới có thể cần **Kiểm tra và bổ sung vector còn thiếu**. Không xóa thủ công chỉ mục cũ để “sửa” lỗi.
+
+**Bật OCR AI có chủ đích.** Worker mặc định tắt. Sau khi kiểm tra hồ sơ Ollama vision và phân công chức năng `ocr`, người vận hành đặt `EVIDENCE_OCR_AI_ENABLED=true` trong cấu hình máy chủ rồi khởi động lại. Với Portable, bỏ dấu `#` ở dòng tương ứng trong `config/evidence.env`. Khi tắt, chữ trang đã duyệt và Tesseract vẫn dùng được; yêu cầu đọc ảnh mới trả lỗi `OCR_AI_DISABLED`, không bị treo trong hàng đợi. Đổi cấu hình/model hoặc phiên bản prompt khiến đề xuất cũ không còn hợp lệ để áp dụng; tạo yêu cầu mới. Không cần tạo lại embedding khi chỉ đổi model sinh chữ/OCR.
 
 ## 7. Model local cho Portable offline
 

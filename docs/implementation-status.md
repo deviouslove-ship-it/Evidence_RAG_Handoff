@@ -389,3 +389,16 @@ tiết liền nhau; từ điển viết tắt pháp lý; kênh embedding khi có
 
 Số liệu trong các báo cáo cũ phản ánh thời điểm đó; khi khác với tài liệu này, tài liệu
 này là bản hiện hành.
+
+## Cập nhật sau nâng cấp Qwen3.5 và OCR AI (17/11/2026)
+
+Source hiện thực luồng USER yêu cầu chữ của một trang PDF trong Hỏi đáp và luồng ADMIN tạo/áp dụng đề xuất OCR AI. Tính năng đọc trang ưu tiên chữ đã trích xuất hoặc được duyệt; khi phải đọc ảnh, chỉ trang được yêu cầu được render và gửi tới hồ sơ Ollama vision local ở stage `ocr`. Kết quả được đánh dấu chưa xác minh, có cảnh báo, có thời hạn một giờ và không tự cập nhật nguồn, citation hoặc embedding.
+
+Luồng ADMIN dùng proposal riêng: CURATOR so sánh ảnh, chữ hiện có và kết quả AI, có thể sửa rồi áp dụng thành bản nháp mới; bản đã duyệt vẫn nguyên vẹn cho tới khi REVIEWER khác kiểm tra và duyệt. Worker OCR AI mặc định tắt (`EVIDENCE_OCR_AI_ENABLED=false`); người vận hành phải kiểm tra/phân công hồ sơ Local phù hợp, bật cờ và khởi động lại. `qwen3.5:4b` đã được dùng để kiểm thử model thật, nhưng Model Registry vẫn chọn model theo cấu hình.
+
+### Kiểm chứng và giới hạn
+
+- Rà soát source ngày 17/11: backend với PostgreSQL thử nghiệm **341 passed, 0 skipped**; frontend **110 passed**; Ruff, mypy, ESLint, TypeScript và Vite build đạt. Model Ollama `qwen3.5:4b` đọc đúng trang 17/20 của một PDF ảnh hư cấu trong lần thử; thời gian và độ chính xác đó không phải benchmark/nghiệm thu nghiệp vụ.
+- Chi tiết lỗi đã sửa, phạm vi ACL, hết hạn, cancellation và kết quả kiểm chứng: [báo cáo rà soát OCR AI 17/11](evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md). Các phép thử PostgreSQL dùng cluster tạm, không dùng DB vận hành.
+- Portable r4 vẫn là bản cũ dùng `qwen3:1.7b`; chưa build/giải nén/di chuyển ZIP mới. Không khẳng định OCR AI của source đã có trong gói r4.
+- Chưa xác nhận trên máy Windows vật lý khác, GPU/RAM khác, máy trạm LAN, môi trường ZIP offline cô lập, tải đồng thời/soak hoặc độ chính xác trên PDF scan nghiệp vụ. Launcher `ung-dung-test.ps1` mới qua kiểm tra cú pháp; hành vi dừng động chưa được xác nhận.

@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · bản chuẩn: [`.kiro/specs/model-registry/`](../../../../.kiro/specs/model-registry/)
 
-> Spec dựng lại từ mã nguồn đã triển khai ngày 09/11/2026 (`Spec reconstructed from the implemented code on 2026-11-09`). Không phải spec lịch sử do Kiro tạo. Quyết định: ADR-002, ADR-004, ADR-007.
+> Ban đầu dựng lại từ mã nguồn ngày 09/11/2026; cập nhật theo source ngày 17/11/2026. Không phải spec lịch sử do Kiro tạo. Quyết định: ADR-002, ADR-004, ADR-007.
 
 ## Giới thiệu
 Mỗi lần dùng model là một giai đoạn có tên. Quản trị viên đăng ký hồ sơ Local hoặc API, kiểm tra và phân công theo giai đoạn và chế độ vận hành, dưới chính sách egress và chi phí.
@@ -19,15 +19,17 @@ Mỗi lần dùng model là một giai đoạn có tên. Quản trị viên đă
 2. IF kiểm tra thất bại THEN THE SYSTEM SHALL chỉ cho lưu khi quản trị viên chọn rõ "Vẫn lưu (chưa dùng được)" và KHÔNG đánh dấu hồ sơ sẵn sàng.
 
 **Y3. Phân công theo giai đoạn.**
-1. THE SYSTEM SHALL hỗ trợ các giai đoạn `answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank` (`stages.py`).
+1. THE SYSTEM SHALL hỗ trợ các giai đoạn `answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`, `ocr` (`stages.py`).
 2. WHEN quản trị viên phân công hồ sơ THE SYSTEM SHALL kiểm tra và áp dụng theo giai đoạn và chế độ (`POST /model-registry/routes`), kèm hồ sơ dự phòng và nâng cấp tùy chọn.
 3. WHEN model không kết nối được THE SYSTEM SHALL bỏ qua trong một khoảng thời gian và giảm xuống trả căn cứ gốc thay vì để lượt chat treo.
-4. THE SYSTEM SHALL tách việc đổi model "Diễn giải AI" khỏi đổi model embedding: chỉ việc sau cần dựng lại chỉ mục.
+4. THE SYSTEM SHALL tách việc đổi model "Diễn giải AI" hoặc OCR khỏi đổi model embedding: chỉ việc đổi embedding mới cần job chỉ mục; chỉ mục cũ vẫn phục vụ cho tới khi chỉ mục mới được kiểm tra và chuyển trạng thái.
+5. IF giai đoạn là `ocr` THEN THE SYSTEM SHALL yêu cầu một lần thử, timeout tối đa 300 giây và hồ sơ Ollama vision local; stage OCR KHÔNG nâng cấp sang API ở bất kỳ chế độ nào.
 
 **Y4. Chính sách egress.**
 1. IF chế độ là `LOCAL` THEN THE SYSTEM SHALL từ chối hồ sơ `public` và KHÔNG gọi API ngoài (`REMOTE_AI_DENIED`).
 2. WHEN chế độ là `API` THE SYSTEM SHALL chỉ gửi nội dung ra ngoài nếu miền endpoint nằm trong danh sách cho phép, truyền HTTPS, người dùng có `remote_ai_allowed`, mọi danh mục nguồn cho phép xử lý ngoài và văn bản không `restricted` (nếu không: `AI_EGRESS_DENIED`).
-3. THE SYSTEM SHALL giới hạn `embedding` và `rerank` ở hồ sơ local ở cả hai chế độ.
+3. THE SYSTEM SHALL giới hạn `embedding`, `rerank` và `ocr` ở hồ sơ local ở cả hai chế độ.
+4. WHEN kiểm tra hồ sơ `ocr` THE SYSTEM SHALL xác nhận capability vision của Ollama và đọc đúng chữ trên ảnh probe tổng hợp; thành công với chữ hoặc output không rỗng không đủ để đánh dấu hồ sơ sẵn sàng (`ollama_local.py`, `diagnostics.py`).
 
 **Y5. Chính sách Hybrid Auto và trần chi phí.**
 1. THE SYSTEM SHALL đọc giới hạn theo (chế độ, giai đoạn) từ `stage_policies`: số lần gửi 1–10, token ra tối đa 16.384, thời gian chờ tối đa 30 s, đồng thời 1–64 (`stages.py::StagePolicy`).
@@ -46,6 +48,7 @@ Mỗi lần dùng model là một giai đoạn có tên. Quản trị viên đă
 | Hồ sơ và tuyến | `model_registry/profiles.py`, `runtime.py` |
 | Giai đoạn và chính sách | `stages.py`, migration `0010_ai_policy`, `backend/app/ai_limits.py` |
 | Adapter nhà cung cấp | `adapters/base.py`, `openai_compatible.py` |
+| Adapter vision local | `adapters/ollama_local.py` |
 | Chẩn đoán | `diagnostics.py` |
 | Kho khóa | `secret_store.py` |
 | Chọn giai đoạn trong pipeline | `workflow/ai_selection.py` |
@@ -55,9 +58,11 @@ Mỗi lần dùng model là một giai đoạn có tên. Quản trị viên đă
 
 Định tuyến: mỗi lời gọi giai đoạn → chế độ. LOCAL chỉ dùng hồ sơ local. API dùng hồ sơ local chính, nâng cấp một lần lên hồ sơ API khi kiểm tra không đạt hoặc phân tích sâu; tất cả qua bộ chặn egress và chi phí → adapter OpenAI-compatible → `ai_usage_events`.
 
+Stage `ocr` đi theo nhánh riêng: chỉ hồ sơ Ollama vision local, một lần thử, timeout stage tối đa 300 giây, không fallback API; worker tắt theo mặc định (`EVIDENCE_OCR_AI_ENABLED=false`). Đổi hồ sơ sinh chữ/OCR không tạo lại embedding. Đổi model embedding chạy job chỉ mục riêng và giữ chỉ mục đang phục vụ tới khi kiểm tra chỉ mục mới thành công.
+
 Quyết định: quy tắc cứng (egress, nâng cấp, giai đoạn chỉ local) nằm trong mã, không trong prompt hay công tắc từng hồ sơ. Endpoint `localhost` hiểu theo máy chủ backend, không theo máy trạm. Lưu hồ sơ không qua kiểm tra chỉ khi có đồng ý rõ và không bao giờ làm hồ sơ dùng được.
 
-Giới hạn: báo cáo giao diện Model Registry ghi chưa kiểm thật OpenAI/Gemini và chưa kiểm trong Tauri (`docs/evidence/2026-11-08-model-registry-ui/REPORT.md`). Lần chạy Hybrid Auto API trong báo cáo G4 dùng lời gọi API thật như đã ghi ở đó; cả hai chưa chạy lại khi viết spec.
+Giới hạn: báo cáo giao diện Model Registry ghi chưa kiểm thật OpenAI/Gemini và chưa kiểm trong Tauri (`docs/evidence/2026-11-08-model-registry-ui/REPORT.md`). Rà soát 17/11 đã thử Qwen3.5 text/vision cục bộ và kiểm snapshot hồ sơ vision; không cấu hình Registry vận hành, không build lại Portable r4, chưa xác nhận ở máy Windows khác (`docs/evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md`).
 
 ## Tasks
 - [x] 1. Hồ sơ không phụ thuộc nhà cung cấp và adapter tương thích OpenAI
@@ -70,3 +75,8 @@ Giới hạn: báo cáo giao diện Model Registry ghi chưa kiểm thật OpenA
 - [x] 8. Test chính sách (`test_ai_policy.py`, `test_ai_registry_postgres.py`)
 - [ ] 9. Kết nối thật OpenAI và Gemini (báo cáo 08/11/2026 ghi chưa làm)
 - [ ] 10. Kiểm giao diện Model Registry trong vỏ Tauri (báo cáo ghi chưa làm)
+- [x] 11. Stage `ocr` local-only, adapter Ollama native vision, một lần thử/timeout 300 giây và không nâng cấp sang API (`stages.py`, `runtime.py`, `ollama_local.py`)
+- [x] 12. Probe sẵn sàng dựa trên ảnh/chữ kỳ vọng, digest model và revision hồ sơ
+- [x] 13. Kiểm snapshot hồ sơ OCR trước khi áp dụng; luồng model/index embedding vẫn độc lập
+
+Kiểm chứng triển khai: `docs/evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md`. Đã chạy thử model thật `qwen3.5:4b` cục bộ; không khẳng định Registry vận hành hoặc Portable r4 đã được cấu hình lại.

@@ -1,14 +1,16 @@
 # Đề xuất mô hình AI theo từng mục cấu hình
 
-Cập nhật 06/11/2026 (bổ sung ghi chú trạng thái mã nguồn 11/11/2026 bên dưới). Đây là báo cáo tham khảo, **chưa cấu hình mô hình nào** trong app tại thời điểm lập báo cáo. Tên mô hình và giá
+Cập nhật 06/11/2026 (bổ sung ghi chú trạng thái mã nguồn 11/11 và 17/11/2026 bên dưới). Đây là báo cáo tham khảo; bảng gợi ý và phép đo ban đầu là ảnh chụp thời điểm lập báo cáo, không phải cấu hình vận hành hiện tại. Tên mô hình và giá
 đổi nhanh; xác nhận lại trên trang nhà cung cấp trước khi chọn. Tốc độ chạy Local là ước tính, chưa đo trên
 máy đích (cách đo ở mục 5).
 
 > **Trạng thái mã nguồn hiện hành (cập nhật sau đợt G1.0–G5 ngày 07–09/11/2026, xem [implementation-status.md](implementation-status.md), [ADR-007](architecture-decisions/ADR-007-stage-policy-hybrid-auto.md), [ADR-009](architecture-decisions/ADR-009-comprehensive-search-synthesis.md)):**
-> - **Các giai đoạn trong Model Registry đã nối mã đầy đủ (`ACTIVE_STAGES` trong `backend/app/model_registry/stages.py`):** `answer`, `summarize` (Diễn giải AI có kiểm chứng bằng mã), `expand` (mở rộng khái niệm), `relation` (đề xuất quan hệ hiệu lực), `label` (đề xuất nhãn nội dung), `embedding` (tạo vector qua `storage/embeddings.py` và `storage/embedding_jobs.py`), `rerank` (xếp hạng lại tùy chọn qua LLM hoặc `scripts/local_reranker_server.py`, mặc định tắt `EVIDENCE_RERANK_DEFAULT=false`).
+> - **Các giai đoạn trong Model Registry đã nối mã đầy đủ (`ACTIVE_STAGES` trong `backend/app/model_registry/stages.py`):** `answer`, `summarize` (Diễn giải AI có kiểm chứng bằng mã), `expand` (mở rộng khái niệm), `relation` (đề xuất quan hệ hiệu lực), `label` (đề xuất nhãn nội dung), `embedding` (tạo vector qua `storage/embeddings.py` và `storage/embedding_jobs.py`), `rerank` (xếp hạng lại tùy chọn qua LLM hoặc `scripts/local_reranker_server.py`, mặc định tắt `EVIDENCE_RERANK_DEFAULT=false`) và `ocr` (đọc ảnh trang bằng hồ sơ Ollama vision local, không fallback API).
 > - **Kho khóa API (`secret_store.py`):** ngoài cú pháp `env:TEN_BIEN`, Admin Portal đã hỗ trợ nhập trực tiếp API Key và lưu mã hóa bằng Windows DPAPI (`secret:<tên>` trong `EVIDENCE_SECRET_STORE_DIR`).
 > - **Chiều vector (`0012_comprehensive_search.sql`):** bảng `node_embeddings` đã bỏ cố định 768 chiều, hỗ trợ chỉ mục HNSW riêng theo từng model và số chiều trong `embedding_indices` (cấu hình tham chiếu đã thử dùng `qwen3-embedding:0.6b` 1024 chiều qua Ollama).
 > - Các bảng ước tính phần cứng và mô hình từ mục 1 đến mục 7 bên dưới được giữ nguyên làm tài liệu tham khảo thời điểm 06/11/2026.
+>
+> **Cập nhật OCR AI (17/11/2026):** source có stage `ocr` cho đọc ảnh một trang bằng hồ sơ Ollama vision local, cùng luồng USER đọc trang và ADMIN đề xuất hiệu chỉnh. Worker mặc định tắt (`EVIDENCE_OCR_AI_ENABLED=false`); chưa cấu hình hoặc bật model trong DB vận hành. `qwen3.5:4b` được kiểm tra cho text/vision với một PDF ảnh hư cấu, không phải điểm nghiệm thu OCR tiếng Việt. Đợt source này giữ nguyên model embedding tham chiếu `qwen3-embedding:0.6b` 1.024 chiều và không tạo lại vector. Gói Portable r4 chưa được build lại từ source.
 
 ## 1. App có những mục cấu hình nào
 
@@ -18,12 +20,13 @@ máy đích (cách đo ở mục 5).
 | 2 | Admin Portal → Mô hình AI → chế độ **API**, giai đoạn `answer` | Có | Dùng được |
 | 3 | OCR trang scan (`EVIDENCE_OCR_EXECUTABLE`, `EVIDENCE_OCR_LANGUAGES`) | Có (Tesseract) | Dùng được, cần cài ngoài |
 | 4 | Phân tích câu hỏi, tìm kiếm, kiểm tra căn cứ, hiệu lực | Không | Do mã của app xử lý (quy tắc + PostgreSQL) |
-| 5 | Giai đoạn `analyze` bằng LLM, `embedding`, `rerank`, `verify` | Có trong thiết kế | **Chưa nối mã**, Admin Portal chưa cho chọn |
+| 5 | Giai đoạn `analyze` / `verify` bằng LLM | Có trong thiết kế | **Chưa nối mã**; `embedding` và `rerank` đã có route riêng như ghi ở trạng thái mã nguồn phía trên |
+| 6 | Đọc ảnh theo yêu cầu qua stage `ocr` | Có | Đã nối mã với Ollama vision local; worker mặc định tắt, cần phân công và bật cấu hình |
 
 Giai đoạn `answer` hiện tại chỉ làm một việc: nhận tối đa 8 căn cứ (mỗi căn cứ cắt 1.200 ký tự, khoảng 3.000 đến
 4.000 token) và trả JSON `{"evidence_ids":[...]}` chọn tối đa 3 căn cứ. Mô hình không viết câu trả lời, không
-viết trích dẫn. Vì vậy không cần mô hình lớn; cần hiểu tiếng Việt pháp lý, tuân thủ định dạng JSON và phản hồi
-trong 15 giây (cấu hình `EVIDENCE_AI_TIMEOUT_SECONDS`, tối đa 30).
+viết trích dẫn. Vì vậy không cần mô hình lớn; cần hiểu tiếng Việt của văn bản hành chính, nghiệp vụ, tuân thủ
+định dạng JSON và phản hồi trong 15 giây (cấu hình `EVIDENCE_AI_TIMEOUT_SECONDS`, tối đa 30).
 
 ## 2. Mục 1: LOCAL, giai đoạn `answer`
 
@@ -92,10 +95,10 @@ các ô này, rồi nhập tên mô hình.
 | Công cụ | Trạng thái | Cấu hình máy | Ghi chú |
 |---|---|---|---|
 | **Tesseract 5 với `vie` + `eng`** | Đã nối mã | CPU, RAM 4 GB, không cần GPU | Đo thử 1,3 đến 1,7 giây/trang A4 (200 dpi) trên Ryzen 9 6900HX. Đọc con dấu và số hiệu kém; số hiệu phải lấy từ tên tệp |
-| PaddleOCR (mô hình tiếng Việt) | Chưa nối mã | CPU 4 nhân, RAM 8 GB; GPU tùy chọn | Thường chính xác hơn Tesseract trên trang nghiêng, nhiều cột |
-| Mô hình thị giác (Gemma 4, Qwen3.6) | Chưa nối mã | Như mục 2 | Gemma 4 có kết quả OmniDocBench trên [trang Ollama](https://ollama.com/library/gemma4) (31B: 0,131; E4B: 0,181; càng thấp càng tốt) |
+| **Ollama vision qua stage `ocr`** | Đã nối mã trong source; mặc định tắt | Tùy model, RAM/GPU và máy chủ Local; chưa chốt mức tối thiểu | Đọc trang được yêu cầu; local-only, không gửi ảnh sang API; kết quả là đề xuất chưa xác minh. `qwen3.5:4b` chỉ được thử trên dữ liệu ảnh hư cấu, chưa đủ kết luận độ chính xác tổng quát |
+| PaddleOCR (mô hình tiếng Việt) | Chưa nối mã | Chưa chốt | Không phải backend OCR hiện tại |
 
-OCR chỉ chạy lúc nạp tài liệu, không chạy lúc người dùng hỏi, nên máy yếu vẫn đủ nếu chấp nhận nạp chậm.
+Tesseract tiếp tục dùng trong luồng nạp/trích xuất tài liệu. OCR AI là luồng đọc ảnh theo yêu cầu của một trang trong chat hoặc tạo đề xuất quản trị; nó không thay thế Tesseract, không chạy ngầm trên toàn kho và không tự cập nhật chữ đã duyệt. Tốc độ, chất lượng, RAM/GPU của các máy đích cần đo riêng; không dùng số liệu OCR Tesseract làm ước lượng cho Qwen.
 
 ## 5. Cách đo mô hình Local có đủ nhanh không
 

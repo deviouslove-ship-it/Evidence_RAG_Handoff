@@ -33,8 +33,12 @@ function Limits({ accessToken, registry, mode, stage, onChanged }: {
   accessToken: string; registry: ModelRegistryState; mode: string; stage: string;
   onChanged: () => Promise<void>;
 }) {
+  const isOcr = stage === "ocr";
+  const maxTimeout = isOcr ? 300 : 30;
+  const maxTokens = isOcr ? 8192 : 2048;
+  const maxAttemptsLimit = isOcr ? 1 : 10;
   const current = registry.stage_policies?.find((item) => item.mode === mode && item.stage === stage);
-  const [attempts, setAttempts] = useState(String(current?.max_attempts ?? 2));
+  const [attempts, setAttempts] = useState(String(current?.max_attempts ?? (isOcr ? 1 : 2)));
   const [tokens, setTokens] = useState(current?.max_output_tokens != null ? String(current.max_output_tokens) : "");
   const [timeout, setTimeoutValue] = useState(current?.timeout_seconds != null ? String(current.timeout_seconds) : "");
   const [concurrency, setConcurrency] = useState(current?.max_concurrency != null ? String(current.max_concurrency) : "");
@@ -60,16 +64,16 @@ function Limits({ accessToken, registry, mode, stage, onChanged }: {
   return (
     <form className="ai-limits" onSubmit={(event) => void save(event)}>
       <div className="admin-form-grid-2">
-        <label className="field-label">Số lần gửi tối đa (1–10)
-          <input max={10} min={1} onChange={(e) => setAttempts(e.target.value)} required
+        <label className="field-label">Số lần gửi tối đa ({isOcr ? "1" : "1–10"})
+          <input max={maxAttemptsLimit} min={1} onChange={(e) => setAttempts(e.target.value)} required
                  type="number" value={attempts} />
         </label>
         <label className="field-label">Token trả về tối đa
-          <input max={2048} min={1} onChange={(e) => setTokens(e.target.value)} type="number"
+          <input max={maxTokens} min={1} onChange={(e) => setTokens(e.target.value)} type="number"
                  value={tokens} />
         </label>
-        <label className="field-label">Thời gian chờ (giây, ≤ 30)
-          <input max={30} min={0.1} onChange={(e) => setTimeoutValue(e.target.value)}
+        <label className="field-label">Thời gian chờ (giây, ≤ {maxTimeout})
+          <input max={maxTimeout} min={0.1} onChange={(e) => setTimeoutValue(e.target.value)}
                  step="any" type="number" value={timeout} />
         </label>
         <label className="field-label">Số yêu cầu đồng thời

@@ -8,6 +8,7 @@ import type {
   AuthorizedCategory,
 } from "../types";
 import { DraftReviewPanel } from "./DraftReviewPanel";
+import { OcrAiPanel } from "./OcrAiPanel";
 import {
   DOC_TYPE_LABELS, DOCUMENT_AVAILABILITY_LABELS, DOCUMENT_REVIEW_LABELS,
   SOURCE_FORMAT_LABELS, formatVnDate, splitLabel,
@@ -461,8 +462,24 @@ export function AdminDocumentDetailPanel({ accessToken, item, categories, onBack
               <summary>Xem chữ trích xuất của trang {ocr.page_number}</summary>
               <pre className="ocr-page-text">{ocr.text || "(Chưa có chữ trích xuất)"}</pre>
             </details>}
-            {summary.can_edit && ocrEditable && !mode && <button type="button" className="secondary-button"
-              disabled={unavailable} onClick={() => { setOcrText(ocr.text ?? ""); setMode("ocr"); }}>Sửa chữ OCR</button>}
+            {summary.can_edit && ocrEditable && !mode && <>
+              <button type="button" className="secondary-button"
+                disabled={unavailable} onClick={() => { setOcrText(ocr.text ?? ""); setMode("ocr"); }}>Sửa chữ OCR</button>
+              <OcrAiPanel
+                accessToken={accessToken}
+                currentText={ocr.text ?? ""}
+                disabled={unavailable}
+                documentId={item.id}
+                onApplied={async (applied) => {
+                  chooseVersion(applied.version_id, pageNumber);
+                  setStatus("Đã áp dụng đề xuất OCR AI vào bản nháp. Gửi duyệt để thẩm định.");
+                  await reload();
+                }}
+                pageNumber={ocr.page_number}
+                revision={detail.revision}
+                versionId={summary.version_id}
+              />
+            </>}
           </>}
         </div>
         <div className="document-detail-section">

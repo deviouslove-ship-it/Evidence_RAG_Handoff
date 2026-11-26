@@ -3836,3 +3836,89 @@ body.orb-window #root {
     display: none;
   }
 }
+
+.page-text-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #d8e0e8);
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  min-inline-size: 0;
+}
+
+.page-text-panel .results-header {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.page-text-panel .results-header > div {
+  flex: 1 1 14rem;
+  min-inline-size: 0;
+}
+
+.page-text-panel .status-pill,
+.ocr-ai-panel .status-pill {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  flex-shrink: 1;
+}
+
+.page-text-panel > .status-pill {
+  display: block;
+}
+
+.page-text-content {
+  margin: 0;
+  padding: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, #d8e0e8);
+  background: var(--surface-alt, #f8fafc);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  line-height: 1.55;
+  max-height: 58vh;
+  overflow-y: auto;
+}
+
+.page-text-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-text-pdf-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ocr-ai-panel {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ocr-ai-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 0.75rem;
+}
+
+.ocr-diff-delete {
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+}
+
+.ocr-diff-insert {
+  background: rgba(22, 163, 74, 0.1);
+  color: #166534;
+}

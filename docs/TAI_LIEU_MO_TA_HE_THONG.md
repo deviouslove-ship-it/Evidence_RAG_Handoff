@@ -35,6 +35,11 @@ flowchart LR
  A --> R[Model Registry và chính sách egress]
  R --> L[Ollama / dịch vụ local tương thích]
  R --> C[API ngoài được phép]
+ A --> PT[Đọc chữ trang PDF theo yêu cầu]
+ PT --> P
+ PT --> F
+ PT --> R
+ R --> V[Hồ sơ Ollama vision local, stage ocr]
 ```
 
 React/TypeScript trong `frontend/` cung cấp Hỏi đáp, Tìm kiếm và Admin Portal; Tauri trong `src-tauri/` là vỏ desktop USER. `backend/app/` chứa API FastAPI, xác thực, tài liệu, workflow, tìm kiếm, hiệu lực và registry. PostgreSQL lưu trạng thái nghiệp vụ, quyền, trích đoạn, chỉ mục, vector và audit; kho tệp lưu bản PDF và nguồn gốc. Backend gọi OCR hoặc model qua cấu hình; máy trạm không kết nối trực tiếp cơ sở dữ liệu. `backend/app/migrations/` chứa migration tiến và lùi, `deploy/` và `scripts/` chứa nguồn triển khai/vận hành.
@@ -70,6 +75,8 @@ flowchart TD
 Upload tạo phiên bản và mã SHA-256; trùng byte bị chặn, trùng nội dung có cảnh báo. Với PDF có lớp chữ, bộ trích xuất tạo các nút và liên kết văn bản đến trang, đoạn nguồn. Word/TXT được chuyển thành PDF có lớp chữ để xử lý và trích dẫn thống nhất, đồng thời giữ tệp gốc và hash riêng; Word chỉ chứa ảnh không được OCR như PDF scan. `.doc` giả dạng HTML/RTF và văn bản rỗng có thể bị từ chối.
 
 Với trang PDF scan, OCR chạy khi runtime được cấu hình, có chẩn đoán và xử lý xoay trang; chữ OCR phải được reviewer đối chiếu ảnh gốc và xác nhận từng trang trước khi dùng làm căn cứ. Tọa độ của chữ OCR được mô tả tới trang, không nên hiểu là vị trí chính xác từng chữ. Hàng đợi hiển thị tác vụ cần rà soát; người duyệt chọn danh mục, ghi chú, giải quyết tác vụ còn mở rồi phê duyệt hoặc từ chối. Quy trình không tự phê duyệt.
+
+Nâng cấp OCR AI theo yêu cầu dùng một luồng riêng với OCR lúc nhập: USER có thể xin toàn bộ chữ của một trang cụ thể trong chat. Hệ thống kiểm tra quyền và phiên bản nguồn, trả chữ trang đã lưu nếu đủ dùng; nếu thiếu chữ hoặc người dùng yêu cầu đọc lại từ ảnh, backend render đúng một trang PDF và gửi ảnh đó qua stage `ocr` tới hồ sơ Ollama vision local. Không gửi cả PDF, không fallback ảnh sang API ngoài. OCR AI mặc định tắt (`EVIDENCE_OCR_AI_ENABLED=false`); khi bật, kết quả tạm có nhãn chưa xác minh, cảnh báo và thời hạn một giờ, không tự sửa nguồn hoặc tạo vector. Nếu CURATOR muốn sửa chữ trong kho, họ tạo đề xuất riêng để so sánh/chỉnh sửa và áp dụng thành bản nháp mới; bản đã duyệt vẫn giữ nguyên cho đến khi người REVIEWER khác phê duyệt.
 
 Parser tạo cây Chương/Mục/Điều/Khoản/Điểm khi nhận diện được, lưu nhãn trích dẫn, quan hệ cha và các span nguồn theo trang; khoản dài hoặc qua nhiều trang có thể có nhiều đoạn neo. Các trường hợp mơ hồ cần rà soát. Tệp nguồn bất biến theo hash; khi mở, backend kiểm lại quyền, phiên bản, nguồn và SHA-256 thay vì tin đường dẫn do trình duyệt cung cấp.
 
@@ -116,6 +123,9 @@ embedding tiếp tục do luồng Model Registry hiện có quản lý.
 2. Backend truy xuất ứng viên trong kho đã duyệt, lọc quyền và hiệu lực, kiểm nguồn và chọn căn cứ. Kết quả trả qua luồng SSE; giao diện có dừng/thử lại và quản lý nội dung phiên trong RAM.
 3. Câu trả lời có cấu trúc được dựng từ metadata và căn cứ, kèm thẻ văn bản, Điều/Khoản/Điểm, đoạn trích và tình trạng hiệu lực. Trường hợp chỉ nhắc đến chủ đề được phân biệt với điều khoản trực tiếp. Câu hỏi đòi hỏi mức phạt, thời hạn hoặc vấn đề chặt mà không có khoản phù hợp có thể trả “chưa tìm thấy”, không suy đoán.
 4. **Mở văn bản gốc** gọi API trích dẫn; PDF mở ở trang liên quan, Word/TXT tải tệp đã nạp. Quyền và hash được kiểm lại khi mở.
+5. **Yêu cầu chữ của một trang**: USER chọn đúng văn bản và nhập yêu cầu như “Cho tôi nội dung text trang 17”. Mặc định đây là trang PDF thứ 17; nếu nói số trang in cần xác định ánh xạ. API kiểm ACL, revision và giới hạn trang. Chữ trang đã trích xuất/duyệt được trả trực tiếp; nếu không có chữ dùng được hoặc người dùng nói “đọc lại từ ảnh”, backend render trang được chọn, rồi worker gọi stage OCR local. Giao diện cho biết đang xử lý, cho hủy, sao chép chữ, giữ cảnh báo/vùng không đọc rõ và mở trang gốc. Kết quả ảnh AI là nội dung chưa đối chiếu, hết hạn sau một giờ, không được coi là căn cứ đã duyệt.
+
+Luồng quản trị OCR AI tách khỏi yêu cầu đọc của USER. CURATOR mở chi tiết bản nháp, chọn trang **Đọc lại trang này bằng OCR AI**, xem ảnh/chữ hiện tại/đề xuất và sửa nội dung trước khi áp dụng. Việc áp dụng tạo bản nháp hiệu chỉnh mới và audit; REVIEWER khác vẫn phải rà từng trang và duyệt. Source PDF không bị ghi đè.
 
 ### Tìm kiếm văn bản
 
@@ -145,6 +155,8 @@ sequenceDiagram
  API-->>U: Tệp nguồn hoặc lỗi
 ```
 
+Luồng đọc trang dùng cùng API/backend và ACL; chỉ ảnh của trang được yêu cầu mới được gửi cho hồ sơ Local stage `ocr`. Hồ sơ phải là Ollama có vision, đã được kiểm tra và phân công; worker tắt mặc định. Dù model được kiểm tra là `qwen3.5:4b`, Model Registry quyết định model thực tế theo cấu hình, không hard-code trong ứng dụng.
+
 ## 6. Truy xuất, hiệu lực và chỉ mục
 
 Backend kết hợp các kênh lexical như cụm từ, từ khóa có/không dấu, tiêu đề, số hiệu và kênh ngữ nghĩa khi có embedding. RRF hợp nhất thứ hạng các kênh; rerank bằng LLM hoặc cross-encoder là tùy chọn, không nên mặc định rằng mọi bản đang bật. Cấu hình được báo cáo gần nhất dùng RRF, ngưỡng ngữ nghĩa tương đối 0,8 và tắt rerank; cấu hình thực tế phải kiểm tra tại máy chạy. Các giới hạn ứng viên, thời gian và đồng thời nhằm giữ hệ thống đáp ứng; chúng cũng giới hạn độ đầy đủ của từng truy vấn.
@@ -158,6 +170,8 @@ Embedding biến nút đã duyệt thành vector lưu trong PostgreSQL/pgvector 
 Registry lưu hồ sơ model: adapter, endpoint, model ID, khả năng, phiên bản, vùng dữ liệu, trạng thái phê duyệt và kết nối; route gắn từng chức năng với hồ sơ theo chế độ. Giao diện chia **1. Mô hình AI**, **2. Phân công AI**, **Embedding** và **Nhật ký Kiểm toán**. Hồ sơ Local hỗ trợ Ollama hoặc endpoint tương thích vLLM/llama.cpp; API hỗ trợ nhà cung cấp tương thích được cấu hình. Kiểm tra thử đánh giá cấu hình, egress, khóa, kết nối và phản hồi model; lưu được phép ở trạng thái chưa sẵn sàng khi người quản trị chọn rõ.
 
 Phân công có model chính và tùy chọn dự phòng/nâng cấp trong giới hạn chính sách; model lỗi hoặc quá thời gian có thể bị bỏ qua và luồng trả về giảm chức năng. Đổi model **Diễn giải AI** thay route sinh văn bản, không tạo lại vector. Đổi model **Embedding** cần quy trình tạo/kiểm chỉ mục nêu trên. Gửi ra API ngoài còn phụ thuộc chế độ API, allowlist endpoint, chính sách egress và quyền dữ liệu; không hiểu “đã lưu hồ sơ” là chắc chắn có thể gửi mọi tài liệu.
+
+Stage `ocr` dành cho ảnh trang PDF là local-only: Registry chỉ chấp nhận hồ sơ Ollama có capability vision, đã kiểm bằng ảnh probe, không có fallback API. Stage này cho phép một lần thử và timeout tối đa 300 giây; tổng thời gian worker được giới hạn riêng. `qwen3.5:4b` đã được thử với model/runtime thật trong báo cáo 17/11, nhưng việc gán model và bật worker là cấu hình vận hành riêng. Model embedding tham chiếu hiện có (`qwen3-embedding:0.6b`, 1.024 chiều) không bị thay hoặc tạo lại trong đợt source này.
 
 ## 8. Dữ liệu và bảo mật
 
@@ -181,6 +195,8 @@ Backup tạo bản chụp DB và kho tệp kèm hash; restore kiểm bản sao, 
 
 - Chưa có cơ sở kết luận ứng dụng đã nghiệm thu nghiệp vụ. Dự án không dùng bộ câu hỏi Gold để chấm AI (ADR-010): AI chỉ hỗ trợ, cán bộ chuyên môn quyết định. Mức bao phủ và chất lượng phụ thuộc kho, quyền, metadata, hiệu lực và câu hỏi.
 - Báo cáo source ngày 08/11 ghi đã thử OCR scan, model Ollama local, UI Chrome và bộ kiểm thử; đây là bằng chứng lịch sử, không phải kiểm thử lại trong lần biên soạn này. Báo cáo Model Registry ghi chưa thử OpenAI/Gemini thật và chưa kiểm trong Tauri.
+- Bản source được rà soát ngày 17/11/2026 đã bổ sung đọc chữ một trang trong chat và đề xuất OCR AI cho Admin. Kiểm thử tích hợp dùng PostgreSQL tạm đạt 341 passed; frontend 110 passed; model thật đọc đúng trang 17/20 của PDF ảnh hư cấu. Đây là bằng chứng kỹ thuật, không phải nghiệm thu OCR nghiệp vụ hoặc xác nhận trên máy Windows/LAN khác. Xem [báo cáo rà soát 17/11](evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md).
+- Gói Portable r4 là bản phát hành cũ, vẫn giữ `qwen3:1.7b` và chưa được build lại từ source nâng cấp; không suy ra OCR AI mới có trong gói r4.
 - Báo cáo Portable ghi đã thử đổi thư mục/ổ trên máy phát triển, chưa xác nhận chuyển sang máy Windows vật lý khác; tính sẵn có của model, runtime và dữ liệu cần kiểm tra gói thực tế.
 - OCR có thể sai, đặc biệt số hiệu và điều kiện; reviewer phải đối chiếu. Kiểm tra diễn giải tự động không thay thế thẩm định pháp lý. Có giới hạn truy xuất, timeout, đồng thời và thiếu chỉ mục có thể ảnh hưởng kết quả.
 - Nguồn chi tiết: [trạng thái triển khai](implementation-status.md), [báo cáo AI/OCR](evidence/2026-11-08-ai-ocr/REPORT.md), [Model Registry](evidence/2026-11-08-model-registry-ui/REPORT.md), [Embedding](evidence/2026-11-07-embedding-admin/REPORT.md), [threat model](threat-model.md) và source tương ứng. Các báo cáo có ngày khác nhau; ưu tiên mã và cấu hình đang triển khai khi có khác biệt.

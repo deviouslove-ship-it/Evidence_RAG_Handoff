@@ -510,11 +510,14 @@ async def list_model_registry(pool: Any) -> dict[str, Any]:
 
 
 def valid_roles(roles: frozenset[str]) -> bool:
-    """A profile serves one or more text stages, or embedding alone (one vector index per
-    model)."""
+    """A profile serves one or more text stages, or embedding alone, or ocr alone."""
 
-    return bool(roles) and roles <= frozenset(STAGES) and (
-        "embedding" not in roles or len(roles) == 1)
+    return (
+        bool(roles)
+        and roles <= frozenset(STAGES)
+        and ("embedding" not in roles or len(roles) == 1)
+        and ("ocr" not in roles or len(roles) == 1)
+    )
 
 
 async def upsert_model_profile(
@@ -545,7 +548,8 @@ async def upsert_model_profile(
         profile_id=profile_id.strip(), adapter=adapter.strip(), endpoint=endpoint.strip(),
         model_id=model_id.strip(), capabilities=frozenset(capabilities),
         privacy_zone=PrivacyZone(privacy_zone), revision=revision.strip(),
-        secret_ref=secret_ref, fallback=tuple(fallback), provider_approved=provider_approved,
+        secret_ref=secret_ref, fallback=tuple(fallback), params=params or {},
+        provider_approved=provider_approved,
     )
     try:
         roles = proposed.capabilities
@@ -792,6 +796,7 @@ async def upsert_stage_policy(
         StagePolicy(
             max_attempts=max_attempts, max_output_tokens=max_output_tokens,
             timeout_seconds=timeout_seconds, max_concurrency=max_concurrency,
+            stage=clean_stage,
         )
     except ValueError as exc:
         raise AdminServiceError("INVALID_REQUEST", 422) from exc

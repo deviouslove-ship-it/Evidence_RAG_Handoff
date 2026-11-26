@@ -590,3 +590,100 @@ async def test_probe_does_not_mark_new_config_ready_after_concurrent_edit() -> N
     }
     assert connection.health_updates == []
 
+
+@pytest.mark.asyncio
+async def test_native_chat_preserves_model_and_disables_thinking() -> None:
+    profile_row = {
+        **_profile("native-qwen35"),
+        "adapter": "ollama_local",
+        "model_id": "custom-text-model:4b",
+        "params": ModelParams(
+            max_tokens=512,
+            json_mode=True,
+            temperature=0.0,
+            ollama_native=True,
+            think=False,
+            num_ctx=8192,
+        ).to_stored(),
+    }
+    connection = _Connection(
+        {"native-qwen35": profile_row},
+        {"profile_key": "native-qwen35", "fallback": []},
+    )
+    transport, requests = _transport(
+        lambda request, _: httpx.Response(
+            200,
+            json={
+                "done": True,
+                "done_reason": "stop",
+                "prompt_eval_count": 42,
+                "eval_count": 9,
+                "message": {"role": "assistant", "content": '{"evidence_ids":["ev_1"]}'},
+            },
+            request=request,
+        )
+    )
+    runtime = RegistryRuntime(
+        _Pool(connection),
+        OperatingMode.LOCAL,
+        attempt_limit=1,
+        policy=EndpointPolicy(timeout_seconds=5, max_tokens=1024),
+        transport=transport,
+    )
+    outcome = await runtime.generate_selection(
+        [{"role": "user", "content": "select"}],
+        principal_id=uuid4(),
+        document_ids=[uuid4()],
+    )
+    assert json.loads(outcome.content or "{}") == {"evidence_ids": ["ev_1"]}
+    assert len(requests) == 1
+    assert requests[0].url.path == "/api/chat"
+    sent = json.loads(requests[0].content)
+    assert sent["model"] == "custom-text-model:4b"
+    assert sent["stream"] is False
+    assert sent["think"] is False
+    assert sent["format"] == "json"
+    assert sent["options"]["num_predict"] == 512
+    assert sent["options"]["num_ctx"] == 8192
+
+
+@pytest.mark.asyncio
+async def test_legacy_profile_keeps_openai_payload() -> None:
+    profile_row = {
+        **_profile("legacy-ollama"),
+        "adapter": "ollama_local",
+        "model_id": "legacy-model",
+        "params": ModelParams(max_tokens=300, json_mode=True, reasoning_effort="none").to_stored(),
+    }
+    connection = _Connection(
+        {"legacy-ollama": profile_row},
+        {"profile_key": "legacy-ollama", "fallback": []},
+    )
+    transport, requests = _transport(
+        lambda request, _: httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": '{"evidence_ids":["ev_2"]}'}}]},
+            request=request,
+        )
+    )
+    runtime = RegistryRuntime(
+        _Pool(connection),
+        OperatingMode.LOCAL,
+        attempt_limit=1,
+        policy=EndpointPolicy(timeout_seconds=5),
+        transport=transport,
+    )
+    outcome = await runtime.generate_selection(
+        [{"role": "user", "content": "select"}],
+        principal_id=uuid4(),
+        document_ids=[uuid4()],
+    )
+    assert json.loads(outcome.content or "{}") == {"evidence_ids": ["ev_2"]}
+    assert requests[0].url.path == "/v1/chat/completions"
+    sent = json.loads(requests[0].content)
+    assert sent["model"] == "legacy-model"
+    assert sent["max_tokens"] == 300
+    assert sent["reasoning_effort"] == "none"
+    assert "think" not in sent
+    assert "options" not in sent
+

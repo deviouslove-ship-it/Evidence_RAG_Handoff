@@ -303,3 +303,85 @@ async def test_unreachable_server_stops_at_connect(tmp_path: Path) -> None:
         endpoint="http://127.0.0.1:8000/v1"))
     assert _by_id(result)["connect"]["code"] == "CONNECTION_FAILED"
     assert result["checks"][-1]["id"] == "connect"
+
+
+async def test_ocr_diagnostics_requires_vision_capability_and_image_probe(tmp_path: Path) -> None:
+    def make_handler(*, capabilities: list[str], ocr_content: str) -> Any:
+        def handle(request: httpx.Request) -> httpx.Response:
+            if request.url.path.endswith("/models"):
+                return httpx.Response(200, json={"data": [{"id": "qwen3.5:4b"}]}, request=request)
+            if request.url.path.endswith("/api/show"):
+                return httpx.Response(
+                    200,
+                    json={"capabilities": capabilities, "digest": "sha256:abc"},
+                    request=request,
+                )
+            if request.url.path.endswith("/api/chat"):
+                body = json.loads(request.content)
+                assert body["think"] is False
+                assert len(body["messages"][0]["images"]) == 1
+                return httpx.Response(
+                    200,
+                    json={
+                        "done": True,
+                        "done_reason": "stop",
+                        "message": {"role": "assistant", "content": ocr_content},
+                    },
+                    request=request,
+                )
+            return httpx.Response(404, request=request)
+
+        return handle
+
+    ocr_profile = _profile(
+        profile_id="ocr-1",
+        adapter="ollama_local",
+        endpoint="http://127.0.0.1:11434/v1",
+        model_id="qwen3.5:4b",
+        capabilities=frozenset({"ocr"}),
+        privacy_zone=PrivacyZone.INTERNAL,
+        params={"ollama_native": True, "think": False, "num_ctx": 8192},
+    )
+    # Text-only model without vision capability fails even if /models lists it
+    no_vision_rt = RegistryRuntime(
+        object(),
+        mode="LOCAL",
+        attempt_limit=1,
+        policy=EndpointPolicy(timeout_seconds=5),
+        transport=httpx.MockTransport(
+            make_handler(capabilities=["completion"], ocr_content='{"text":"OK"}')
+        ),
+        secrets=_fake_store(tmp_path),
+    )
+    no_vision_res = await diagnose_profile(no_vision_rt, ocr_profile)
+    assert not no_vision_res["usable"]
+    assert _by_id(no_vision_res)["vision"]["code"] == "VISION_UNSUPPORTED"
+
+    # Full vision probe succeeds
+    ok_rt = RegistryRuntime(
+        object(),
+        mode="LOCAL",
+        attempt_limit=1,
+        policy=EndpointPolicy(timeout_seconds=5),
+        transport=httpx.MockTransport(
+            make_handler(
+                capabilities=["completion", "vision"],
+                ocr_content='{"text":"OCR-PROBE-17"}',
+            )
+        ),
+        secrets=_fake_store(tmp_path),
+    )
+    ok_res = await diagnose_profile(ok_rt, ocr_profile)
+    assert ok_res["usable"] and ok_res["ok"]
+    assert [c["id"] for c in ok_res["checks"]] == [
+        "config", "secret", "connect", "model", "vision", "generate", "json",
+    ]
+    wrong_rt = RegistryRuntime(
+        object(), mode="LOCAL", attempt_limit=1, policy=EndpointPolicy(timeout_seconds=5),
+        transport=httpx.MockTransport(make_handler(
+            capabilities=["completion", "vision"], ocr_content='{"text":"OK"}',
+        )), secrets=_fake_store(tmp_path),
+    )
+    wrong_res = await diagnose_profile(wrong_rt, ocr_profile)
+    assert not wrong_res["usable"]
+    assert _by_id(wrong_res)["generate"]["code"] == "OCR_PROBE_MISMATCH"

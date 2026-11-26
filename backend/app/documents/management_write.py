@@ -119,136 +119,211 @@ async def _record_ocr_edits(
         )
 
 
+async def apply_version_change_in_tx(
+    conn: Any,
+    principal: Principal,
+    document_id: UUID,
+    version_id: UUID,
+    *,
+    revision: int,
+    changes: dict[str, Any],
+    ocr_page: tuple[int, str] | None,
+    prepared: PreparedDraft | None,
+    as_of: date,
+) -> dict[str, Any]:
+    """Execute one version metadata/OCR/reprocess mutation inside an open transaction."""
+    actor = UUID(principal.id)
+    version = await lock_review_version(conn, version_id)
+    if version is None or version["document_id"] != document_id:
+        raise ReviewError("DOCUMENT_NOT_FOUND", 404)
+    row = await _record(conn, principal, document_id, version_id, as_of)
+    if version["source_review_revision"] != revision:
+        raise ReviewError("DOCUMENT_REVISION_CONFLICT", 409)
+    if not row["can_edit"]:
+        if row["can_read"] and row["version_number"] != await conn.fetchval(
+            "SELECT max(version_number) FROM document_versions WHERE document_id=$1",
+            document_id,
+        ):
+            raise ReviewError("DOCUMENT_REVISION_CONFLICT", 409)
+        raise ReviewError("DOCUMENT_EDIT_DENIED", 403)
+
+    previous_metadata = {key: row[key] for key in _METADATA_FIELDS}
+    metadata = {
+        **previous_metadata,
+        **{k: v for k, v in changes.items() if k in _METADATA_FIELDS},
+    }
+    official_url, domain = validate_source_url(changes.get("official_url", row["official_url"]))
+    rows = await conn.fetch(
+        "SELECT * FROM source_pages WHERE document_version_id=$1 ORDER BY page_number",
+        version_id,
+    )
+    previous_pages = {item["page_number"]: item for item in rows}
+    if not rows:
+        raise ReviewError("DOCUMENT_TEXT_NOT_READY", 409)
+    pages = [_page(item) for item in rows]
+    changed_pages: list[ExtractedPage] = []
+    if prepared is not None:
+        if (
+            prepared.sha256 != version["original_file_sha256"]
+            or [page.page_number for page in prepared.pages] != list(previous_pages)
+        ):
+            raise ReviewError("SOURCE_REEXTRACTION_CONFLICT", 409)
+        pages = changed_pages = prepared.pages
+    elif ocr_page is not None:
+        number, correction = ocr_page
+        current = previous_pages.get(number)
+        if current is None:
+            raise ReviewError("DOCUMENT_NOT_FOUND", 404)
+        if current["extraction_method"] != "local_ocr" and current["text_quality"] != "needs_ocr":
+            raise ReviewError("OCR_EDIT_DENIED", 409)
+        changed_pages = [
+            replace(
+                _page(current),
+                text=correction,
+                extraction_method="local_ocr",
+                text_quality="needs_review",
+                extraction_error=None,
+                ocr_diagnostics=None,
+            )
+        ]
+        pages = [changed_pages[0] if page.page_number == number else page for page in pages]
+    elif any(
+        item["text_original"] is None
+        and item["text_quality"] == "usable"
+        and item["reviewed_at"] is None
+        for item in rows
+    ):
+        raise ReviewError("DOCUMENT_REPROCESS_REQUIRED", 409)
+    if sum(len(page.text) for page in pages) > max_document_characters():
+        raise ReviewError("PDF_RESOURCE_LIMIT_EXCEEDED", 413)
+
+    version_is_new = version["review_status"] in {"approved", "rejected"}
+    target_id = version_id
+    if version_is_new:
+        target_id = await _new_revision(conn, version, previous_metadata, actor)
+    else:
+        await delete_version_nodes(conn, version_id)
+
+    await _record_ocr_edits(conn, target_id, actor, previous_pages, changed_pages)
+    await conn.executemany(
+        """UPDATE source_pages SET extraction_method=$3, text_quality=$4, text_original=$5,
+             extraction_error=$6, ocr_diagnostics=$7::jsonb, reviewed_by=NULL, reviewed_at=NULL
+           WHERE document_version_id=$1 AND page_number=$2""",
+        [
+            (
+                target_id,
+                page.page_number,
+                page.extraction_method,
+                page.text_quality,
+                page.text,
+                page.extraction_error,
+                json.dumps(page.ocr_diagnostics) if page.ocr_diagnostics is not None else None,
+            )
+            for page in changed_pages
+        ],
+    )
+    if changed_pages:
+        # A draft's old whole-page spans refer to the old text. New legal
+        # nodes will write their own exact spans below.
+        await conn.execute(
+            """DELETE FROM source_spans WHERE page_id IN (SELECT id FROM source_pages
+               WHERE document_version_id=$1 AND page_number=ANY($2::int[]))""",
+            target_id,
+            [page.page_number for page in changed_pages],
+        )
+    page_ids = {
+        item["page_number"]: item["id"]
+        for item in await conn.fetch(
+            "SELECT id, page_number FROM source_pages WHERE document_version_id=$1",
+            target_id,
+        )
+    }
+    fingerprint = (
+        content_fingerprint(prepared.pages)
+        if prepared is not None
+        else version["native_text_fingerprint_v1"]
+    )
+    next_revision = await conn.fetchval(
+        """UPDATE document_versions
+           SET review_status='draft', admin_metadata=$2::jsonb, submitted_by=$3,
+               official_url=$4, publication_date=$5, effective_from=$6,
+               dates_confirmed_at=NULL, dates_confirmed_by=NULL,
+               source_review_revision=source_review_revision+1,
+               native_text_fingerprint_v1=$7
+           WHERE id=$1 RETURNING source_review_revision""",
+        target_id,
+        json.dumps(metadata, ensure_ascii=False),
+        actor,
+        official_url,
+        changes.get("publication_date", row["publication_date"]),
+        changes.get("effective_from", row["effective_from"]),
+        fingerprint,
+    )
+    await conn.execute(
+        """INSERT INTO source_provenance
+             (document_version_id, official_url, publisher_domain, fetched_checksum)
+           VALUES ($1, $2, $3, $4) ON CONFLICT (document_version_id) DO UPDATE
+           SET official_url=$2, publisher_domain=$3, verified_at=NULL,
+               authenticity_reviewer=NULL""",
+        target_id,
+        official_url,
+        domain,
+        version["original_file_sha256"],
+    )
+    nodes = prepared.nodes if prepared else await asyncio.to_thread(parse_legal_tree, pages)
+    _, unanchored = await write_nodes(
+        conn,
+        document_id=document_id,
+        version_id=target_id,
+        title=metadata["title"],
+        document_number=metadata["document_number"],
+        page_ids=page_ids,
+        page_texts={page.page_number: page.text for page in pages},
+        nodes=nodes,
+    )
+    await detect_and_store_dates(conn, target_id)
+    await _review_tasks(conn, version_id, target_id, pages, changed_pages, unanchored)
+    await append_audit(
+        conn,
+        principal_id=actor,
+        action="document.reprocess" if prepared else "document.edit",
+        target_type="document_version",
+        target_id=str(target_id),
+        metadata={
+            "document_id": str(document_id),
+            "base_version_id": str(version_id),
+            "revision": next_revision,
+            "pages": [page.page_number for page in changed_pages],
+            "changes": {
+                key: {
+                    "from": str(row[key]) if isinstance(row[key], date) else row[key],
+                    "to": str(value) if isinstance(value, date) else value,
+                }
+                for key, value in changes.items()
+                if row[key] != value
+            },
+        },
+    )
+    return {"version_id": target_id, "revision": next_revision, "status": "draft"}
+
+
 async def change_version(
     pool: Any, principal: Principal, document_id: UUID, version_id: UUID, *,
     revision: int, changes: dict[str, Any], ocr_page: tuple[int, str] | None,
     prepared: PreparedDraft | None, as_of: date,
 ) -> dict[str, Any]:
-    actor = UUID(principal.id)
     async with pool.acquire() as conn, conn.transaction():
-        version = await lock_review_version(conn, version_id)
-        if version is None or version["document_id"] != document_id:
-            raise ReviewError("DOCUMENT_NOT_FOUND", 404)
-        row = await _record(conn, principal, document_id, version_id, as_of)
-        if version["source_review_revision"] != revision:
-            raise ReviewError("DOCUMENT_REVISION_CONFLICT", 409)
-        if not row["can_edit"]:
-            if row["can_read"] and row["version_number"] != await conn.fetchval(
-                "SELECT max(version_number) FROM document_versions WHERE document_id=$1",
-                document_id,
-            ):
-                raise ReviewError("DOCUMENT_REVISION_CONFLICT", 409)
-            raise ReviewError("DOCUMENT_EDIT_DENIED", 403)
-
-        previous_metadata = {key: row[key] for key in _METADATA_FIELDS}
-        metadata = {**previous_metadata, **{k: v for k, v in changes.items()
-                                           if k in _METADATA_FIELDS}}
-        official_url, domain = validate_source_url(changes.get("official_url", row["official_url"]))
-        rows = await conn.fetch(
-            "SELECT * FROM source_pages WHERE document_version_id=$1 ORDER BY page_number",
+        return await apply_version_change_in_tx(
+            conn,
+            principal,
+            document_id,
             version_id,
+            revision=revision,
+            changes=changes,
+            ocr_page=ocr_page,
+            prepared=prepared,
+            as_of=as_of,
         )
-        previous_pages = {item["page_number"]: item for item in rows}
-        if not rows:
-            raise ReviewError("DOCUMENT_TEXT_NOT_READY", 409)
-        pages = [_page(item) for item in rows]
-        changed_pages: list[ExtractedPage] = []
-        if prepared is not None:
-            if (prepared.sha256 != version["original_file_sha256"]
-                    or [page.page_number for page in prepared.pages] != list(previous_pages)):
-                raise ReviewError("SOURCE_REEXTRACTION_CONFLICT", 409)
-            pages = changed_pages = prepared.pages
-        elif ocr_page is not None:
-            number, correction = ocr_page
-            current = previous_pages.get(number)
-            if current is None:
-                raise ReviewError("DOCUMENT_NOT_FOUND", 404)
-            if (current["extraction_method"] != "local_ocr"
-                    and current["text_quality"] != "needs_ocr"):
-                raise ReviewError("OCR_EDIT_DENIED", 409)
-            changed_pages = [replace(_page(current), text=correction, extraction_method="local_ocr",
-                                     text_quality="needs_review", extraction_error=None,
-                                     ocr_diagnostics=None)]
-            pages = [changed_pages[0] if page.page_number == number else page for page in pages]
-        elif any(item["text_original"] is None and item["text_quality"] == "usable"
-                 and item["reviewed_at"] is None for item in rows):
-            raise ReviewError("DOCUMENT_REPROCESS_REQUIRED", 409)
-        if sum(len(page.text) for page in pages) > max_document_characters():
-            raise ReviewError("PDF_RESOURCE_LIMIT_EXCEEDED", 413)
-
-        version_is_new = version["review_status"] in {"approved", "rejected"}
-        target_id = version_id
-        if version_is_new:
-            target_id = await _new_revision(conn, version, previous_metadata, actor)
-        else:
-            await delete_version_nodes(conn, version_id)
-
-        await _record_ocr_edits(conn, target_id, actor, previous_pages, changed_pages)
-        await conn.executemany(
-            """UPDATE source_pages SET extraction_method=$3, text_quality=$4, text_original=$5,
-                 extraction_error=$6, ocr_diagnostics=$7::jsonb, reviewed_by=NULL, reviewed_at=NULL
-               WHERE document_version_id=$1 AND page_number=$2""",
-            [(target_id, page.page_number, page.extraction_method, page.text_quality,
-              page.text, page.extraction_error, json.dumps(page.ocr_diagnostics)
-              if page.ocr_diagnostics is not None else None) for page in changed_pages],
-        )
-        if changed_pages:
-            # A draft's old whole-page spans refer to the old text. New legal
-            # nodes will write their own exact spans below.
-            await conn.execute(
-                """DELETE FROM source_spans WHERE page_id IN (SELECT id FROM source_pages
-                   WHERE document_version_id=$1 AND page_number=ANY($2::int[]))""",
-                target_id, [page.page_number for page in changed_pages],
-            )
-        page_ids = {item["page_number"]: item["id"] for item in await conn.fetch(
-            "SELECT id, page_number FROM source_pages WHERE document_version_id=$1", target_id,
-        )}
-        fingerprint = (content_fingerprint(prepared.pages) if prepared is not None
-                       else version["native_text_fingerprint_v1"])
-        next_revision = await conn.fetchval(
-            """UPDATE document_versions
-               SET review_status='draft', admin_metadata=$2::jsonb, submitted_by=$3,
-                   official_url=$4, publication_date=$5, effective_from=$6,
-                   dates_confirmed_at=NULL, dates_confirmed_by=NULL,
-                   source_review_revision=source_review_revision+1,
-                   native_text_fingerprint_v1=$7
-               WHERE id=$1 RETURNING source_review_revision""",
-            target_id, json.dumps(metadata, ensure_ascii=False), actor, official_url,
-            changes.get("publication_date", row["publication_date"]),
-            changes.get("effective_from", row["effective_from"]),
-            fingerprint,
-        )
-        await conn.execute(
-            """INSERT INTO source_provenance
-                 (document_version_id, official_url, publisher_domain, fetched_checksum)
-               VALUES ($1, $2, $3, $4) ON CONFLICT (document_version_id) DO UPDATE
-               SET official_url=$2, publisher_domain=$3, verified_at=NULL,
-                   authenticity_reviewer=NULL""",
-            target_id, official_url, domain, version["original_file_sha256"],
-        )
-        nodes = prepared.nodes if prepared else await asyncio.to_thread(parse_legal_tree, pages)
-        _, unanchored = await write_nodes(
-            conn, document_id=document_id, version_id=target_id, title=metadata["title"],
-            document_number=metadata["document_number"], page_ids=page_ids,
-            page_texts={page.page_number: page.text for page in pages}, nodes=nodes,
-        )
-        await detect_and_store_dates(conn, target_id)
-        await _review_tasks(conn, version_id, target_id, pages, changed_pages, unanchored)
-        await append_audit(
-            conn, principal_id=actor,
-            action="document.reprocess" if prepared else "document.edit",
-            target_type="document_version", target_id=str(target_id),
-            metadata={
-                "document_id": str(document_id), "base_version_id": str(version_id),
-                "revision": next_revision, "pages": [page.page_number for page in changed_pages],
-                "changes": {
-                    key: {"from": str(row[key]) if isinstance(row[key], date) else row[key],
-                          "to": str(value) if isinstance(value, date) else value}
-                    for key, value in changes.items() if row[key] != value
-                },
-            },
-        )
-    return {"version_id": target_id, "revision": next_revision, "status": "draft"}
 
 
 async def _review_tasks(

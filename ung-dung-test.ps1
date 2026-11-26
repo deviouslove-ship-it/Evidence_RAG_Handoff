@@ -27,10 +27,16 @@ $pgData = Join-Path $erag 'data\postgres-dev'
 $pgPasswordFile = Join-Path $erag 'secrets\postgres-dev.password'
 $python = Join-Path $erag 'backend-venv\Scripts\python.exe'
 $ollama = Join-Path $erag 'tools\ollama\ollama.exe'
-$ollamaModels = Join-Path $erag 'models\ollama'
+$repoModels = Join-Path $repo 'models\ollama'
+$ollamaModels = if (Test-Path -LiteralPath $repoModels) { $repoModels } else { Join-Path $erag 'models\ollama' }
 $docStore = Join-Path $erag 'data\rerank-eval\document-store'
 $webRoot = Join-Path $repo 'frontend\dist'
 $logDir = Join-Path $erag 'audit'
+$repoHash = [Security.Cryptography.SHA256]::Create()
+try {
+    $ownerKey = ([BitConverter]::ToString($repoHash.ComputeHash([Text.Encoding]::UTF8.GetBytes($repo.ToLowerInvariant())))).Replace('-', '').Substring(0, 12)
+} finally { $repoHash.Dispose() }
+$ownerPrefix = Join-Path $logDir ("test-app-$ownerKey-$Port")
 # OCR (optional): newest Tesseract under <Programs>\EvidenceRAG\tools\tesseract\<version>.
 $ocrExe = Get-ChildItem -Path (Join-Path $erag 'tools\tesseract') -Filter 'tesseract.exe' -Recurse -Depth 1 -ErrorAction SilentlyContinue |
     Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
@@ -49,17 +55,33 @@ function Wait-Port([int]$p, [int]$seconds) {
 function Get-Health {
     try { return Invoke-RestMethod -Uri "${url}health" -TimeoutSec 3 } catch { return $null }
 }
+function Save-OwnedProcess([string]$Name, $Process) {
+    if ($Process.HasExited) { return }
+    $state = @{ repo = $repo; pid = $Process.Id; executable = $Process.Path; started = $Process.StartTime.ToUniversalTime().ToString('o') }
+    [IO.File]::WriteAllText("$ownerPrefix-$Name.json", ($state | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
+}
+function Get-OwnedProcess([string]$Name) {
+    try {
+        $state = Get-Content -LiteralPath "$ownerPrefix-$Name.json" -Raw -ErrorAction Stop | ConvertFrom-Json
+        if ($state.repo -ne $repo) { return $null }
+        $process = Get-Process -Id ([int]$state.pid) -ErrorAction Stop
+        if ($process.Path -ne $state.executable -or $process.StartTime.ToUniversalTime().ToString('o') -ne $state.started) { return $null }
+        return $process
+    } catch { return $null }
+}
+function Stop-OwnedProcess([string]$Name) {
+    $process = Get-OwnedProcess $Name
+    if (-not $process) { return 0 }
+    # Only this launcher's recorded process tree; never select by a port or by name.
+    & (Join-Path $env:SystemRoot 'System32\taskkill.exe') /PID $process.Id /T /F 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { return 0 }
+    Remove-Item -LiteralPath "$ownerPrefix-$Name.json" -ErrorAction SilentlyContinue
+    return 1
+}
 function Stop-Backend([int]$p) {
-    # The venv launcher and the real server both carry the uvicorn command line; match on it
-    # (not only on the listening socket) so nothing is left behind.
-    $found = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-            $_.CommandLine -and $_.CommandLine -match 'uvicorn' -and $_.CommandLine -match "--port $p(\s|$)" })
-    $owners = @(Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue |
-            Select-Object -ExpandProperty OwningProcess -Unique)
-    $ids = @($found | ForEach-Object { $_.ProcessId }) + $owners | Sort-Object -Unique
-    foreach ($id in $ids) { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue }
+    $count = Stop-OwnedProcess 'backend'
     for ($i = 0; $i -lt 10 -and (Test-Port $p); $i++) { Start-Sleep -Milliseconds 500 }
-    return $ids.Count
+    return $count
 }
 
 if ($Action -eq 'status') {
@@ -73,10 +95,12 @@ if ($Action -eq 'status') {
 if ($Action -eq 'stop') {
     $stopped = Stop-Backend $Port
     Write-Host ("Da tat may chu ung dung ({0} tien trinh)." -f $stopped)
-    Get-Process -Name 'ollama*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    Write-Host "Da tat Ollama."
-    if (Test-Port $pgPort) {
+    $ollamaStopped = Stop-OwnedProcess 'ollama'
+    Write-Host ("Da tat {0} Ollama do lan chay nay so huu; giu nguyen dich vu khac." -f $ollamaStopped)
+    if ((Get-OwnedProcess 'postgres') -and (Test-Port $pgPort)) {
         & (Join-Path $pgBin 'pg_ctl.exe') stop -D $pgData -m fast -w -t 60 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Khong dung duoc PostgreSQL cua lan chay nay.' }
+        Remove-Item -LiteralPath "$ownerPrefix-postgres.json" -ErrorAction SilentlyContinue
         Write-Host "Da tat PostgreSQL (du lieu duoc giu nguyen)."
     }
     return
@@ -95,6 +119,8 @@ if (-not (Test-Port $pgPort)) {
     Start-Process -FilePath (Join-Path $pgBin 'pg_ctl.exe') -ArgumentList $pgArgs -WindowStyle Hidden
     if (-not (Wait-Port $pgPort 60)) { throw "PostgreSQL khong khoi dong duoc. Xem $(Join-Path $logDir 'postgres-test-app.log')" }
     Start-Sleep -Seconds 2
+    $postgresId = [int](Get-Content -LiteralPath (Join-Path $pgData 'postmaster.pid') -TotalCount 1)
+    Save-OwnedProcess 'postgres' (Get-Process -Id $postgresId)
 }
 
 Write-Host "[2/4] Ollama (embedding va mo rong tu khoa)..."
@@ -102,9 +128,10 @@ if (Test-Path -LiteralPath $ollama) {
     if (-not (Test-Port $ollamaPort)) {
         $env:OLLAMA_MODELS = $ollamaModels
         $env:OLLAMA_HOST = "127.0.0.1:$ollamaPort"
-        Start-Process -FilePath $ollama -ArgumentList 'serve' -WindowStyle Hidden `
+        $ollamaProcess = Start-Process -FilePath $ollama -ArgumentList 'serve' -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $logDir 'ollama-test-app.out.log') `
             -RedirectStandardError (Join-Path $logDir 'ollama-test-app.err.log')
+        Save-OwnedProcess 'ollama' $ollamaProcess
         if (-not (Wait-Port $ollamaPort 30)) { Write-Host "  Canh bao: Ollama khong len. Tim kiem theo nghia se khong chay." }
     }
     if (Test-Port $ollamaPort) {
@@ -139,11 +166,12 @@ if (-not ($health -and $health.status -eq 'ok')) {
         'EVIDENCE_SEMANTIC_RELATIVE_THRESHOLD', 'EVIDENCE_BOOTSTRAP_PASSWORD', 'DEEPSEEK_API_KEY') {
         Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
     }
-    Start-Process -FilePath $python `
+    $backendProcess = Start-Process -FilePath $python -PassThru `
         -ArgumentList @('-m', 'uvicorn', 'app.main:create_app', '--factory', '--host', '127.0.0.1', '--port', "$Port") `
         -WorkingDirectory (Join-Path $repo 'backend') -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $logDir 'test-app-backend.out.log') `
         -RedirectStandardError (Join-Path $logDir 'test-app-backend.err.log')
+    Save-OwnedProcess 'backend' $backendProcess
     for ($i = 0; $i -lt 90; $i++) {
         Start-Sleep -Seconds 1
         $health = Get-Health

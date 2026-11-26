@@ -47,6 +47,7 @@ export function ProfileEditor({
   const local = form.kind === "local";
   const adv = form.advanced;
   const embedding = adv.role === "embedding";
+  const ocr = adv.role === "ocr";
   const problem = formProblem(form);
 
   /** Any change invalidates the last check: the next save checks again. */
@@ -195,10 +196,23 @@ export function ProfileEditor({
           <label className="field-label">
             Vai trò
             <select
-              onChange={(e) => editAdvanced({ role: e.target.value as "text" | "embedding" })}
+              onChange={(e) => {
+                const nextRole = e.target.value as "text" | "embedding" | "ocr";
+                if (nextRole === "ocr") {
+                  editAdvanced({
+                    role: nextRole,
+                    ollamaNative: true,
+                    think: "false",
+                    numCtx: adv.numCtx || "8192",
+                  });
+                } else {
+                  editAdvanced({ role: nextRole });
+                }
+              }}
               value={adv.role}
             >
               <option value="text">Sinh văn bản (hỏi đáp, diễn giải, mở rộng…)</option>
+              <option value="ocr">Đọc ảnh trang scan (OCR AI)</option>
               <option value="embedding">Tạo vector (embedding) cho tìm theo nghĩa</option>
             </select>
           </label>
@@ -210,11 +224,38 @@ export function ProfileEditor({
                 embeddingDimensions: e.target.value })} type="number"
                 value={adv.embeddingDimensions} />
             </label>
+          ) : ocr ? (
+            <>
+              <div className="admin-form-grid-2">
+                <label className="field-label">
+                  Nhiệt độ (0–2)
+                  <input max={2} min={0} onChange={(e) => editAdvanced({
+                    temperature: e.target.value })} step="0.1" type="number"
+                    value={adv.temperature} />
+                </label>
+                <label className="field-label">
+                  Ngữ cảnh num_ctx (1024–32768)
+                  <input max={32768} min={1024} onChange={(e) => editAdvanced({
+                    numCtx: e.target.value })} placeholder="8192" type="number"
+                    value={adv.numCtx} />
+                </label>
+              </div>
+              <label className="field-label">
+                Chế độ suy luận (think)
+                <select onChange={(e) => editAdvanced({
+                  think: e.target.value as "" | "false" | "true" })}
+                  value={adv.think || "false"}>
+                  <option value="false">Tắt (think=false, khuyến nghị cho OCR)</option>
+                  <option value="true">Bật (think=true)</option>
+                </select>
+              </label>
+            </>
           ) : (
             <>
               <fieldset className="ai-functions">
                 <legend>Chức năng được dùng</legend>
-                {AI_FUNCTIONS.filter((item) => item.stage !== "embedding").map((item) => (
+                {AI_FUNCTIONS.filter((item) => item.stage !== "embedding" && item.stage !== "ocr")
+                  .map((item) => (
                   <label className="checkbox-row" key={item.stage}>
                     <input checked={adv.functions.includes(item.stage)}
                            onChange={(e) => toggleFunction(item.stage, e.target.checked)}
@@ -253,6 +294,34 @@ export function ProfileEditor({
                   </select>
                 </label>
               </div>
+              {local && form.choice === "ollama_local" && (
+                <div className="admin-form-grid-2">
+                  <label className="field-label">
+                    Chế độ thinking (Ollama native)
+                    <select onChange={(e) => editAdvanced({
+                      think: e.target.value as "" | "false" | "true" })}
+                      value={adv.think}>
+                      <option value="">Theo mức suy luận</option>
+                      <option value="false">Tắt (think=false)</option>
+                      <option value="true">Bật (think=true)</option>
+                    </select>
+                  </label>
+                  <label className="field-label">
+                    Ngữ cảnh num_ctx (1024–32768)
+                    <input max={32768} min={1024} onChange={(e) => editAdvanced({
+                      numCtx: e.target.value })} placeholder="Mặc định runtime"
+                      type="number" value={adv.numCtx} />
+                  </label>
+                </div>
+              )}
+              {local && form.choice === "ollama_local" && (
+                <label className="checkbox-row">
+                  <input checked={adv.ollamaNative}
+                         onChange={(e) => editAdvanced({ ollamaNative: e.target.checked })}
+                         type="checkbox" />
+                  <span>Dùng API native Ollama (/api/chat)</span>
+                </label>
+              )}
               <label className="checkbox-row">
                 <input checked={adv.jsonMode}
                        onChange={(e) => editAdvanced({ jsonMode: e.target.checked })}

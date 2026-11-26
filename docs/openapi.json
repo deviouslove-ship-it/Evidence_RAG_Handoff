@@ -1922,6 +1922,24 @@
             ],
             "title": "Max Tokens"
           },
+          "num_ctx": {
+            "anyOf": [
+              {
+                "maximum": 32768.0,
+                "minimum": 1024.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Ctx"
+          },
+          "ollama_native": {
+            "default": false,
+            "title": "Ollama Native",
+            "type": "boolean"
+          },
           "reasoning_effort": {
             "anyOf": [
               {
@@ -1952,6 +1970,17 @@
               }
             ],
             "title": "Temperature"
+          },
+          "think": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Think"
           },
           "token_limit_field": {
             "default": "max_tokens",
@@ -2141,6 +2170,265 @@
           "revision"
         ],
         "title": "ModelProfileRequest",
+        "type": "object"
+      },
+      "OcrAiApplyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_text": {
+            "anyOf": [
+              {
+                "maxLength": 50000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Text"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "OcrAiApplyRequest",
+        "type": "object"
+      },
+      "OcrAiCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "page_number": {
+            "minimum": 1.0,
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_number",
+          "expected_revision",
+          "request_id"
+        ],
+        "title": "OcrAiCreateRequest",
+        "type": "object"
+      },
+      "OcrAiRejectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "OcrAiRejectRequest",
+        "type": "object"
+      },
+      "PageTextRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "page_number": {
+            "minimum": 1.0,
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "prefer_ai": {
+            "default": false,
+            "title": "Prefer Ai",
+            "type": "boolean"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          }
+        },
+        "required": [
+          "page_number"
+        ],
+        "title": "PageTextRequest",
+        "type": "object"
+      },
+      "PageTextResponse": {
+        "properties": {
+          "deduplicated": {
+            "default": false,
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "document_title": {
+            "title": "Document Title",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "page_number": {
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "page_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Text"
+          },
+          "pdf_url": {
+            "title": "Pdf Url",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "native",
+              "ocr_reviewed",
+              "ocr_ai_unverified"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "ready",
+              "failed",
+              "cancelled",
+              "stale",
+              "applied",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          },
+          "unreadable": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unreadable",
+            "type": "array"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "document_id",
+          "version_id",
+          "document_title",
+          "page_number",
+          "total_pages",
+          "source_kind",
+          "verified",
+          "pdf_url"
+        ],
+        "title": "PageTextResponse",
         "type": "object"
       },
       "PasswordChangeRequest": {
@@ -3517,7 +3805,7 @@
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
-                "maximum": 30.0,
+                "maximum": 300.0,
                 "type": "number"
               },
               {
@@ -6966,6 +7254,129 @@
         ]
       }
     },
+    "/api/v1/admin/documents/{document_id}/versions/{version_id}/ocr-ai": {
+      "post": {
+        "operationId": "create_ocr_ai_proposal_route_api_v1_admin_documents__document_id__versions__version_id__ocr_ai_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrAiCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Ocr Ai Proposal Route Api V1 Admin Documents  Document Id  Versions  Version Id  Ocr Ai Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Create Ocr Ai Proposal Route",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/documents/{document_id}/versions/{version_id}/original": {
       "get": {
         "operationId": "admin_document_original_api_v1_admin_documents__document_id__versions__version_id__original_get",
@@ -9514,6 +9925,445 @@
         ]
       }
     },
+    "/api/v1/admin/ocr-ai/{proposal_id}": {
+      "get": {
+        "operationId": "get_ocr_ai_proposal_route_api_v1_admin_ocr_ai__proposal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Ocr Ai Proposal Route Api V1 Admin Ocr Ai  Proposal Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get Ocr Ai Proposal Route",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/ocr-ai/{proposal_id}/apply": {
+      "post": {
+        "operationId": "apply_ocr_ai_proposal_route_api_v1_admin_ocr_ai__proposal_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrAiApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Apply Ocr Ai Proposal Route Api V1 Admin Ocr Ai  Proposal Id  Apply Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Apply Ocr Ai Proposal Route",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/ocr-ai/{proposal_id}/cancel": {
+      "post": {
+        "operationId": "cancel_ocr_ai_proposal_route_api_v1_admin_ocr_ai__proposal_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Cancel Ocr Ai Proposal Route Api V1 Admin Ocr Ai  Proposal Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Cancel Ocr Ai Proposal Route",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/ocr-ai/{proposal_id}/reject": {
+      "post": {
+        "operationId": "reject_ocr_ai_proposal_route_api_v1_admin_ocr_ai__proposal_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/OcrAiRejectRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reject Ocr Ai Proposal Route Api V1 Admin Ocr Ai  Proposal Id  Reject Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Reject Ocr Ai Proposal Route",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/synthesis-settings": {
       "get": {
         "operationId": "get_synthesis_settings_api_v1_admin_synthesis_settings_get",
@@ -11557,6 +12407,236 @@
         "summary": "Citation Pdf"
       }
     },
+    "/api/v1/documents/{document_id}/versions/{version_id}/page-text": {
+      "post": {
+        "operationId": "request_page_text_route_api_v1_documents__document_id__versions__version_id__page_text_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageTextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Request Page Text Route",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/versions/{version_id}/pdf": {
+      "get": {
+        "operationId": "get_user_document_pdf_route_api_v1_documents__document_id__versions__version_id__pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get User Document Pdf Route",
+        "tags": [
+          "user"
+        ]
+      }
+    },
     "/api/v1/effectivity/documents/{document_id}": {
       "get": {
         "operationId": "get_document_effectivity_api_v1_effectivity_documents__document_id__get",
@@ -12173,6 +13253,208 @@
           }
         },
         "summary": "Delete Memory Item"
+      }
+    },
+    "/api/v1/page-text-tasks/{task_id}": {
+      "get": {
+        "operationId": "get_page_text_task_route_api_v1_page_text_tasks__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageTextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get Page Text Task Route",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/page-text-tasks/{task_id}/cancel": {
+      "post": {
+        "operationId": "cancel_page_text_task_route_api_v1_page_text_tasks__task_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageTextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Cancel Page Text Task Route",
+        "tags": [
+          "user"
+        ]
       }
     },
     "/api/v1/query/analyze": {

@@ -2,7 +2,9 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · English: `USER_GUIDE.en.md` (cùng thư mục)
 
-Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và mô tả đúng bộ đóng gói này: khởi động, đăng nhập, sử dụng USER và ADMIN, quản lý tài liệu, OCR, cấu hình AI Local và AI API, sao lưu/phục hồi và xử lý lỗi. Tên nút theo giao diện tiếng Việt của bản đóng gói. Chỉ thực hiện thao tác quản trị, thay model, phục hồi hoặc đổi cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống. Hệ thống chỉ hỗ trợ tra cứu: kết quả AI luôn cần chuyên viên kiểm tra, không thay thế nguồn pháp lý chính thức.
+Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và mô tả đúng bộ đóng gói này: khởi động, đăng nhập, sử dụng USER và ADMIN, quản lý tài liệu, OCR, cấu hình AI Local và AI API, sao lưu/phục hồi và xử lý lỗi. Tên nút theo giao diện tiếng Việt của bản đóng gói. Chỉ thực hiện thao tác quản trị, thay model, phục hồi hoặc đổi cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống. Hệ thống chỉ hỗ trợ tra cứu: kết quả AI luôn cần chuyên viên kiểm tra, không thay thế văn bản gốc đã duyệt.
+
+> Đây là mẫu hướng dẫn cho lần đóng gói từ source nâng cấp, đối chiếu ngày 17/11/2026. Đợt rà soát này chưa build/kiểm thử ZIP Portable mới; r4 hiện có vẫn giữ nguyên. Thành phần và số liệu gói thực nhận phải đối chiếu `MANIFEST.json`, không suy từ mẫu hướng dẫn.
 
 ## Mục lục
 
@@ -18,9 +20,9 @@ Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và 
 9. [Xử lý lỗi](#9-xử-lý-lỗi)
 ## 0. Bản Portable này (đọc trước)
 
-**Gói gồm gì.** Giao diện web, máy chủ FastAPI, PostgreSQL + pgvector (cơ sở dữ liệu, chỉ mục, vector), kho tài liệu gốc (tên tệp là SHA-256 của nội dung), Tesseract OCR (`vie`, `eng`, `osd`), Ollama và hai model AI cục bộ (`qwen3:1.7b` cho diễn giải/mở rộng/gán nhãn/quan hệ, `qwen3-embedding:0.6b` 1024 chiều cho tìm theo nghĩa). Chạy hoàn toàn offline; không cần cài Python, PostgreSQL, Ollama, Tesseract hay Node.js. Máy trạm chỉ cần trình duyệt.
+**Gói gồm gì.** Giao diện web, máy chủ FastAPI, PostgreSQL + pgvector (cơ sở dữ liệu, chỉ mục, vector), kho tài liệu gốc (tên tệp là SHA-256 của nội dung), Tesseract OCR (`vie`, `eng`, `osd`), Ollama và hai model AI cục bộ (`qwen3.5:4b` cho diễn giải/mở rộng/gán nhãn/quan hệ và OCR AI từng trang, `qwen3-embedding:0.6b` 1024 chiều cho tìm theo nghĩa). Chạy hoàn toàn offline; không cần cài Python, PostgreSQL, Ollama, Tesseract hay Node.js. Máy trạm chỉ cần trình duyệt.
 
-**Yêu cầu máy chủ.** Windows 10 / Windows Server 2016 trở lên, x64, PowerShell 5.1 (có sẵn). Trống tối thiểu 6 GB cho gói đã giải nén và dữ liệu; RAM tối thiểu 8 GB (khuyến nghị, đã thử: Intel Core i3, DDR4 32 GB, SSD 512 GB) (model chạy bằng CPU, lần gọi đầu phải nạp model vào RAM). Không cần quyền Administrator để chạy.
+**Yêu cầu máy chủ.** Windows 10 / Windows Server 2016 trở lên, x64, PowerShell 5.1. Cần đủ chỗ cho toàn bộ gói, database sau khôi phục và bản sao lưu; kiểm dung lượng thực trong `MANIFEST.json`. RAM và thời gian xử lý phải đo với model và tải sử dụng thực tế; mốc 8 GB của cấu hình cũ chưa được xác nhận cho bản nâng cấp `qwen3.5:4b`. Không cần quyền Administrator để chạy.
 
 **Khởi động nhanh.**
 1. Giải nén TOÀN BỘ tệp nén (.rar, bằng WinRAR hoặc 7-Zip) vào một thư mục bất kỳ trên ổ bất kỳ (tên thư mục có dấu cách vẫn dùng được; không chạy trong tệp nén). Nên dùng đường dẫn ngắn.
@@ -30,7 +32,7 @@ Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và 
 
 **Các thư mục.** `app\` (web và backend), `runtime\` (Python, PostgreSQL, Ollama, Tesseract), `models\ollama\` (model AI), `data\documents\` (tài liệu gốc), `data\postgres\` (cơ sở dữ liệu, tạo ở lần chạy đầu), `seed\` (bản dữ liệu gốc để dựng lần đầu), `config\evidence.env` (cấu hình, mục 8.6), `secrets\` (mật khẩu DB sinh ngẫu nhiên và khóa API mã hóa DPAPI; không chia sẻ), `logs\`, `backups\`, `tools\`.
 
-**Tài khoản trong gói và quyền theo danh mục (ABAC).** Gói có 5 tài khoản. Mỗi tài khoản có một **mật khẩu demo riêng**, dùng được ngay sau khi giải nén (không buộc đổi ở lần đăng nhập đầu). Mật khẩu **không** nằm trong gói, README, nhật ký hay mã nguồn (gói chỉ lưu dạng băm scrypt); chúng được bàn giao riêng trong tệp `Acount_Demo.md` đặt cạnh tệp ZIP (không nằm trong ZIP). Đây là mật khẩu demo, không phải mật khẩu vận hành: hãy **đổi ngay sau khi nhận** (Đổi mật khẩu) hoặc đặt lại trong Admin Portal → Tài khoản & Phân quyền trước khi đưa vào sử dụng thật.
+**Tài khoản trong gói và quyền theo danh mục (ABAC).** Gói có 5 tài khoản. Mỗi tài khoản có một **mật khẩu demo riêng**, dùng được ngay sau khi giải nén (không buộc đổi ở lần đăng nhập đầu). Với gói thử nghiệm r4 đã bàn giao, thông tin đăng nhập nằm trong `Acount_Demo.md` ở thư mục gốc của gói ZIP. Gói mới phải kiểm lại hồ sơ bàn giao; không sao chép mật khẩu vào README, nhật ký hoặc source. Database lưu dạng băm scrypt. Đây là mật khẩu demo, không phải mật khẩu vận hành: hãy **đổi ngay sau khi nhận** (Đổi mật khẩu) hoặc đặt lại trong Admin Portal → Tài khoản & Phân quyền trước khi đưa vào sử dụng thật.
 
 | Tài khoản | Vai trò | Quyền trên danh mục |
 |---|---|---|
@@ -55,6 +57,12 @@ Chín danh mục: Luật, Nghị định, Thông tư, Thông tư liên tịch, Q
 4. Trong Hỏi đáp hoặc kết quả tìm kiếm, chọn **Diễn giải AI** nếu cần một bản diễn giải từ những căn cứ phù hợp. Đọc phần thiếu căn cứ, cảnh báo và **Căn cứ hỗ trợ**; dùng **Diễn giải tiếp** nếu có. Các ý được kiểm tự động vẫn cần đối chiếu trước khi sử dụng.
 5. Chọn **Mở văn bản gốc** trên thẻ căn cứ. PDF mở riêng tại trang nguồn; Word/TXT tải đúng tệp gốc. Nếu bị từ chối, không có nghĩa tệp bị xóa: phiên, quyền, trạng thái nguồn hoặc kiểm tra toàn vẹn có thể không đạt.
 
+### Đọc riêng một trang PDF trong Hỏi đáp
+
+Sau khi tra cứu và chọn một lượt có văn bản nguồn, nhập “Cho tôi nội dung text trang 17 của văn bản này”, hoặc nêu rõ tên/số hiệu văn bản. Nếu có nhiều văn bản, chọn đúng tài liệu được hỏi. “Trang 17” là trang thứ 17 trong PDF; nếu hỏi “trang in 17”, giao diện yêu cầu xác nhận số trang PDF tương ứng.
+
+Hệ thống trả nguyên chữ đã trích xuất/duyệt của đúng trang khi có, không cần gọi model. Khi thiếu chữ hoặc khi yêu cầu “Đọc lại từ ảnh trang 17 của văn bản này”, chỉ ảnh trang được chọn được gửi tới OCR AI cục bộ. Khung kết quả ghi rõ **AI đọc từ ảnh — chưa đối chiếu thủ công**, giữ cảnh báo và phần không đọc rõ. Dùng **Sao chép nội dung trang**, **Mở trang gốc** để đối chiếu hoặc **Hủy đọc trang** khi đang chờ; **Dừng**, xóa dữ liệu tạm và đăng xuất cũng hủy tác vụ đang theo dõi. Kết quả AI có TTL một giờ, không sửa bản nguồn, không tự tạo vector và không trở thành trích dẫn đã xác minh. Thao tác chỉnh kho phải đi qua đề xuất quản trị và quy trình duyệt riêng.
+
 ## 2. Nhập, OCR và duyệt nguồn
 
 Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
@@ -72,7 +80,7 @@ Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
 2. Chọn **Chi tiết** để xem metadata, danh mục và các phiên bản. Nếu có quyền đọc, mở tệp
    gốc, chuyển trang OCR, xem Điều/Khoản/Điểm và số mục đã có embedding trong chỉ mục
    đang dùng. Mở **Lịch sử xử lý** để xem thao tác gần đây.
-3. CURATOR có quyền dùng **Sửa thông tin** (rồi **Lưu thông tin**), **Sửa chữ OCR** của trang scan (rồi **Lưu sửa OCR**) hoặc **Xử lý lại từ tệp gốc** (rồi **Xác nhận xử lý lại**). Xử lý lại chạy bộ trích xuất/OCR đã cấu hình và đưa kết quả về nháp. Khi đã duyệt
+3. CURATOR có quyền dùng **Sửa thông tin** (rồi **Lưu thông tin**), **Sửa chữ OCR** của trang scan (rồi **Lưu sửa OCR**), **Đọc lại trang này bằng OCR AI** (đọc từng trang bằng model Ollama vision cục bộ `qwen3.5:4b`, hiện khác biệt để đối chiếu rồi mới **Áp dụng đề xuất vào bản nháp**, không tự thay văn bản đã duyệt và vẫn cần REVIEWER khác xác nhận) hoặc **Xử lý lại từ tệp gốc** (rồi **Xác nhận xử lý lại**). Xử lý lại chạy bộ trích xuất/OCR đã cấu hình và đưa kết quả về nháp. Khi đã duyệt
    hoặc từ chối, thao tác tạo phiên bản nháp mới. Có thể **Thêm phiên bản từ tệp mới** để đính một PDF, Word hoặc TXT mới vào cùng văn bản, rồi chọn **Tạo phiên bản nháp**. Xác minh thông tin của tệp trước khi
    gửi duyệt.
 4. Trong hồ sơ văn bản chọn **Gửi duyệt**, hoặc chọn nhiều bản nháp trong danh sách rồi **Gửi duyệt các bản đã chọn** (xác nhận bằng **Xác nhận gửi duyệt**). Kiểm tra kết quả từng bản. REVIEWER khác mở phiên bản đang chờ, chọn **Mở PDF và thẩm định**, xem tệp nguồn, xử lý tác vụ và xác nhận lại từng
@@ -128,10 +136,12 @@ Khóa nhập qua giao diện đi từ trình duyệt đến server; LAN Portable
 
 | Việc cần đổi | Thao tác | Ảnh hưởng vector |
 |---|---|---|
-| Model cho **Diễn giải AI** | Trong **2. Phân công AI**, chọn dòng Diễn giải AI, kiểm tra và áp dụng | Không tự tạo lại vector/index. |
+| Model cho **Diễn giải AI** / **OCR AI** | Trong **2. Phân công AI**, chọn dòng Diễn giải AI hoặc chức năng `ocr` (chỉ dùng hồ sơ Ollama cục bộ có projector vision), kiểm tra và áp dụng | Không tự tạo lại vector/index. |
 | Model tìm theo nghĩa | Tạo hồ sơ vai trò embedding; mở **Embedding (tìm theo nghĩa)** | Preflight và xác nhận tác vụ tạo/bổ sung vector, kiểm chỉ mục mới rồi chuyển; giữ chỉ mục cũ trong thời gian xây dựng và sau khi chuyển. |
 
 Để đổi embedding: tại **Chọn / đổi model embedding**, chọn hồ sơ, quy mô lô và chỉ chọn **Tạo chỉ mục mới từ đầu** khi thực sự cần; bấm **Kiểm tra model**. Xem số chiều, số nút cần tạo, ước tính và các kiểm tra. Nếu đạt, xác nhận tạo tác vụ. Theo dõi tiến độ, lỗi và dùng tạm dừng/tiếp tục/thử lại/hủy theo trạng thái. Worker phải bật; nếu thất bại, chỉ mục đang phục vụ được giữ. Các nút duyệt mới có thể cần **Kiểm tra và bổ sung vector còn thiếu**. Không xóa thủ công chỉ mục cũ để “sửa” lỗi.
+
+**Bật OCR AI có chủ đích.** Worker mặc định tắt. Sau khi kiểm tra hồ sơ Ollama vision và phân công chức năng `ocr`, người vận hành đặt `EVIDENCE_OCR_AI_ENABLED=true` trong cấu hình máy chủ rồi khởi động lại. Với Portable, bỏ dấu `#` ở dòng tương ứng trong `config/evidence.env`. Khi tắt, chữ trang đã duyệt và Tesseract vẫn dùng được; yêu cầu đọc ảnh mới trả lỗi `OCR_AI_DISABLED`, không bị treo trong hàng đợi. Đổi cấu hình/model hoặc phiên bản prompt khiến đề xuất cũ không còn hợp lệ để áp dụng; tạo yêu cầu mới. Không cần tạo lại embedding khi chỉ đổi model sinh chữ/OCR.
 
 ## 7. Model local cho Portable offline
 

@@ -33,6 +33,9 @@ export interface ModelProfilePayload {
     reasoning_effort?: string;
     token_limit_field?: string;
     embedding_dimensions?: number;
+    ollama_native?: boolean;
+    think?: boolean;
+    num_ctx?: number;
   };
   input_price_per_mtok?: number;
   output_price_per_mtok?: number;
@@ -69,6 +72,9 @@ export const AI_FUNCTIONS: AiFunction[] = [
   { stage: "label", label: "Phân nhóm nội dung",
     hint: "Đề xuất nhóm nội dung cho điều khoản.", editable: true, escalation: false,
     localOnly: false },
+  { stage: "ocr", label: "OCR AI đọc trang scan",
+    hint: "Đọc chữ và bảng từ ảnh trang PDF scan theo yêu cầu; chỉ dùng Ollama cục bộ.",
+    editable: true, escalation: false, localOnly: true },
   { stage: "rerank", label: "Xếp hạng lại kết quả",
     hint: "Sắp xếp lại kết quả tìm kiếm; mặc định đang tắt.", editable: true, escalation: false,
     localOnly: true },
@@ -78,7 +84,8 @@ export const AI_FUNCTIONS: AiFunction[] = [
 ];
 
 export const GENERATION_STAGES = AI_FUNCTIONS
-  .filter((item) => item.stage !== "embedding").map((item) => item.stage);
+  .filter((item) => item.stage !== "embedding" && item.stage !== "ocr")
+  .map((item) => item.stage);
 /** Roles of a new API model: not rerank (reranking always runs on a local model). */
 const API_STAGES = GENERATION_STAGES.filter((stage) => stage !== "rerank");
 
@@ -136,7 +143,7 @@ export function describeProfile(profile: RegistryProfile): string {
 
 // ---------------------------------------------------------------- derived defaults
 export interface AdvancedForm {
-  role: "text" | "embedding";
+  role: "text" | "embedding" | "ocr";
   functions: string[];
   temperature: string;
   topP: number | null;
@@ -145,6 +152,9 @@ export interface AdvancedForm {
   tokenField: string;
   jsonMode: boolean;
   embeddingDimensions: string;
+  ollamaNative: boolean;
+  think: "" | "false" | "true";
+  numCtx: string;
   revision: string;
   fallback: string;
   secretEnv: string;
@@ -165,7 +175,8 @@ export function defaultAdvanced(kind: ProfileKind, key: string, modelId: string)
   const base: AdvancedForm = {
     role: "text", functions: kind === "api" ? [...API_STAGES] : [...GENERATION_STAGES],
     temperature: "0", topP: null, maxTokens: "1024", reasoningEffort: "",
-    tokenField: "max_tokens", jsonMode: true, embeddingDimensions: "", revision: "v1",
+    tokenField: "max_tokens", jsonMode: true, embeddingDimensions: "",
+    ollamaNative: false, think: "", numCtx: "", revision: "v1",
     fallback: "", secretEnv: "", privacyZone: kind === "api" ? "public" : "internal",
     inputPrice: "", outputPrice: "", dailyLimit: "", monthlyLimit: "",
   };
@@ -245,7 +256,9 @@ export function formFromProfile(profile: RegistryProfile): ProfileForm {
   const kind = kindOf(profile);
   const params = profile.params ?? {};
   const embedding = profile.capabilities.length === 1 && profile.capabilities[0] === "embedding";
+  const ocr = profile.capabilities.length === 1 && profile.capabilities[0] === "ocr";
   const str = (value: number | null | undefined) => (value != null ? String(value) : "");
+  const thinkVal = typeof params.think === "boolean" ? (params.think ? "true" : "false") : "";
   return {
     kind, editing: true, name: profile.profile_id,
     choice: kind === "local" ? profile.adapter : providerFromUrl(profile.endpoint),
@@ -253,12 +266,13 @@ export function formFromProfile(profile: RegistryProfile): ProfileForm {
     advancedTouched: true, secretRef: profile.secret_ref ?? null,
     adapter: profile.adapter,
     advanced: {
-      role: embedding ? "embedding" : "text",
-      functions: embedding ? [] : [...profile.capabilities],
+      role: embedding ? "embedding" : ocr ? "ocr" : "text",
+      functions: embedding || ocr ? [] : [...profile.capabilities],
       temperature: str(params.temperature), topP: params.top_p ?? null,
       maxTokens: str(params.max_tokens), reasoningEffort: params.reasoning_effort ?? "",
       tokenField: params.token_limit_field ?? "max_tokens",
       jsonMode: Boolean(params.response_format), embeddingDimensions: str(params.dimensions),
+      ollamaNative: Boolean(params.ollama_native), think: thinkVal, numCtx: str(params.num_ctx),
       revision: profile.revision, fallback: profile.fallback.join(", "),
       secretEnv: "", privacyZone: profile.privacy_zone,
       inputPrice: str(profile.input_price_per_mtok), outputPrice: str(profile.output_price_per_mtok),
@@ -274,22 +288,33 @@ function numberField<K extends string>(key: K, value: string): Partial<Record<K,
 export function buildPayload(form: ProfileForm): ModelProfilePayload {
   const adv = form.advanced;
   const embedding = adv.role === "embedding";
-  const params: ModelProfilePayload["params"] = { json_mode: embedding ? false : adv.jsonMode };
+  const ocr = adv.role === "ocr";
+  const params: ModelProfilePayload["params"] = {
+    json_mode: embedding || ocr ? false : adv.jsonMode,
+  };
   if (embedding) {
     Object.assign(params, numberField("embedding_dimensions", adv.embeddingDimensions));
+  } else if (ocr) {
+    Object.assign(params, numberField("temperature", adv.temperature));
+    params.ollama_native = true;
+    params.think = adv.think === "true";
+    params.num_ctx = adv.numCtx.trim() ? Number(adv.numCtx) : 8192;
   } else {
     Object.assign(params, numberField("temperature", adv.temperature),
       numberField("max_tokens", adv.maxTokens));
     if (adv.topP != null) params.top_p = adv.topP;
     if (adv.reasoningEffort) params.reasoning_effort = adv.reasoningEffort;
     if (adv.tokenField !== "max_tokens") params.token_limit_field = adv.tokenField;
+    if (adv.ollamaNative) params.ollama_native = true;
+    if (adv.think === "true" || adv.think === "false") params.think = adv.think === "true";
+    if (adv.numCtx.trim()) Object.assign(params, numberField("num_ctx", adv.numCtx));
   }
   const payload: ModelProfilePayload = {
     profile_id: form.name.trim(),
     adapter: form.kind === "local" ? form.choice : (form.adapter ?? "openai_compatible"),
     endpoint: form.baseUrl.trim(),
     model_id: form.modelId.trim(),
-    capabilities: embedding ? ["embedding"] : adv.functions,
+    capabilities: embedding ? ["embedding"] : ocr ? ["ocr"] : adv.functions,
     privacy_zone: adv.privacyZone,
     revision: adv.revision.trim() || "v1",
     fallback: adv.fallback.split(",").map((item) => item.trim()).filter(Boolean),
@@ -321,16 +346,25 @@ export function formProblem(form: ProfileForm): string | null {
   }
   if (!form.modelId.trim()) return "Nhập Model ID.";
   const adv = form.advanced;
+  if (adv.role === "ocr") {
+    if (form.kind !== "local" || form.choice !== "ollama_local") {
+      return "OCR AI chỉ hỗ trợ runtime Ollama chạy nội bộ (loopback).";
+    }
+  }
   if (adv.role === "text" && adv.functions.length === 0) {
     return "Chọn ít nhất một chức năng cho model (Nâng cao).";
   }
   const temperature = adv.temperature.trim();
-  if (adv.role === "text" && temperature && !(Number(temperature) >= 0 && Number(temperature) <= 2)) {
+  if ((adv.role === "text" || adv.role === "ocr") && temperature && !(Number(temperature) >= 0 && Number(temperature) <= 2)) {
     return "Nhiệt độ phải từ 0 đến 2 (Nâng cao).";
   }
   const tokens = adv.maxTokens.trim();
   if (adv.role === "text" && tokens && !(Number(tokens) >= 1 && Number(tokens) <= 2048)) {
     return "Giới hạn token phải từ 1 đến 2048 (Nâng cao).";
+  }
+  const ctx = adv.numCtx.trim();
+  if (ctx && !(Number(ctx) >= 1024 && Number(ctx) <= 32768)) {
+    return "Ngữ cảnh num_ctx phải từ 1024 đến 32768 (Nâng cao).";
   }
   const dims = adv.embeddingDimensions.trim();
   if (adv.role === "embedding" && dims && !(Number(dims) >= 1 && Number(dims) <= 4000)) {
@@ -364,7 +398,8 @@ export function eligibleProfiles(
   return registry.profiles.filter((profile) =>
     profile.capabilities.includes(stage)
     && (mode !== "LOCAL" || profile.privacy_zone !== "public")
-    && (stage !== "embedding" || profile.privacy_zone !== "public"));
+    && ((stage !== "embedding" && stage !== "ocr") || profile.privacy_zone !== "public")
+    && (stage !== "ocr" || profile.adapter === "ollama_local"));
 }
 
 export function routeOf(registry: ModelRegistryState, mode: string, stage: string) {
@@ -384,7 +419,8 @@ export function usedBy(registry: ModelRegistryState, profileId: string): string[
 export const CHECK_TITLES: Record<string, string> = {
   config: "Cấu hình hợp lệ", mode: "Chế độ máy chủ", approval: "Cho phép sử dụng",
   secret: "Khóa API", connect: "Kết nối máy chủ", model: "Có model này",
-  generate: "Gọi thử model", json: "Trả lời đúng JSON", embed: "Tạo vector",
+  vision: "Hỗ trợ đọc ảnh (vision)", generate: "Gọi thử model",
+  json: "Trả lời đúng JSON", embed: "Tạo vector",
 };
 
 const CODE_TEXT: Record<string, string> = {
@@ -407,6 +443,9 @@ const CODE_TEXT: Record<string, string> = {
   RESPONSE_INVALID: "Dịch vụ trả về dữ liệu không đúng định dạng tương thích OpenAI.",
   RESPONSE_TOO_LARGE: "Phản hồi quá lớn.",
   MODEL_NOT_FOUND: "Dịch vụ không có model này. Kiểm tra lại Model ID.",
+  VISION_UNSUPPORTED: "Model này chưa có lớp đọc ảnh (projector/vision) để chạy OCR AI.",
+  OCR_VISION_UNSUPPORTED: "Model này không hỗ trợ đọc ảnh (vision).",
+  RESPONSE_TRUNCATED: "Phản hồi bị cắt do chạm giới hạn token đầu ra.",
   REQUEST_PARAMS_REJECTED: "Dịch vụ từ chối tham số gọi model. Xem mục Nâng cao: mức suy luận, trường giới hạn token, ép đầu ra JSON.",
   CHAT_ENDPOINT_NOT_FOUND: "Dịch vụ không có điểm gọi chat (/chat/completions). Kiểm tra địa chỉ.",
   EMPTY_ANSWER: "Model trả lời rỗng, thường do model suy luận dùng hết số token. Tăng giới hạn token hoặc giảm mức suy luận (Nâng cao).",

@@ -26,12 +26,15 @@ from .api.v1.dependencies import no_store
 from .api.v1.effectivity import router as effectivity_router
 from .api.v1.errors import api_error, api_error_handler
 from .api.v1.execution import QueryExecution
+from .api.v1.ocr_ai import router as ocr_ai_router
 from .api.v1.openapi import configure_openapi
+from .api.v1.page_text import router as page_text_router
 from .api.v1.synthesis import router as synthesis_router
 from .api.v1.user import require_user
 from .api.v1.user import router as user_router
 from .auth_acl.policy import Principal
 from .config import Settings
+from .documents.ocr_ai_jobs import OcrAiWorker
 from .documents.provenance import (
     read_immutable_pdf,
     read_immutable_source,
@@ -137,10 +140,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # browser session; jobs left running by a stopped process resume on restart.
         app.state.embedding_worker = EmbeddingWorker(pool, app.state.ai_runtime)
         app.state.embedding_worker.start()
+    app.state.ocr_ai_worker = None
+    if pool is not None and settings.ocr_ai_enabled:
+        store_root = Path(settings.document_store_root) if settings.document_store_root else None
+        app.state.ocr_ai_worker = OcrAiWorker(pool, app.state.ai_runtime, store_root=store_root)
+        app.state.ocr_ai_worker.start()
     cleanup = asyncio.create_task(_expire_sessions(app.state.memory, settings.session_ttl_seconds))
     try:
         yield
     finally:
+        if app.state.ocr_ai_worker is not None:
+            await app.state.ocr_ai_worker.stop()
         if app.state.embedding_worker is not None:
             await app.state.embedding_worker.stop()
         await app.state.execution.close()
@@ -169,7 +179,9 @@ def create_app() -> FastAPI:
     app.add_exception_handler(RequestValidationError, api_error_handler)
     app.include_router(auth_router)
     app.include_router(user_router)
+    app.include_router(page_text_router)
     app.include_router(admin_router)
+    app.include_router(ocr_ai_router)
     app.include_router(effectivity_router)
     app.include_router(comprehensive_router)
     app.include_router(synthesis_router)

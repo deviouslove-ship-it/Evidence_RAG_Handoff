@@ -4,6 +4,9 @@ EVIDENCE RAG - PORTABLE LAN PACKAGE (WINDOWS, OFFLINE)
 Language / Ngon ngu: this is the English counterpart of README.txt (the Vietnamese original).
 Complete user guides: USER_GUIDE.en.md (English) and HUONG_DAN_SU_DUNG.vi.md (Vietnamese), same folder.
 
+This is a template for packaging the upgraded source (reviewed 2026-11-17).
+A new Portable package has not been verified; the existing r4 is unchanged. Check the delivered MANIFEST.json.
+
 Everything is in this folder: the web interface, the FastAPI server, PostgreSQL + pgvector (database,
 indexes, vectors), the original document store, Tesseract OCR for Vietnamese, Ollama and the local AI
 models. No Internet needed, and no need to install Python, Node.js, PostgreSQL, Ollama or Tesseract.
@@ -11,10 +14,10 @@ Client machines only need a browser.
 
 MACHINE REQUIREMENTS
   - Windows 10 / Windows Server 2016 or later, 64-bit; PowerShell 5.1 (built into Windows).
-  - Minimum: about 6 GB free disk space for the package and data; 8 GB RAM or more (the AI models run on CPU).
-  - Recommended (tested): Intel Core i3, 32 GB DDR4 RAM, 512 GB SSD.
+  - Reserve space for the full package, restored database and backups; check sizes in MANIFEST.json.
+  - Test RAM with the intended model/workload; the previous 8 GB baseline is unconfirmed for qwen3.5:4b.
   - Extract the WHOLE package into a folder with a short path, for example D:\EvidenceRAG
-    (avoid deep folders; keep the path under 120 characters). Do not run directly inside the archive. The release archive is a .rar: extract it with WinRAR or 7-Zip.
+    (avoid deep folders; keep the path under 120 characters). Do not run directly inside the archive. For ZIP, use 7-Zip or Windows' built-in extractor.
   - Administrator rights are not needed to run. They are only needed to open the firewall port (section 4).
 
 1. START
@@ -35,8 +38,8 @@ MACHINE REQUIREMENTS
 2. USERS ON THE LAN
   Send the address http://<server IP>:8800/ to users; they open it in a browser.
   Accounts, roles, per-category permissions (ACL) and the audit log are kept in the package database.
-  Each demo account has its own password that works right away; the passwords are handed over separately and
-  are NOT in the package. Change them after receiving them (see USER_GUIDE.en.md, section 0).
+  Demo accounts: check Acount_Demo.md at the root if supplied with the test package.
+  Do not copy passwords into public documentation. See USER_GUIDE.en.md, section 0.
   Old login sessions are not carried over; everyone logs in again.
 
 3. STOP
@@ -82,8 +85,8 @@ MACHINE REQUIREMENTS
   Model profiles, AI assignment and embedding are edited in Admin Portal > AI Models. The local model
   address in the Registry is synchronised by the launcher with the bundled Ollama port (21434),
   independent of any Ollama already installed on the machine.
-  Bundled Local models: see MANIFEST.json (qwen3:1.7b for AI interpretation, search expansion, ranking,
-  labelling, relations; qwen3-embedding:0.6b for semantic search).
+  Bundled Local models: see MANIFEST.json (qwen3.5:4b for AI interpretation, search expansion, ranking,
+  labelling, relations and local single-page OCR AI; qwen3-embedding:0.6b for semantic search).
 
 8. PACKAGE CHECK
   tools\Verify-Package.bat   compares the SHA-256 of every runtime, model, application and original

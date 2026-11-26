@@ -32,6 +32,7 @@ secrets/
 data/
 logs/
 backups/
+models/
 *.pdf
 *.doc
 *.docx
@@ -68,3 +69,6 @@ docs/evidence/2026-11-07-g5-rerank/DATA-INVENTORY.md
 # IDE
 .vscode/
 .idea/
+
+# SDD scratch workspaces (ledgers, briefs, review packages)
+.superpowers/

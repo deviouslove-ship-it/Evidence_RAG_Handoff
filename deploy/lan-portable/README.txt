@@ -4,6 +4,9 @@ EVIDENCE RAG - BẢN CHẠY DI ĐỘNG CHO MẠNG LAN (WINDOWS, OFFLINE)
 Ngôn ngữ / Language: Tiếng Việt (bản gốc) · English: README.en.txt cùng thư mục.
 Hướng dẫn sử dụng đầy đủ: HUONG_DAN_SU_DUNG.vi.md (tiếng Việt) và USER_GUIDE.en.md (English), cùng thư mục.
 
+Đây là mẫu hướng dẫn cho lần đóng gói từ source nâng cấp (rà soát 17/11/2026).
+Chưa xác nhận một gói Portable mới; r4 hiện có được giữ nguyên. Đối chiếu MANIFEST.json của gói thực nhận.
+
 Mọi thứ nằm trong thư mục này: giao diện web, máy chủ FastAPI, PostgreSQL + pgvector (cơ sở dữ
 liệu, chỉ mục, vector), kho tài liệu gốc, Tesseract OCR tiếng Việt, Ollama và các model AI cục bộ.
 Không cần Internet, không cần cài Python, Node.js, PostgreSQL, Ollama hay Tesseract.
@@ -11,10 +14,10 @@ Máy trạm chỉ cần trình duyệt.
 
 YÊU CẦU MÁY CHẠY
   - Windows 10 / Windows Server 2016 trở lên, 64-bit; PowerShell 5.1 (có sẵn trong Windows).
-  - Tối thiểu: khoảng 6 GB trống cho gói và dữ liệu; RAM từ 8 GB (model AI chạy trên CPU).
-  - Khuyến nghị (đã thử): Intel Core i3, RAM DDR4 32 GB, SSD 512 GB.
+  - Đủ chỗ cho toàn bộ gói, database sau khôi phục và sao lưu; xem dung lượng trong MANIFEST.json.
+  - RAM phải được kiểm thử theo model và tải thực tế; mốc 8 GB cũ chưa được xác nhận cho qwen3.5:4b.
   - Giải nén TOÀN BỘ gói vào một thư mục có đường dẫn ngắn, ví dụ D:\EvidenceRAG
-    (tránh thư mục sâu; đường dẫn dưới 120 ký tự). Không chạy trực tiếp trong tệp nén. Gói phát hành là .rar: giải nén bằng WinRAR hoặc 7-Zip.
+    (tránh thư mục sâu; đường dẫn dưới 120 ký tự). Không chạy trực tiếp trong tệp nén. Với ZIP, dùng 7-Zip hoặc trình giải nén của Windows.
   - Không cần quyền Administrator để chạy. Chỉ cần khi mở cổng tường lửa (mục 4).
 
 1. KHỞI ĐỘNG
@@ -35,7 +38,7 @@ YÊU CẦU MÁY CHẠY
 2. NGƯỜI DÙNG TRONG LAN
   Gửi địa chỉ http://<IP máy chủ>:8800/ cho người dùng; họ mở bằng trình duyệt.
   Tài khoản, vai trò, quyền theo danh mục (ACL) và nhật ký kiểm toán được giữ trong cơ sở dữ liệu của gói.
-  Mỗi tài khoản demo có mật khẩu riêng, dùng ngay được; mật khẩu được bàn giao riêng, KHÔNG nằm trong gói.
+  Tài khoản demo: xem file tài khoản ở thư mục gốc nếu gói thử nghiệm có kèm; không sao chép mật khẩu vào tài liệu công khai.
   Đổi mật khẩu sau khi nhận (xem HUONG_DAN_SU_DUNG.vi.md, mục 0).
   Phiên đăng nhập cũ không được mang theo, mọi người đăng nhập lại.
 
@@ -81,8 +84,8 @@ YÊU CẦU MÁY CHẠY
   Hồ sơ model, phân công AI và embedding chỉnh trong Admin Portal > Mô hình AI. Địa chỉ model cục bộ
   trong Registry được bộ khởi động đồng bộ với cổng Ollama đi kèm (cổng 21434), không phụ thuộc
   Ollama đã cài sẵn trên máy (nếu có).
-  Model Local đi kèm: xem MANIFEST.json (qwen3:1.7b cho Diễn giải AI, mở rộng tìm kiếm, xếp hạng,
-  gán nhãn, quan hệ; qwen3-embedding:0.6b cho tìm theo nghĩa).
+  Model Local đi kèm: xem MANIFEST.json (qwen3.5:4b cho Diễn giải AI, mở rộng tìm kiếm, xếp hạng,
+  gán nhãn, quan hệ và đọc trang OCR AI cục bộ; qwen3-embedding:0.6b cho tìm theo nghĩa).
 
 8. KIỂM TRA GÓI
   tools\Verify-Package.bat   so SHA-256 mọi tệp runtime, model, ứng dụng, tài liệu gốc với

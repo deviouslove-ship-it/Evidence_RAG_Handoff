@@ -1,6 +1,6 @@
 # Requirements: PDF Intake, Conversion and OCR with Page Review
 
-> Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Evidence is cited by repository path.
+> Initially reconstructed from implemented code on 2026-11-09 and updated against the source on 2026-11-17. This is not a historical Kiro-generated spec. Evidence is cited by repository path.
 
 ## Introduction
 
@@ -49,8 +49,23 @@ Documents enter as PDF, Word (`.docx`, `.doc`) or TXT. Scanned pages are read by
 
 1. WHEN a permitted curator requests re-extraction THE SYSTEM SHALL re-run extraction and OCR from the stored source and return the result to draft (`POST /api/v1/admin/documents/drafts/{version_id}/reextract`, `documents/reextract.py`).
 
-### Requirement 6: Legal tree
+### Requirement 6: Document structure tree
 
 #### Acceptance Criteria
 
 1. WHEN text is extracted THE SYSTEM SHALL build a Chapter/Section/Article/Clause/Point tree where recognisable and flag ambiguous cases for review (`documents/tree_parser.py`).
+
+### Requirement 7: USER requests text for a specific PDF page
+
+1. WHEN an authorized USER asks for a specific page of a selected document THE SYSTEM SHALL resolve the document from the selected chat context or an explicit title/number and validate the requested PDF page against the current source version (`documents/page_text.py`, `api/v1/page_text.py`).
+2. IF approved/extracted page text is usable and the user has not explicitly requested an image reread THEN THE SYSTEM SHALL return that page text without calling a model.
+3. IF page text is missing/unusable or an image reread is explicit THEN THE SYSTEM SHALL render and send only the requested PDF page to the local `ocr` stage; it SHALL NOT send the whole PDF, other page images, or use an external API image fallback (`documents/ocr_ai.py`, `ocr_ai_jobs.py`, `model_registry/runtime.py`).
+4. THE SYSTEM SHALL re-check ACL, document/version revision, PDF hash and page-text hash while processing and before returning a ready result. A changed source SHALL invalidate the candidate.
+5. THE SYSTEM SHALL label vision output as unverified, preserve warnings/unreadable regions, expose cancellation and an original-page link, expire temporary results after one hour, and SHALL NOT create a verified citation, modify source text or create vectors.
+
+### Requirement 8: Admin OCR AI proposal and review
+
+1. WHEN a permitted CURATOR requests OCR AI for a draft page THE SYSTEM SHALL create an idempotent proposal bound to the document version/page and a configuration fingerprint; only an approved, tested Ollama vision profile assigned to `ocr` may process the image.
+2. IF `EVIDENCE_OCR_AI_ENABLED` is false or absent THEN THE SYSTEM SHALL reject new image-reading tasks with a coded disabled response; stored page text remains available.
+3. WHEN the CURATOR compares/edits and applies a current proposal THE SYSTEM SHALL create a new draft version and audit record while preserving the previously approved version. A different REVIEWER remains responsible for page confirmation and approval.
+4. IF the source revision, model/profile revision or prompt fingerprint changes before apply THEN THE SYSTEM SHALL mark the proposal stale and reject the apply operation.

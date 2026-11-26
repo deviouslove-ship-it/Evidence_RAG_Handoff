@@ -29,12 +29,19 @@ from typing import Any
 
 import httpx
 
-from .adapters import AdapterError, OpenAICompatibleAdapter
+from .adapters import AdapterError, OllamaLocalAdapter, OpenAICompatibleAdapter
+from .adapters.ollama_local import (
+    OCR_PROBE_PROMPT,
+    OCR_PROBE_SCHEMA,
+    synthetic_ocr_probe_png,
+    valid_ocr_probe,
+)
 from .profiles import ModelProfile, OperatingMode, PrivacyZone
 from .runtime import (
     RegistryRuntime,
     RegistryRuntimeError,
     SecretError,
+    _uses_ollama_native,
     model_advertised,
     validate_profile,
 )
@@ -50,7 +57,11 @@ _JSON = re.compile(r"\{.*\}", re.DOTALL)
 
 
 def _check(
-    check_id: str, status: str, *, code: str | None = None, ms: int | None = None,
+    check_id: str,
+    status: str,
+    *,
+    code: str | None = None,
+    ms: int | None = None,
     **info: Any,
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {"id": check_id, "status": status}
@@ -82,6 +93,10 @@ def _failure_code(exc: BaseException, step: str) -> str:
             return "RESPONSE_INVALID"
         if str(exc) == "MODEL_RESPONSE_TOO_LARGE":
             return "RESPONSE_TOO_LARGE"
+        if str(exc) == "MODEL_OUTPUT_TRUNCATED":
+            return "RESPONSE_TRUNCATED"
+        if str(exc) == "MODEL_EMPTY_ANSWER":
+            return "EMPTY_ANSWER"
         return "REQUEST_REFUSED"
     return "CONNECTION_FAILED"
 
@@ -109,26 +124,38 @@ def _json_answer(text: str) -> bool:
 
 
 async def diagnose_profile(
-    runtime: RegistryRuntime, profile: ModelProfile, *, api_key: str | None = None,
+    runtime: RegistryRuntime,
+    profile: ModelProfile,
+    *,
+    api_key: str | None = None,
 ) -> dict[str, Any]:
     """Run the checks.  ``api_key`` is a key typed but not yet saved (used only here)."""
 
     checks: list[dict[str, Any]] = []
     stage = _stage_of(profile)
     public = profile.privacy_zone == PrivacyZone.PUBLIC
-    result: dict[str, Any] = {"stage": stage, "checks": checks, "ok": False, "usable": False,
-                              "latency_ms": None, "dimensions": None, "models": []}
+    result: dict[str, Any] = {
+        "stage": stage,
+        "checks": checks,
+        "ok": False,
+        "usable": False,
+        "latency_ms": None,
+        "dimensions": None,
+        "models": [],
+    }
 
     def finish() -> dict[str, Any]:
         failed = any(item["status"] == "fail" for item in checks)
         result["ok"] = not failed
         result["usable"] = not failed and any(
-            item["id"] in ("generate", "embed") and item["status"] == "ok" for item in checks)
+            item["id"] in ("generate", "embed") and item["status"] == "ok" for item in checks
+        )
         return result
 
     try:
         validate_profile(
-            profile, OperatingMode.API if public else OperatingMode.LOCAL, runtime.policy, stage)
+            profile, OperatingMode.API if public else OperatingMode.LOCAL, runtime.policy, stage
+        )
     except RegistryRuntimeError as exc:
         checks.append(_check("config", "fail", code=str(exc)))
         return finish()
@@ -151,13 +178,23 @@ async def diagnose_profile(
     else:
         checks.append(_check("secret", "skip"))
 
-    adapter = OpenAICompatibleAdapter(
-        timeout_seconds=runtime.policy.timeout_seconds,
-        max_response_bytes=runtime.policy.max_response_bytes,
-        max_tokens=runtime.policy.max_tokens,
-        api_key=secret,
-        transport=runtime.transport,
-    )
+    adapter: OpenAICompatibleAdapter
+    if _uses_ollama_native(profile, stage):
+        adapter = OllamaLocalAdapter(
+            timeout_seconds=runtime.policy.timeout_seconds,
+            max_response_bytes=runtime.policy.max_response_bytes,
+            max_tokens=runtime.policy.max_tokens,
+            api_key=secret,
+            transport=runtime.transport,
+        )
+    else:
+        adapter = OpenAICompatibleAdapter(
+            timeout_seconds=runtime.policy.timeout_seconds,
+            max_response_bytes=runtime.policy.max_response_bytes,
+            max_tokens=runtime.policy.max_tokens,
+            api_key=secret,
+            transport=runtime.transport,
+        )
     listed: frozenset[str] | None = None
     try:
         listed, ms = await _timed(lambda: adapter.list_models(profile))
@@ -190,6 +227,50 @@ async def diagnose_profile(
         checks.append(_check("embed", "ok", ms=ms, dimensions=len(vectors[0])))
         return finish()
 
+    if stage == "ocr":
+        if not isinstance(adapter, OllamaLocalAdapter):
+            checks.append(_check("vision", "fail", code="ADAPTER_UNSUPPORTED"))
+            return finish()
+        try:
+            show_info, show_ms = await _timed(lambda: adapter.show_model(profile))
+        except (AdapterError, httpx.HTTPError, TimeoutError) as exc:
+            checks.append(_check("vision", "fail", code=_failure_code(exc, "vision")))
+            return finish()
+        if not OllamaLocalAdapter.supports_vision(show_info):
+            checks.append(_check("vision", "fail", code="VISION_UNSUPPORTED"))
+            return finish()
+        checks.append(_check("vision", "ok", ms=show_ms))
+        probe_png = synthetic_ocr_probe_png("OCR-PROBE-17")
+        try:
+            text, ms = await _timed(
+                lambda: adapter.generate_vision(
+                    image_png=probe_png,
+                    prompt=OCR_PROBE_PROMPT,
+                    schema=OCR_PROBE_SCHEMA,
+                    profile=profile,
+                )
+            )
+        except (AdapterError, httpx.HTTPError, TimeoutError) as exc:
+            checks.append(_check("generate", "fail", code=_failure_code(exc, "generate")))
+            return finish()
+        result["latency_ms"] = ms
+        try:
+            decoded_ocr = json.loads(_THINK.sub("", text).strip())
+        except ValueError:
+            decoded_ocr = None
+        if (
+            not isinstance(decoded_ocr, dict)
+            or not isinstance(decoded_ocr.get("text"), str)
+            or not decoded_ocr["text"].strip()
+        ):
+            checks.append(_check("generate", "fail", code="EMPTY_ANSWER", ms=ms))
+            return finish()
+        checks.append(_check("generate", "ok", ms=ms))
+        checks.append(_check("json", "ok"))
+        if not valid_ocr_probe(text):
+            checks[-2] = _check("generate", "fail", code="OCR_PROBE_MISMATCH", ms=ms)
+        return finish()
+
     try:
         text, ms = await _timed(lambda: adapter.generate(PROMPT, profile))
     except (AdapterError, httpx.HTTPError, TimeoutError) as exc:
@@ -217,18 +298,32 @@ async def diagnose_saved(runtime: RegistryRuntime, profile_id: str) -> dict[str,
     """
 
     if runtime.pool is None:
-        return {"profile_id": profile_id, "ok": False, "usable": False, "checks": [],
-                "health": "unknown", "status": "not_configured"}
+        return {
+            "profile_id": profile_id,
+            "ok": False,
+            "usable": False,
+            "checks": [],
+            "health": "unknown",
+            "status": "not_configured",
+        }
     profile = await runtime._load_profile(profile_id)
     if profile is None:
-        return {"profile_id": profile_id, "ok": False, "usable": False, "checks": [],
-                "health": "unknown", "status": "not_configured"}
+        return {
+            "profile_id": profile_id,
+            "ok": False,
+            "usable": False,
+            "checks": [],
+            "health": "unknown",
+            "status": "not_configured",
+        }
     result = await diagnose_profile(runtime, profile)
     result["profile_id"] = profile.profile_id
     result["model_id"] = profile.model_id
     network_failure = any(
-        item["status"] == "fail" and item["id"] in ("connect", "model", "generate", "embed")
-        for item in result["checks"])
+        item["status"] == "fail"
+        and item["id"] in ("connect", "model", "vision", "generate", "embed")
+        for item in result["checks"]
+    )
     if not profile.provider_approved:
         health, status = "unknown", "unapproved"
         result["checks"].insert(1, _check("approval", "fail", code="PROVIDER_UNAPPROVED"))
@@ -247,4 +342,3 @@ async def diagnose_saved(runtime: RegistryRuntime, profile_id: str) -> dict[str,
     result["health"] = health
     result["status"] = status
     return result
-

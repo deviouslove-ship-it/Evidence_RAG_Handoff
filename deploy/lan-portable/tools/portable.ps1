@@ -752,6 +752,39 @@ function Start-Stack {
                 if ($r.Status -eq 200) { Write-Ok "Model sinh van ban $($model.name) hoat dong offline." }
                 else { $warnings++; Write-Warn "Model $($model.name) tra ve ma $($r.Status)." }
             } catch { $warnings++; Write-Warn "Khong chay duoc model $($model.name): $($_.Exception.Message)" }
+            $ocrEnabled = (Get-Setting $cfg.Settings 'EVIDENCE_OCR_AI_ENABLED' 'false') -match '^(true|1|yes|on)$'
+            if ($ocrEnabled -and ($model.role -eq 'ocr' -or $model.ocr_capable)) {
+                try {
+                    $showBody = (@{ name = $model.name } | ConvertTo-Json -Compress)
+                    $show = Invoke-Http "http://127.0.0.1:$($cfg.OllamaPort)/api/show" 'POST' $showBody 30
+                    $caps = @()
+                    if ($show.Status -eq 200) { $caps = @(($show.Body | ConvertFrom-Json).capabilities) }
+                    if ($caps -notcontains 'vision') {
+                        $warnings++
+                        Write-Warn "Model OCR $($model.name) thieu vision projector trong Ollama; tim kiem tu khoa va embedding van hoat dong binh thuong."
+                    } else {
+                        # Require reading known text in an actual synthetic image, not just HTTP 200.
+                        $probePng = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $Root 'config\ocr-probe.png')))
+                        $chatBody = (@{
+                            model = $model.name
+                            stream = $false
+                            think = $false
+                            messages = @(@{ role = 'user'; content = 'Transcribe the text shown in the image. Return JSON with the key text.'; images = @($probePng) })
+                            format = @{ type = 'object'; properties = @{ text = @{ type = 'string' } }; required = @('text') }
+                            options = @{ num_predict = 128; num_ctx = 8192; temperature = 0 }
+                        } | ConvertTo-Json -Depth 8 -Compress)
+                        $vr = Invoke-Http "http://127.0.0.1:$($cfg.OllamaPort)/api/chat" 'POST' $chatBody 240
+                        $vision = $vr.Body | ConvertFrom-Json
+                        $probeText = if ($vision.message.content) { ($vision.message.content | ConvertFrom-Json).text } else { '' }
+                        if ($vr.Status -eq 200 -and $vision.done -ne $false -and $vision.done_reason -ne 'length' -and ($probeText -replace '[-\s:]', '') -ceq 'OCRPROBE17') {
+                            Write-Ok "Model OCR AI vision $($model.name) doc dung chu thu nghiem offline. Can doi chieu tung trang thuc te."
+                        } else { $warnings++; Write-Warn "Probe OCR $($model.name) chua doc dung anh thu; tim kiem tu khoa va embedding van hoat dong." }
+                    }
+                } catch {
+                    $warnings++
+                    Write-Warn "Khong kiem tra duoc vision OCR cua $($model.name): $($_.Exception.Message). Tim kiem tu khoa va embedding van hoat dong."
+                }
+            }
         }
     }
 

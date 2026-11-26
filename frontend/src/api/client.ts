@@ -4,6 +4,8 @@ import type {
   AdminDocumentDetail,
   AdminDocumentList,
   AdminDocumentPatch,
+  AdminOcrAiApplyResponse,
+  AdminOcrAiProposal,
   AdminUserItem,
   AnswerDocument,
   AuditEventsResponse,
@@ -13,6 +15,7 @@ import type {
   EmbeddingPreflight,
   LoginResponse,
   ModelRegistryState,
+  PageTextResponse,
   PdfDraftListItem,
   QueryResponse,
   SearchMode,
@@ -886,6 +889,73 @@ export function reprocessAdminDocument(
   });
 }
 
+export function createAdminOcrAiProposal(
+  accessToken: string,
+  documentId: string,
+  versionId: string,
+  payload: { page_number: number; expected_revision: number; request_id: string },
+  signal?: AbortSignal,
+): Promise<AdminOcrAiProposal> {
+  return request<AdminOcrAiProposal>(`${adminVersionPath(documentId, versionId)}/ocr-ai`, {
+    method: "POST",
+    headers: bearerHeader(accessToken),
+    body: JSON.stringify(payload),
+    signal,
+  });
+}
+
+export function getAdminOcrAiProposal(
+  accessToken: string,
+  proposalId: string,
+  signal?: AbortSignal,
+): Promise<AdminOcrAiProposal> {
+  return request<AdminOcrAiProposal>(`/api/v1/admin/ocr-ai/${encodeURIComponent(proposalId)}`, {
+    method: "GET",
+    headers: bearerHeader(accessToken),
+    signal,
+  });
+}
+
+export function cancelAdminOcrAiProposal(
+  accessToken: string,
+  proposalId: string,
+): Promise<AdminOcrAiProposal> {
+  return request<AdminOcrAiProposal>(
+    `/api/v1/admin/ocr-ai/${encodeURIComponent(proposalId)}/cancel`,
+    { method: "POST", headers: bearerHeader(accessToken) },
+  );
+}
+
+export function rejectAdminOcrAiProposal(
+  accessToken: string,
+  proposalId: string,
+  note?: string,
+): Promise<AdminOcrAiProposal> {
+  return request<AdminOcrAiProposal>(
+    `/api/v1/admin/ocr-ai/${encodeURIComponent(proposalId)}/reject`,
+    {
+      method: "POST",
+      headers: bearerHeader(accessToken),
+      body: JSON.stringify({ note: note ?? null }),
+    },
+  );
+}
+
+export function applyAdminOcrAiProposal(
+  accessToken: string,
+  proposalId: string,
+  payload: { expected_revision: number; corrected_text?: string; note?: string },
+): Promise<AdminOcrAiApplyResponse> {
+  return request<AdminOcrAiApplyResponse>(
+    `/api/v1/admin/ocr-ai/${encodeURIComponent(proposalId)}/apply`,
+    {
+      method: "POST",
+      headers: bearerHeader(accessToken),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function changeAdminDocumentAvailability(
   accessToken: string, documentIds: string[], action: AdminDocumentAction, reason: string,
 ): Promise<{ updated: number }> {
@@ -1463,5 +1533,60 @@ export function searchApproximate(
       headers: bearerHeader(options.accessToken),
       signal: options.signal,
     },
+  );
+}
+
+export function requestPageText(
+  accessToken: string,
+  documentId: string,
+  versionId: string,
+  payload: { page_number: number; prefer_ai?: boolean; request_id?: string },
+  signal?: AbortSignal,
+): Promise<PageTextResponse> {
+  return request<PageTextResponse>(
+    `/api/v1/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(versionId)}/page-text`,
+    {
+      method: "POST",
+      headers: { ...bearerHeader(accessToken), "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal,
+    },
+  );
+}
+
+export function getPageTextTask(
+  accessToken: string,
+  taskId: string,
+  signal?: AbortSignal,
+): Promise<PageTextResponse> {
+  return request<PageTextResponse>(`/api/v1/page-text-tasks/${encodeURIComponent(taskId)}`, {
+    method: "GET",
+    headers: bearerHeader(accessToken),
+    signal,
+  });
+}
+
+export function cancelPageTextTask(
+  accessToken: string,
+  taskId: string,
+): Promise<PageTextResponse> {
+  return request<PageTextResponse>(
+    `/api/v1/page-text-tasks/${encodeURIComponent(taskId)}/cancel`,
+    {
+      method: "POST",
+      headers: bearerHeader(accessToken),
+    },
+  );
+}
+
+export function fetchDocumentVersionPdf(
+  accessToken: string,
+  documentId: string,
+  versionId: string,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  return fetchSourcePdf(
+    `/api/v1/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(versionId)}/pdf`,
+    { accessToken, signal },
   );
 }

@@ -2,26 +2,37 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import {
   ApiRequestError,
   cancelAgentTurn,
+  cancelPageTextTask,
   clearMemory,
   createAgentSession,
   deleteAgentSession,
   deleteMemoryItem,
   deleteSessionFact,
   getMemoryPreferences,
+  getPageTextTask,
   listAuthorizedCategories,
   listMemory,
+  requestPageText,
   retryAgentTurn,
   runAgentTurn,
+  searchDocuments,
   setMemoryPreferences,
   type MemoryItem,
   type TurnPayload,
 } from "../api/client";
 import { AiInterpretation } from "../components/AiInterpretation";
 import { DocumentCard } from "../components/DocumentCard";
+import { PageTextPanel } from "../components/PageTextPanel";
+import {
+  detectPageTextIntent,
+  type PageTextCandidateDoc,
+  type PageTextEntryState,
+} from "../components/pageTextIntent";
 import { fromAnswerDocument, fromEvidence, type DocView } from "../components/documentDisplay";
 import { FactChips } from "../components/FactChips";
 import { localDateISO } from "../localDate";
 import { SAMPLE_PROMPTS } from "../samplePrompts";
+import { makeClientRequestId } from "../requestId";
 import type { AuthorizedCategory, EvidenceRef, QueryResponse } from "../types";
 
 interface Fact {
@@ -115,7 +126,55 @@ interface ChatEntry {
   question: string;
   status: "loading" | "done" | "error";
   result?: QueryResponse;
+  pageText?: PageTextEntryState;
   error?: string;
+}
+
+function settleStoppedEntry(entry: ChatEntry): ChatEntry {
+  if (entry.pageText?.kind === "loading") {
+    return { ...entry, status: "done", pageText: {
+      kind: "error", candidate: entry.pageText.candidate,
+      pageNumber: entry.pageText.pageNumber, message: "Đã dừng đọc trang PDF.",
+    } };
+  }
+  return entry.status === "loading"
+    ? { ...entry, status: "error", error: STOPPED_MESSAGE } : entry;
+}
+
+function uniqueCandidateDocs(evidence: EvidenceRef[], fallback?: PageTextEntryState): PageTextCandidateDoc[] {
+  const byDoc = new Map<string, PageTextCandidateDoc>();
+  for (const item of evidence) {
+    if (!byDoc.has(item.document_id)) {
+      byDoc.set(item.document_id, {
+        document_id: item.document_id,
+        document_version_id: item.document_version_id,
+        title: item.title,
+        document_number: item.document_number,
+      });
+    }
+  }
+  if (byDoc.size === 0 && fallback && "candidate" in fallback && fallback.candidate) {
+    byDoc.set(fallback.candidate.document_id, fallback.candidate);
+  }
+  return Array.from(byDoc.values());
+}
+
+function sleepWithAbort(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 const SPLIT_WIDTH_KEY = "evidence-rag.chat.left-width";
@@ -263,6 +322,27 @@ function ChatTurn({ entry, selected, onSelect, onCite }: ChatTurnProps) {
       {entry.status === "error" && (
         <p className="chat-turn-error">Chưa có kết quả cho câu hỏi này. Xem chi tiết ở khung bên phải.</p>
       )}
+      {entry.status === "done" && entry.pageText && (
+        <section aria-label={selected ? "Nội dung trang PDF" : undefined} className="answer-panel chat-answer">
+          <p className="answer-summary">
+            {entry.pageText.kind === "ready"
+              ? `Trang PDF ${entry.pageText.response.page_number}/${entry.pageText.response.total_pages} — ${
+                entry.pageText.response.verified
+                  ? "Chữ đã trích xuất của trang"
+                  : (entry.pageText.response.warning ?? "AI đọc từ ảnh trang — chưa đối chiếu thủ công")
+              }`
+              : entry.pageText.kind === "loading"
+                ? `Đang đọc Trang PDF ${entry.pageText.pageNumber}…`
+                : entry.pageText.kind === "choose_doc"
+                  ? `Cần chọn văn bản để đọc trang ${entry.pageText.pageNumber} ở khung bên phải.`
+                  : entry.pageText.kind === "confirm_pdf_page"
+                    ? `Cần xác nhận số Trang PDF cho trang in ${entry.pageText.pageNumber}.`
+                    : entry.pageText.kind === "error"
+                      ? entry.pageText.message
+                      : "Xem hướng dẫn đọc trang ở khung kết quả bên phải."}
+          </p>
+        </section>
+      )}
       {entry.status === "done" && result && (
         <section
           aria-label={selected ? "Câu trả lời" : undefined}
@@ -338,6 +418,7 @@ export function EvidenceChat({
   const memoryBusyRef = useRef(false);
   const dateManuallySet = useRef(false);
   const lastTurnRef = useRef<{ sessionId: string; turnId: string; payloadKey: string } | null>(null);
+  const activePageTaskRef = useRef<{ taskId: string; token: string } | null>(null);
   const [memoryItems, setMemoryItems] = useState<MemoryItem[]>([]);
   const [prefsEnabled, setPrefsEnabled] = useState(false);
   const [defaultCategoryIds, setDefaultCategoryIds] = useState<string[]>([]);
@@ -367,6 +448,11 @@ export function EvidenceChat({
     // End the RAM session of the previous login (or on unmount) so no memory outlives it.
     return () => {
       sessionEpoch.current += 1;
+      const activeTask = activePageTaskRef.current;
+      activePageTaskRef.current = null;
+      if (activeTask) {
+        void cancelPageTextTask(activeTask.token, activeTask.taskId).catch(() => undefined);
+      }
       const owned = sessionRef.current;
       sessionRef.current = null;
       lastTurnRef.current = null;
@@ -726,6 +812,117 @@ export function EvidenceChat({
     setCited({ entryId, n, tick: Date.now() });
   }, []);
 
+  function cancelQueuedPageRead() {
+    const active = activePageTaskRef.current;
+    activePageTaskRef.current = null;
+    if (active) {
+      void cancelPageTextTask(active.token, active.taskId).catch(() => undefined);
+    }
+  }
+
+  async function fetchAndPollPageText(
+    entryId: string,
+    token: string,
+    candidate: PageTextCandidateDoc,
+    pageNumber: number,
+    preferAi: boolean,
+    controller: AbortController,
+  ) {
+    patchEntry(entryId, {
+      status: "done",
+      result: undefined,
+      pageText: { kind: "loading", candidate, pageNumber },
+      error: undefined,
+    });
+    setTab("results");
+    let response = await requestPageText(
+      token,
+      candidate.document_id,
+      candidate.document_version_id,
+      { page_number: pageNumber, prefer_ai: preferAi, request_id: makeClientRequestId() },
+      controller.signal,
+    );
+    if (abortRef.current !== controller || controller.signal.aborted) {
+      if (response.task_id && (response.status === "queued" || response.status === "running")) {
+        void cancelPageTextTask(token, response.task_id).catch(() => undefined);
+      }
+      return;
+    }
+
+    while ((response.status === "queued" || response.status === "running") && response.task_id) {
+      activePageTaskRef.current = { taskId: response.task_id, token };
+      patchEntry(entryId, {
+        status: "done",
+        pageText: { kind: "loading", candidate, pageNumber, response },
+      });
+      await sleepWithAbort(1000, controller.signal);
+      if (abortRef.current !== controller || controller.signal.aborted) return;
+      response = await getPageTextTask(token, response.task_id, controller.signal);
+      if (abortRef.current !== controller || controller.signal.aborted) return;
+    }
+
+    if (activePageTaskRef.current?.taskId === response.task_id) {
+      activePageTaskRef.current = null;
+    }
+
+    if (response.status === "ready") {
+      patchEntry(entryId, {
+        status: "done",
+        pageText: { kind: "ready", candidate, response },
+      });
+      return;
+    }
+    const errMessage =
+      response.status === "cancelled"
+        ? "Đã hủy đọc trang PDF."
+        : response.error_code === "PAGE_OUT_OF_RANGE"
+          ? "Số trang PDF không hợp lệ hoặc vượt quá tổng số trang."
+          : "Không thể đọc nội dung trang PDF lúc này.";
+    patchEntry(entryId, {
+      status: "done",
+      pageText: { kind: "error", candidate, pageNumber, message: errMessage },
+    });
+  }
+
+  async function selectPageTextCandidate(
+    entryId: string,
+    candidate: PageTextCandidateDoc,
+    pageNumber: number,
+    preferAi = false,
+  ) {
+    if (!effectiveToken) return;
+    abortRef.current?.abort();
+    cancelQueuedPageRead();
+    setHistory((prev) => prev.map(settleStoppedEntry));
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setBusy(true);
+    try {
+      await fetchAndPollPageText(entryId, effectiveToken, candidate, pageNumber, preferAi, controller);
+    } catch (caught) {
+      if (abortRef.current !== controller || controller.signal.aborted) return;
+      const message = caught instanceof Error ? caught.message : "Không thể đọc trang PDF lúc này.";
+      patchEntry(entryId, {
+        status: "done",
+        pageText: { kind: "error", candidate, pageNumber, message },
+      });
+    } finally {
+      if (abortRef.current === controller) setBusy(false);
+    }
+  }
+
+  async function cancelActivePageTask(taskId: string) {
+    if (!effectiveToken) return;
+    if (activePageTaskRef.current?.taskId === taskId) {
+      abortRef.current?.abort();
+      cancelQueuedPageRead();
+      setBusy(false);
+      setHistory((prev) => prev.map(settleStoppedEntry));
+    } else {
+      void cancelPageTextTask(effectiveToken, taskId).catch(() => undefined);
+    }
+  }
+
   async function runQuery(
     textToRun: string, options: { retry?: boolean; entryId?: string } = {},
   ) {
@@ -745,6 +942,7 @@ export function EvidenceChat({
       return;
     }
     abortRef.current?.abort();
+    cancelQueuedPageRead();
     const controller = new AbortController();
     abortRef.current = controller;
     // Facts belong to the question they were read from: re-running that question keeps
@@ -757,8 +955,7 @@ export function EvidenceChat({
     const entryId = options.entryId ?? `entry-${entrySeq.current}`;
     const replaced = options.entryId !== undefined;
     setHistory((prev) => {
-      const settled = prev.map((entry) => entry.status === "loading"
-        ? { ...entry, status: "error" as const, error: STOPPED_MESSAGE } : entry);
+      const settled = prev.map(settleStoppedEntry);
       return replaced && settled.some((entry) => entry.id === entryId)
         ? settled.map((entry) => entry.id === entryId
           ? { ...entry, status: "loading" as const, error: undefined, result: undefined } : entry)
@@ -771,6 +968,92 @@ export function EvidenceChat({
     try {
       const queryDate = dateManuallySet.current ? asOfDate : localDateISO();
       setAsOfDate(queryDate);
+      const pageIntent = detectPageTextIntent(clean);
+      if (pageIntent) {
+        let candidates: PageTextCandidateDoc[] = [];
+        if (pageIntent.docHint) {
+          const searchRes = await searchDocuments(
+            {
+              q: pageIntent.docHint,
+              pageSize: 5,
+              categoryIds: scopeMode === "SELECTED" ? selectedCategories : undefined,
+              asOfDate: queryDate,
+            },
+            { accessToken: effectiveToken, signal: controller.signal },
+          );
+          if (abortRef.current !== controller) return;
+          const seen = new Set<string>();
+          for (const doc of searchRes.results) {
+            if (!seen.has(doc.document_id)) {
+              seen.add(doc.document_id);
+              candidates.push({
+                document_id: doc.document_id,
+                document_version_id: doc.document_version_id,
+                title: doc.title,
+                document_number: doc.document_number,
+              });
+            }
+          }
+          if (candidates.length === 0) {
+            patchEntry(entryId, {
+              status: "done",
+              pageText: { kind: "not_found", query: pageIntent.docHint },
+            });
+            setTab("results");
+            return;
+          }
+        } else {
+          candidates = uniqueCandidateDocs(selectedEntry?.result?.evidence ?? [], selectedEntry?.pageText);
+          if (candidates.length === 0) {
+            patchEntry(entryId, {
+              status: "done",
+              pageText: { kind: "missing_doc", pageNumber: pageIntent.pageNumber },
+            });
+            setTab("results");
+            return;
+          }
+        }
+
+        if (candidates.length > 1) {
+          patchEntry(entryId, {
+            status: "done",
+            pageText: {
+              kind: "choose_doc",
+              pageNumber: pageIntent.pageNumber,
+              isPrintedPage: pageIntent.isPrintedPage,
+              preferAi: pageIntent.preferAi,
+              candidates,
+            },
+          });
+          setTab("results");
+          return;
+        }
+
+        if (pageIntent.isPrintedPage) {
+          patchEntry(entryId, {
+            status: "done",
+            pageText: {
+              kind: "confirm_pdf_page",
+              pageNumber: pageIntent.pageNumber,
+              candidate: candidates[0],
+              preferAi: pageIntent.preferAi,
+            },
+          });
+          setTab("results");
+          return;
+        }
+
+        await fetchAndPollPageText(
+          entryId,
+          effectiveToken,
+          candidates[0],
+          pageIntent.pageNumber,
+          pageIntent.preferAi,
+          controller,
+        );
+        return;
+      }
+
       const payload = {
         question: clean,
         facts: sentFacts
@@ -819,14 +1102,14 @@ export function EvidenceChat({
   function stopCurrentQuery() {
     abortRef.current?.abort();
     setBusy(false);
-    setHistory((prev) => prev.map((entry) => entry.status === "loading"
-      ? { ...entry, status: "error" as const, error: STOPPED_MESSAGE } : entry));
+    setHistory((prev) => prev.map(settleStoppedEntry));
     // Aborting the HTTP stream does not stop server work; cancel the turn explicitly.
     const turn = lastTurnRef.current;
     const owned = sessionRef.current;
     if (turn && owned && owned.id === turn.sessionId) {
       void cancelAgentTurn(owned.token, turn.sessionId, turn.turnId).catch(() => undefined);
     }
+    cancelQueuedPageRead();
   }
 
   async function clearSessionMemory() {
@@ -836,6 +1119,7 @@ export function EvidenceChat({
     sessionEpoch.current += 1;
     const epoch = sessionEpoch.current;
     abortRef.current?.abort();
+    cancelQueuedPageRead();
     abortRef.current = null;
     const owned = sessionRef.current;
     setBusy(false);
@@ -1246,6 +1530,31 @@ export function EvidenceChat({
                   Thử lại
                 </button>
               </div>
+            )}
+
+            {selectedEntry?.status === "done" && selectedEntry.pageText && (
+              <PageTextPanel
+                accessToken={effectiveToken}
+                onCancelTask={(taskId) => void cancelActivePageTask(taskId)}
+                onConfirmPdfPage={(candidate, pdfPage) =>
+                  void selectPageTextCandidate(selectedEntry.id, candidate, pdfPage,
+                    selectedEntry.pageText?.kind === "confirm_pdf_page" && Boolean(selectedEntry.pageText.preferAi))}
+                onRequestAiRetry={(candidate, pageNum) =>
+                  void selectPageTextCandidate(selectedEntry.id, candidate, pageNum, true)}
+                onSelectCandidate={(candidate, pageNum) => {
+                  const isPrinted = selectedEntry.pageText?.kind === "choose_doc" && selectedEntry.pageText.isPrintedPage;
+                  if (isPrinted) {
+                    patchEntry(selectedEntry.id, {
+                      pageText: { kind: "confirm_pdf_page", pageNumber: pageNum, candidate,
+                        preferAi: selectedEntry.pageText?.kind === "choose_doc" && selectedEntry.pageText.preferAi },
+                    });
+                  } else {
+                    void selectPageTextCandidate(selectedEntry.id, candidate, pageNum,
+                      selectedEntry.pageText?.kind === "choose_doc" && Boolean(selectedEntry.pageText.preferAi));
+                  }
+                }}
+                state={selectedEntry.pageText}
+              />
             )}
 
             {result && selectedEntry && (

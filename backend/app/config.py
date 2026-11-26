@@ -55,6 +55,7 @@ class Settings:
     # G5: background worker of the API process that runs embedding rebuild jobs
     # queued from the Admin Portal.  Turn off only on extra API processes.
     embedding_worker_enabled: bool = True
+    ocr_ai_enabled: bool = False
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -109,6 +110,8 @@ class Settings:
             ),
             cross_encoder_instruction=os.getenv("EVIDENCE_CROSS_ENCODER_INSTRUCTION") or None,
             embedding_worker_enabled=os.getenv("EVIDENCE_EMBEDDING_WORKER", "true")
+            .strip().lower() not in {"0", "false", "no"},
+            ocr_ai_enabled=os.getenv("EVIDENCE_OCR_AI_ENABLED", "false")
             .strip().lower() not in {"0", "false", "no"},
         )
 

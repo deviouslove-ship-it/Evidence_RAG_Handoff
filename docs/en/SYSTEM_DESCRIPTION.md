@@ -35,6 +35,11 @@ flowchart LR
  A --> R[Model Registry and egress policy]
  R --> L[Ollama / compatible local service]
  R --> C[Permitted external API]
+ A --> PT[On-demand PDF page text]
+ PT --> P
+ PT --> F
+ PT --> R
+ R --> V[Local Ollama vision profile, ocr stage]
 ```
 
 React/TypeScript in `frontend/` provides Q&A, Search and the Admin Portal; Tauri in `src-tauri/` is the USER desktop shell. `backend/app/` holds the FastAPI API, authentication, documents, workflow, search, effectivity and the registry. PostgreSQL stores business state, permissions, extracts, indexes, vectors and audit; the file store keeps PDFs and provenance. The backend calls OCR or models through configuration; client machines never connect to the database directly. `backend/app/migrations/` holds forward and rollback migrations; `deploy/` and `scripts/` hold deployment and operation sources.
@@ -71,6 +76,8 @@ An upload creates a version and a SHA-256; byte-identical files are blocked, con
 
 For scanned PDF pages, OCR runs when the runtime is configured, with diagnostics and rotation handling; the reviewer must compare OCR text with the scan and confirm each page before it is used as evidence. OCR coordinates are described to page level and should not be read as exact word positions. The queue shows tasks needing review; the reviewer chooses categories, adds notes, resolves open tasks, then approves or rejects. The process never approves automatically.
 
+On-demand OCR AI is a separate flow from intake OCR. A USER may request the full text of one PDF page in chat. The system checks permission and source version and returns stored page text when usable; if text is missing or the user explicitly asks to reread the scan, the backend renders only that page and sends it to an assigned local Ollama vision profile through stage `ocr`. The whole PDF is not sent and image requests do not fall back to an external API. OCR AI is disabled by default (`EVIDENCE_OCR_AI_ENABLED=false`); when enabled, its temporary result is labelled unverified, carries warnings, expires after one hour and does not edit sources or create vectors. A CURATOR who wants to change stored text submits a separate proposal; applying it creates a new draft, while the approved version remains unchanged until a different REVIEWER approves it.
+
 The parser builds a Chapter/Section/Article/Clause/Point tree where it can, stores citation labels, parent links and per-page source spans; a long or multi-page clause may have several anchor spans. Ambiguous cases need review. Source files are immutable by hash; on opening, the backend re-checks permission, version, source and SHA-256 instead of trusting a path from the browser.
 
 ### Document management
@@ -93,6 +100,9 @@ Suspending lookup and soft deletion keep the source file, vectors, categories an
 2. The backend retrieves candidates from the approved store, filters by permission and effectivity, checks sources and selects evidence. Results stream over SSE; the interface has stop/retry and manages session content in RAM.
 3. A structured answer is built from metadata and evidence, with a document card, Article/Clause/Point, excerpt and effectivity status. Provisions that merely mention the topic are distinguished from direct provisions. A question about a penalty, deadline or other strict matter with no suitable clause may return "not found" instead of a guess.
 4. **Open original** calls the citation API; PDFs open at the relevant page, Word/TXT download the uploaded file. Permission and hash are re-checked on open.
+5. **Request one page's text**: the USER selects the intended document and asks, for example, “Cho tôi nội dung text trang 17”. This means PDF page 17; a printed page number needs a verified mapping. The API checks ACL, source revision and page bounds. Stored extracted/reviewed text is returned directly; if unavailable or the user asks to reread the image, the backend renders only that page and a worker calls the local OCR stage. The interface shows progress, allows cancellation, copying and opening the original page, and preserves warnings or unreadable regions. AI image output is unverified and expires after one hour; it is not approved evidence.
+
+The Admin OCR AI flow is separate from USER page reading. A CURATOR opens a draft version, chooses **Đọc lại trang này bằng OCR AI**, compares the image, existing text and proposal, edits if needed, then applies it as a new draft with an audit record. A different REVIEWER must still check the page and approve it. The source PDF is never overwritten.
 
 ### Document search
 
@@ -122,6 +132,8 @@ sequenceDiagram
  API-->>U: Source file or error
 ```
 
+The page-reading flow uses the same API/backend and ACL checks; only the requested page image is sent to the local `ocr` profile. That profile must be an approved, tested Ollama vision profile assigned to the stage; the worker is disabled by default. `qwen3.5:4b` was used in a real-model test, but the Model Registry selects the runtime model from configuration; the application does not hard-code it.
+
 ## 6. Retrieval, effectivity and indexes
 
 The backend combines lexical channels such as phrases, accented/unaccented keywords, titles and document numbers with a semantic channel when embeddings exist. RRF fuses the channel rankings; reranking by LLM or cross-encoder is optional, and it should not be assumed enabled everywhere. The most recently reported configuration used RRF, a relative semantic threshold of 0.8 and rerank off; the actual configuration must be checked on the running machine. Candidate, time and concurrency limits keep the system responsive; they also limit the completeness of each query.
@@ -135,6 +147,8 @@ Embedding turns approved nodes into vectors stored in PostgreSQL/pgvector with a
 The registry stores model profiles: adapter, endpoint, model ID, capabilities, version, data zone, approval status and connection; routes bind each function to a profile per mode. The interface is split into **1. AI models**, **2. AI assignment**, **Embedding** and **Audit log**. Local profiles support Ollama or vLLM/llama.cpp-compatible endpoints; API supports configured compatible providers. A test evaluates configuration, egress, key, connection and model response; saving in a not-ready state is allowed only when the administrator explicitly chooses it.
 
 An assignment has a primary model and an optional fallback/escalation within policy; a model that fails or times out may be skipped and the flow returns reduced functionality. Changing the **AI interpretation** model changes the text-generation route and does not recreate vectors. Changing the **Embedding** model needs the index creation/verification process above. Sending to an external API also depends on API mode, endpoint allow-list, egress policy and data permission; "profile saved" does not mean any document can certainly be sent.
+
+Stage `ocr` for PDF page images is local-only: the Registry accepts only an Ollama profile with vision capability that passes an image probe, with no API fallback. This stage allows one attempt and a timeout of up to 300 seconds; the worker also has a separate total task limit. `qwen3.5:4b` was exercised with the real model/runtime in the 2026-11-17 report, but assignment and worker enablement remain separate operational configuration. The existing reference embedding model (`qwen3-embedding:0.6b`, 1,024 dimensions) was not replaced or regenerated in this source upgrade.
 
 ## 8. Data and security
 
@@ -158,6 +172,8 @@ Backup creates a snapshot of the database and file store with hashes; restore ve
 
 - There is no basis to conclude that the application passed domain acceptance. No Gold question set is used to score the AI (ADR-010): the AI only assists and the domain staff decide. Coverage and quality depend on the store, permissions, metadata, effectivity and questions.
 - The 11-08 source reports state that scanned-PDF OCR, local Ollama models, the Chrome UI and the test suites were tried; this is historical evidence, not re-testing in this documentation pass. The Model Registry report states that real OpenAI/Gemini were not tried and the Tauri shell was not checked.
+- The source reviewed on 2026-11-17 adds one-page chat reading and an Admin OCR AI proposal workflow. PostgreSQL integration tests passed 341 cases and frontend tests passed 110; a real model read page 17/20 from a fictional image-only PDF. This is technical evidence, not business OCR acceptance or validation on another Windows/LAN machine. See the [2026-11-17 review report](../evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md).
+- The existing Portable r4 release remains an older package with `qwen3:1.7b`; it has not been rebuilt from the upgraded source. Do not assume the new OCR AI flow is present in r4.
 - The Portable report states that moving to another folder/drive on the development machine was tried; moving to another physical Windows machine is not confirmed. Availability of models, runtime and data must be checked in the actual package.
 - OCR can be wrong, especially document numbers and conditions; the reviewer must compare. Automatic interpretation checks do not replace legal review. Retrieval limits, timeouts, concurrency and missing indexes can affect results.
 - Detailed sources: [implementation status](../implementation-status.md), [AI/OCR report](../evidence/2026-11-08-ai-ocr/REPORT.md), [Model Registry](../evidence/2026-11-08-model-registry-ui/REPORT.md), [Embedding](../evidence/2026-11-07-embedding-admin/REPORT.md), [threat model](../threat-model.md) and the corresponding source. The reports have different dates; when they differ, prefer the code and configuration actually deployed.

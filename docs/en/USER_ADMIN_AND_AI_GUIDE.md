@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](../HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md) · English
 
-English counterpart of `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (the Vietnamese original). Checked against the interface and source on 2026-11-09. Button names below follow the Vietnamese interface in the current source, given in English with the Vietnamese label in quotes where it helps; a running package may be a different build. See the [system description](SYSTEM_DESCRIPTION.md) for architecture and limits. Perform administration, model changes, restore or configuration changes only with the right permission and after understanding their effect on the system.
+English counterpart of `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (the Vietnamese original). Checked against the interface and source on 2026-11-17. Button names below follow the Vietnamese interface in the current source, given in English with the Vietnamese label in quotes where it helps; a running package may be a different build. See the [system description](SYSTEM_DESCRIPTION.md) for architecture and limits. Perform administration, model changes, restore or configuration changes only with the right permission and after understanding their effect on the system.
 
 ## Contents
 
@@ -24,6 +24,12 @@ English counterpart of `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (the Vietnames
 4. In Q&A or in search results, choose **Diễn giải AI** (AI interpretation) if you want an interpretation from suitable evidence. Read the parts lacking evidence, the warnings and **Căn cứ hỗ trợ** (Supporting evidence); use **Diễn giải tiếp** (Continue interpreting) if offered. Statements checked automatically still need verification before use.
 5. Choose **Mở văn bản gốc** (Open original) on an evidence card. A PDF opens separately at the source page; Word/TXT downloads the original file. A refusal does not mean the file was deleted: the session, permission, source state or integrity check may have failed.
 
+### Read one PDF page from Q&A
+
+After a lookup, select a turn containing the source document and enter “Cho tôi nội dung text trang 17 của văn bản này”, or identify the document by title/number. Select the intended document if several match. “Trang 17” means PDF page 17; a request for printed page 17 requires confirmation of the corresponding PDF page.
+
+The system returns the approved extracted text of that page when available, without calling a model. If text is missing, or the request explicitly says “Đọc lại từ ảnh trang 17 của văn bản này”, only the selected page image is sent to local OCR AI. The results pane labels it **AI read from image — not manually verified** and preserves warnings/unreadable regions. Use **Sao chép nội dung trang** (Copy page text), **Mở trang gốc** (Open original page), or **Hủy đọc trang** (Cancel page read) while waiting. **Dừng** (Stop), clearing temporary data and logout also cancel the tracked task. AI results expire after one hour; they do not change sources, create vectors or become verified citations. Corpus corrections require the separate admin proposal and review workflow.
+
 ## 2. Ingest, OCR and review sources
 
 These sections appear according to the CURATOR/REVIEWER permissions granted.
@@ -38,7 +44,7 @@ These sections appear according to the CURATOR/REVIEWER permissions granted.
 
 1. Open **Admin Portal → Quản lý văn bản** (Document management). Search by number or title, or filter by type, issuing body, date, processing status, effectivity and lookup status. Press **Áp dụng bộ lọc** (Apply filters).
 2. Choose **Chi tiết** (Details) to see metadata, categories and versions. With read permission, open the original file, move between OCR pages, view Article/Clause/Point and the number of items already embedded in the serving index. Open **Lịch sử xử lý** (Processing history) for recent actions.
-3. A CURATOR may use **Sửa thông tin** (Edit information, then **Lưu thông tin**), **Sửa chữ OCR** (Edit OCR text of a scanned page, then **Lưu sửa OCR**) or **Xử lý lại từ tệp gốc** (Reprocess from the source file, then **Xác nhận xử lý lại**). Reprocessing runs the configured extractor/OCR and returns the result to draft. After approval or rejection, the action creates a new draft version. Use **Thêm phiên bản từ tệp mới** (Add version from a new file) to attach a new PDF, Word or TXT to the same document, then choose **Tạo phiên bản nháp** (Create draft version). Verify the file's information before submitting for review.
+3. A CURATOR may use **Sửa thông tin** (Edit information, then **Lưu thông tin**), **Sửa chữ OCR** (Edit OCR text of a scanned page, then **Lưu sửa OCR**), **Đọc lại trang này bằng OCR AI** (run single-page local vision OCR via Ollama, compare the diff against the original PDF and edit before clicking **Áp dụng đề xuất vào bản nháp**; approved versions remain unchanged and another REVIEWER must confirm before publication) or **Xử lý lại từ tệp gốc** (Reprocess from the source file, then **Xác nhận xử lý lại**). Reprocessing runs the configured extractor/OCR and returns the result to draft. After approval or rejection, the action creates a new draft version. Use **Thêm phiên bản từ tệp mới** (Add version from a new file) to attach a new PDF, Word or TXT to the same document, then choose **Tạo phiên bản nháp** (Create draft version). Verify the file's information before submitting for review.
 4. In the document record choose **Gửi duyệt** (Submit), or select several drafts in the list and choose **Gửi duyệt các bản đã chọn** (Submit the selected), confirming with **Xác nhận gửi duyệt**. Check each result. A different REVIEWER opens the pending version, chooses **Mở PDF và thẩm định** (Open PDF and review), views the source file, resolves tasks and re-confirms each edited OCR page. Enter a reason, then choose **Phê duyệt phiên bản** (Approve version) or **Từ chối phiên bản** (Reject version). Assigned categories are kept. The reviewer needs approval permission on all assigned categories. If a "version changed" message appears, reload the detail and continue. The previously approved version stays searchable while the correction awaits approval, if the document is active and the user has permission.
 5. SYS_ADMIN selects one or more documents to **Tạm ngừng** (Suspend), **Mở lại tra cứu** (Resume lookup), **Xóa mềm** (Soft delete) or **Khôi phục văn bản** (Restore document). Check the selected list, enter a reason and confirm. Use the **Đã xóa** (Deleted) filter to restore soft-deleted documents. A document that was suspended needs **Mở lại tra cứu** separately. A draft awaiting approval must still pass review before publication.
 
@@ -82,10 +88,12 @@ A key entered through the interface travels from the browser to the server; LAN 
 
 | What to change | Action | Effect on vectors |
 |---|---|---|
-| Model for **Diễn giải AI** (AI interpretation) | In **2. Phân công AI**, choose the AI interpretation row, test and apply | Does not recreate vectors/index. |
+| Model for **Diễn giải AI** / **OCR AI** | In **2. Phân công AI**, choose the AI interpretation or `ocr` row (local vision Ollama profile only, up to 300s timeout), test and apply | Does not recreate vectors/index. |
 | Model for semantic search | Create a profile with the embedding role; open **Embedding (tìm theo nghĩa)** | Preflight and confirm a job that creates/fills vectors, verify the new index, then switch; the old index is kept during the build and after the switch. |
 
 To change embedding: under **Chọn / đổi model embedding** (Choose / change embedding model), choose a profile, batch size, and choose **Tạo chỉ mục mới từ đầu** (Create new index from scratch) only if really needed; press **Kiểm tra model** (Test model). Review the dimension, the number of nodes to create, the estimate and the checks. If they pass, confirm creating the job. Follow progress and errors and use pause/resume/retry/cancel according to the state. The worker must be on; if it fails, the serving index is kept. Newly approved nodes may need **Kiểm tra và bổ sung vector còn thiếu** (Check and fill missing vectors). Do not delete the old index by hand to "fix" an error.
+
+**Enable OCR AI explicitly.** The worker is disabled by default. After testing the Ollama vision profile and assigning `ocr`, the operator sets `EVIDENCE_OCR_AI_ENABLED=true` in the server configuration and restarts. In Portable, uncomment that line in `config/evidence.env`. Approved page text and Tesseract remain available while disabled; new image reads return `OCR_AI_DISABLED` instead of silently waiting in a queue. Configuration/model or prompt changes invalidate old proposals for application; create a new request. Changing generation/OCR models does not require rebuilding embeddings.
 
 ## 7. Local models for offline Portable
 

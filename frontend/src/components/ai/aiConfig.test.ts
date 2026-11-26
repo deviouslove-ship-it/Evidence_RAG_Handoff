@@ -167,3 +167,38 @@ it("classifies services, status, eligibility and usage", () => {
   expect(usedBy(registry, "local")).toEqual([
     "Hỏi đáp: chọn căn cứ (LOCAL)", "Diễn giải AI (API)"]);
 });
+
+it("supports ocr role and native ollama params without changing legacy profiles", () => {
+  const form = emptyForm("local");
+  const ocrForm = {
+    ...form,
+    name: "local-qwen35-ocr",
+    modelId: "qwen3.5:4b",
+    advancedTouched: true,
+    advanced: {
+      ...form.advanced,
+      role: "ocr" as const,
+      ollamaNative: true,
+      think: "false" as const,
+      numCtx: "8192",
+    },
+  };
+  expect(formProblem(ocrForm)).toBeNull();
+  expect(buildPayload(ocrForm)).toMatchObject({
+    profile_id: "local-qwen35-ocr",
+    adapter: "ollama_local",
+    capabilities: ["ocr"],
+    params: { json_mode: false, ollama_native: true, think: false, num_ctx: 8192 },
+  });
+  expect(formProblem({ ...ocrForm, choice: "vllm_local" })).toMatch(/Ollama/);
+
+  const parsed = formFromProfile(profile({
+    profile_id: "local-qwen35-ocr",
+    capabilities: ["ocr"],
+    params: { ollama_native: true, think: false, num_ctx: 8192 },
+  }));
+  expect(parsed.advanced.role).toBe("ocr");
+  expect(parsed.advanced.ollamaNative).toBe(true);
+  expect(parsed.advanced.think).toBe("false");
+  expect(parsed.advanced.numCtx).toBe("8192");
+});

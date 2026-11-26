@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from enum import StrEnum
+from hashlib import sha256
 from typing import Any
 
 
@@ -39,3 +41,21 @@ class ModelProfile:
     output_price_per_mtok: float | None = None
     daily_cost_limit: float | None = None
     monthly_cost_limit: float | None = None
+
+
+def profile_fingerprint(profile: ModelProfile) -> str:
+    """Identify the model configuration independently of a mutable profile label."""
+    payload = {
+        "profile_id": profile.profile_id,
+        "adapter": profile.adapter,
+        "endpoint": profile.endpoint,
+        "model_id": profile.model_id,
+        "revision": profile.revision,
+        "params": profile.params,
+        "capabilities": sorted(profile.capabilities),
+        "privacy_zone": profile.privacy_zone,
+        "secret_ref": profile.secret_ref,
+    }
+    return sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()

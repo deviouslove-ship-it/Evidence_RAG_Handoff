@@ -23,7 +23,7 @@ Tính đến 11/11/2026, Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) vẫn đan
 
 - Bằng chứng và giới hạn: [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md), [`PROJECT_TIMELINE.vi.md`](PROJECT_TIMELINE.vi.md), phụ lục thống kê từng tệp [`KIRO_STATS_APPENDIX.vi.md`](KIRO_STATS_APPENDIX.vi.md)
 - Tổng quan kiến trúc: [`docs/vi/ARCHITECTURE_OVERVIEW.md`](docs/vi/ARCHITECTURE_OVERVIEW.md)
-- Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Nội dung được dựng lại ban đầu từ mã nguồn ngày 09/11/2026; spec hiệu lực và ghim trích dẫn được cập nhật ngày 11/11/2026. Đây không phải spec lịch sử do Kiro tạo. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
+- Specs (10 nhóm), steering và hooks của Kiro: [`.kiro/`](.kiro/). Nội dung được dựng lại ban đầu từ mã nguồn ngày 09/11/2026; spec hiệu lực và ghim trích dẫn được đồng bộ ngày 11/11/2026; spec OCR và Model Registry được cập nhật theo source ngày 17/11/2026 sau nâng cấp, không phải hoạt động Kiro lịch sử. Bản dịch tiếng Việt: [`docs/vi/kiro/`](docs/vi/kiro/README.vi.md)
 - MCP của Kiro: **Stitch** – thiết kế UI, kết quả trong [`.stitch/`](.stitch/) (máy chủ cấu hình ở mức người dùng; chủ dự án xác nhận đã dùng, không có nhật ký lệnh gọi: bằng chứng loại B, xem [`KIRO_WORK_SUMMARY.vi.md`](KIRO_WORK_SUMMARY.vi.md) mục 7)
 
 ## Chạy cục bộ
@@ -95,6 +95,13 @@ quyền hay trạng thái duyệt.
   ngày, cơ quan, trích yếu, Điều/Khoản, trích dẫn nguyên văn ngắn, hiệu lực) và nút “Mở văn
   bản gốc” (PDF mở tab riêng đúng trang, Word/TXT tải đúng tệp đã nạp); khớp theo cụm từ,
   danh mục liệt kê văn bản tách riêng; SSE có dừng/thử lại; bộ nhớ phiên chỉ trong RAM.
+- **Đọc nội dung một trang PDF trong Hỏi đáp**: USER có thể yêu cầu nội dung trang PDF cụ thể
+  của tài liệu đã chọn. Hệ thống ưu tiên chữ đã trích xuất/duyệt; khi thiếu chữ hoặc người dùng
+  yêu cầu đọc lại từ ảnh, chỉ trang đó được gửi tới hồ sơ Ollama vision cục bộ đã phân công.
+  Kết quả AI được đánh dấu chưa đối chiếu thủ công, có thể sao chép hoặc mở trang gốc; không
+  tự sửa nguồn, tạo vector hay trở thành trích dẫn đã xác minh. OCR AI mặc định tắt và cần
+  người vận hành bật rõ ràng. Đây là nâng cấp của source; gói tải r4 chưa được đóng gói lại
+  nên không bao gồm tính năng này.
 - **Tìm kiếm văn bản** (một trang, trên tìm toàn diện G2): theo nghĩa, đủ các từ, chính xác
   cụm từ; lọc danh mục, loại văn bản, hiệu lực, thời gian; gộp theo văn bản, phân trang; kết
   quả chỉ khớp một phần ở nhóm riêng.
@@ -110,9 +117,12 @@ quyền hay trạng thái duyệt.
   (xem [`test-data/README.md`](test-data/README.md)).
 - **AI**: chế độ `API` hoặc `LOCAL` (Ollama/vLLM/llama.cpp hoặc dịch vụ tương thích
   OpenAI: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`) định tuyến theo giai
-  đoạn (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`). Trong hỏi
+  đoạn (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`, `ocr`). Stage
+  `ocr` chỉ dùng hồ sơ Ollama vision local và worker mặc định tắt. Trong hỏi
   đáp, model chỉ chọn tối đa 3 căn cứ trong số căn cứ đã kiểm nguồn; ở "Diễn giải AI" (`summarize`),
   mỗi ý được kiểm bằng mã trên căn cứ đính kèm; model không bao giờ sinh trích dẫn nguyên văn.
+  Source đã thử `qwen3.5:4b` cho text/vision; model được chọn thực tế vẫn do Registry, không hard-code.
+  Đợt này giữ nguyên embedding tham chiếu `qwen3-embedding:0.6b` (1.024 chiều), không tạo lại vector.
   Model lỗi/chậm thì hệ thống vẫn trả căn cứ gốc. Mô hình đề xuất và cấu hình máy:
   [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md).
 - **Quan hệ hiệu lực cấp Điều/Khoản/Điểm**: hỗ trợ đề xuất thay thế, sửa đổi, bổ sung và bãi bỏ;

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
+import { detectPageTextIntent } from "../components/pageTextIntent";
 import * as localDate from "../localDate";
 import { EvidenceChat } from "./EvidenceChat";
 
@@ -649,4 +650,216 @@ it("synchronizes dynamic docPageSize with visible cards, navigates on [n] click,
     expect(pagination).toHaveTextContent("Trang 2 / 2 (4–5 / 5 văn bản)");
   });
   expect(container.querySelectorAll(".doc-card-slot")).toHaveLength(2);
+});
+
+it("detects page-text intent only for explicit page reading requests", () => {
+  expect(detectPageTextIntent("Điều 17 Nghị định 351/2026/NĐ-CP quy định gì?")).toBeNull();
+  expect(detectPageTextIntent("Đọc nội dung trang 17 Nghị định 351/2026/NĐ-CP")).toEqual({
+    pageNumber: 17,
+    isPrintedPage: false,
+    docHint: "Nghị định 351/2026/NĐ-CP",
+    preferAi: false,
+  });
+  expect(detectPageTextIntent("Trang 17 của Nghị định 351/2026 viết gì?")).toEqual({
+    pageNumber: 17,
+    isPrintedPage: false,
+    docHint: "Nghị định 351/2026",
+    preferAi: false,
+  });
+  expect(detectPageTextIntent("Xem trang in 15 Thông tư 10")).toEqual({
+    pageNumber: 15,
+    isPrintedPage: true,
+    docHint: "Thông tư 10",
+    preferAi: false,
+  });
+});
+
+it.each(["stop", "clear"])("%s during a page read cancels the server task", async (action) => {
+  const fetcher = vi.fn((url: string) => {
+    const known = baseRoutes(url);
+    if (known) return Promise.resolve(known);
+    if (url.startsWith("/api/v1/search?")) return Promise.resolve(new Response(JSON.stringify({
+      results: [{ document_id: "doc-1", document_version_id: "ver-1", title: "Báo cáo HƯ CẤU" }],
+    })));
+    return Promise.resolve(new Response(JSON.stringify({
+      task_id: "queued-page-task", status: "queued", document_id: "doc-1", version_id: "ver-1",
+      document_title: "Báo cáo HƯ CẤU", page_number: 17, total_pages: 20,
+      source_kind: "ocr_ai_unverified", verified: false,
+    }), { status: 202 }));
+  });
+  vi.stubGlobal("fetch", fetcher);
+  render(<EvidenceChat accessToken="fixture-token" />);
+  fireEvent.change(screen.getByRole("textbox", { name: "Câu hỏi tra cứu" }), {
+    target: { value: "Đọc text trang 17 Báo cáo HƯ CẤU" },
+  });
+  const submit = screen.getByRole("button", { name: "Tra cứu" });
+  await waitFor(() => expect(submit).toBeEnabled());
+  fireEvent.click(submit);
+  await screen.findByRole("button", { name: "Hủy đọc trang" });
+  fireEvent.click(screen.getByRole("button", {
+    name: action === "stop" ? "Dừng" : /^Xóa dữ liệu tạm/,
+  }));
+  await waitFor(() => expect(fetcher.mock.calls.some(([url]) => url.endsWith("/queued-page-task/cancel"))).toBe(true));
+  expect(screen.queryByRole("button", { name: "Hủy đọc trang" })).not.toBeInTheDocument();
+});
+
+it("test_chat_page17_reads_only_requested_page", async () => {
+  let turnCalled = false;
+  let pollCount = 0;
+  const fetcher = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+    const known = baseRoutes(url);
+    if (known) return Promise.resolve(known);
+    if (url.startsWith("/api/v1/search?")) {
+      return Promise.resolve(new Response(JSON.stringify({
+        query: { original: "351/2026/NĐ-CP", mode: "auto" },
+        totals: { documents: 1, clauses: 1, approximate_matches_hidden: 0 },
+        page: 1,
+        page_size: 5,
+        has_more: false,
+        effectivity_snapshot_status: "ready",
+        results: [{
+          document_id: "doc-1",
+          document_version_id: "ver-1",
+          document_number: "351/2026/NĐ-CP",
+          title: "Nghị định kiểm thử trang 17",
+          doc_type: "decree",
+          matched_clause_count: 1,
+          clause_page: 1,
+          clause_page_size: 5,
+          has_more_clauses: false,
+          clauses: [],
+        }],
+      }), { status: 200 }));
+    }
+    if (url === "/api/v1/documents/doc-1/versions/ver-1/page-text") {
+      expect(JSON.parse(String(init?.body))).toMatchObject({ page_number: 17 });
+      return Promise.resolve(new Response(JSON.stringify({
+        task_id: "task-17",
+        status: "queued",
+        document_id: "doc-1",
+        version_id: "ver-1",
+        document_title: "Nghị định kiểm thử trang 17",
+        document_number: "351/2026/NĐ-CP",
+        page_number: 17,
+        total_pages: 25,
+        source_kind: "ocr_ai_unverified",
+        verified: false,
+        warning: "AI đọc từ ảnh trang 17 — chưa đối chiếu thủ công",
+        page_text: null,
+        pdf_url: "/api/v1/documents/doc-1/versions/ver-1/pdf",
+      }), { status: 202 }));
+    }
+    if (url === "/api/v1/page-text-tasks/task-17") {
+      pollCount += 1;
+      return Promise.resolve(new Response(JSON.stringify({
+        task_id: "task-17",
+        status: "ready",
+        document_id: "doc-1",
+        version_id: "ver-1",
+        document_title: "Nghị định kiểm thử trang 17",
+        document_number: "351/2026/NĐ-CP",
+        page_number: 17,
+        total_pages: 25,
+        source_kind: "ocr_ai_unverified",
+        verified: false,
+        warning: "AI đọc từ ảnh trang 17 — chưa đối chiếu thủ công",
+        page_text: "Điều 17. Nội dung nguyên văn của trang 17.",
+        pdf_url: "/api/v1/documents/doc-1/versions/ver-1/pdf",
+      }), { status: 200 }));
+    }
+    if (url.includes("/turns")) {
+      turnCalled = true;
+    }
+    return Promise.resolve(new Response("{}", { status: 200 }));
+  });
+  vi.stubGlobal("fetch", fetcher);
+
+  render(<EvidenceChat accessToken="fixture-token" />);
+  const composer = screen.getByRole("textbox", { name: "Câu hỏi tra cứu" });
+  fireEvent.change(composer, {
+    target: { value: "Đọc nội dung trang 17 Nghị định 351/2026/NĐ-CP" },
+  });
+  const submit = screen.getByRole("button", { name: "Tra cứu" });
+  await waitFor(() => expect(submit).toBeEnabled());
+  fireEvent.click(submit);
+
+  await screen.findByText("Trang PDF 17/25", {}, { timeout: 4000 });
+  expect(screen.getByText("Điều 17. Nội dung nguyên văn của trang 17.")).toBeInTheDocument();
+  expect(screen.getAllByText(/AI đọc từ ảnh trang 17 — chưa đối chiếu thủ công/).length).toBeGreaterThanOrEqual(1);
+  expect(turnCalled).toBe(false);
+  expect(pollCount).toBe(1);
+});
+
+it("test_ambiguous_document_and_invalid_page_do_not_infer", async () => {
+  let pageTextRequested = false;
+  const fetcher = vi.fn().mockImplementation((url: string) => {
+    const known = baseRoutes(url);
+    if (known) return Promise.resolve(known);
+    if (url.startsWith("/api/v1/search?")) {
+      return Promise.resolve(new Response(JSON.stringify({
+        query: { original: "thuế", mode: "auto" },
+        totals: { documents: 2, clauses: 2, approximate_matches_hidden: 0 },
+        page: 1,
+        page_size: 5,
+        has_more: false,
+        effectivity_snapshot_status: "ready",
+        results: [
+          {
+            document_id: "doc-a",
+            document_version_id: "ver-a",
+            document_number: "01/2025/NĐ-CP",
+            title: "Nghị định A về thuế",
+            doc_type: "decree",
+            matched_clause_count: 1,
+            clause_page: 1,
+            clause_page_size: 5,
+            has_more_clauses: false,
+            clauses: [],
+          },
+          {
+            document_id: "doc-b",
+            document_version_id: "ver-b",
+            document_number: "02/2026/TT-BTC",
+            title: "Thông tư B về thuế",
+            doc_type: "circular",
+            matched_clause_count: 1,
+            clause_page: 1,
+            clause_page_size: 5,
+            has_more_clauses: false,
+            clauses: [],
+          },
+        ],
+      }), { status: 200 }));
+    }
+    if (url.includes("/page-text")) {
+      pageTextRequested = true;
+      return Promise.resolve(new Response(JSON.stringify({
+        code: "PAGE_OUT_OF_RANGE",
+        message: "Số trang PDF không hợp lệ hoặc vượt quá tổng số trang của tài liệu.",
+      }), { status: 422 }));
+    }
+    return Promise.resolve(new Response("{}", { status: 200 }));
+  });
+  vi.stubGlobal("fetch", fetcher);
+
+  render(<EvidenceChat accessToken="fixture-token" />);
+  const composer = screen.getByRole("textbox", { name: "Câu hỏi tra cứu" });
+  fireEvent.change(composer, {
+    target: { value: "Xem trang in 999 về thuế" },
+  });
+  const submit = screen.getByRole("button", { name: "Tra cứu" });
+  await waitFor(() => expect(submit).toBeEnabled());
+  fireEvent.click(submit);
+
+  await screen.findByText("Chọn văn bản cần đọc trang 999");
+  expect(pageTextRequested).toBe(false);
+
+  fireEvent.click(screen.getByRole("button", { name: /Thông tư B về thuế/ }));
+  await screen.findByText("Xác nhận số trang PDF");
+  expect(pageTextRequested).toBe(false);
+
+  fireEvent.click(screen.getByRole("button", { name: "Đọc Trang PDF 999" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(/Số trang PDF không hợp lệ/);
+  expect(pageTextRequested).toBe(true);
 });

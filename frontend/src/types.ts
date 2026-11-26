@@ -348,6 +348,9 @@ export interface ModelRegistryState {
       reasoning_effort?: string;
       token_limit_field?: string;
       dimensions?: number;
+      ollama_native?: boolean;
+      think?: boolean | null;
+      num_ctx?: number;
     };
     input_price_per_mtok?: number | null;
     output_price_per_mtok?: number | null;
@@ -591,4 +594,71 @@ export interface SearchResponse {
   empty_reason?: SearchEmptyReason | null;
   clause_level_warning?: string | null;
   data_date?: string | null;
+}
+
+export type PageTextSourceKind = "native" | "ocr_reviewed" | "ocr_ai_unverified";
+
+export type PageTextTaskStatus =
+  | "queued"
+  | "running"
+  | "ready"
+  | "failed"
+  | "cancelled"
+  | "stale"
+  | "applied"
+  | "rejected";
+
+export interface PageTextResponse {
+  task_id?: string | null;
+  status: PageTextTaskStatus;
+  document_id: string;
+  version_id: string;
+  document_title: string;
+  document_number?: string | null;
+  page_number: number;
+  total_pages: number;
+  source_kind: PageTextSourceKind;
+  verified: boolean;
+  warning?: string | null;
+  page_text?: string | null;
+  error_code?: string | null;
+  pdf_url: string;
+  deduplicated?: boolean;
+  warnings?: string[];
+  unreadable?: string[];
+}
+
+export interface OcrAiDiffLine {
+  op: "equal" | "delete" | "insert";
+  text: string;
+}
+
+export interface AdminOcrAiProposal {
+  proposal_id: string;
+  purpose: "admin_correction" | "user_page_text";
+  document_id: string;
+  version_id: string;
+  page_number: number;
+  source_review_revision: number;
+  status: PageTextTaskStatus;
+  stale: boolean;
+  candidate?: {
+    blocks: Array<{ kind: "text" | "table"; text?: string | null; rows?: string[][] | null }>;
+    warnings: string[];
+    unreadable: string[];
+  } | null;
+  candidate_text?: string | null;
+  current_page_text?: string | null;
+  diff?: OcrAiDiffLine[] | null;
+  error_code?: string | null;
+  applied_version_id?: string | null;
+  note?: string | null;
+  deduplicated?: boolean;
+}
+
+export interface AdminOcrAiApplyResponse {
+  version_id: string;
+  revision: number;
+  status: string;
+  proposal: AdminOcrAiProposal;
 }

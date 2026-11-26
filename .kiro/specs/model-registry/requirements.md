@@ -1,6 +1,6 @@
 # Requirements: Model Registry (AI Local / AI API)
 
-> Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Evidence is cited by repository path. Decisions: ADR-002, ADR-004, ADR-007.
+> Initially reconstructed from implemented code on 2026-11-09 and updated against the source on 2026-11-17. This is not a historical Kiro-generated spec. Evidence is cited by repository path. Decisions: ADR-002, ADR-004, ADR-007.
 
 ## Introduction
 
@@ -27,10 +27,11 @@ Every use of a model is a named stage. Administrators register Local or API mode
 
 #### Acceptance Criteria
 
-1. THE SYSTEM SHALL support the stages `answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank` (`model_registry/stages.py`).
+1. THE SYSTEM SHALL support the stages `answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`, `ocr` (`model_registry/stages.py`).
 2. WHEN the administrator assigns a profile THE SYSTEM SHALL test and apply it per stage and per mode (`POST /model-registry/routes`), with optional fallback and escalation profiles.
 3. WHEN a model is unreachable THE SYSTEM SHALL skip it for a cool-down period and degrade to returning the original evidence instead of hanging a chat turn.
-4. THE SYSTEM SHALL keep changing the "AI interpretation" model separate from changing the embedding model: only the latter needs an index rebuild.
+4. THE SYSTEM SHALL keep changing the "AI interpretation" or OCR model separate from changing the embedding model: only changing the embedding model needs a new index job; the old index remains available until the new one is validated and switched.
+5. IF the stage is `ocr` THEN THE SYSTEM SHALL require one attempt, a timeout no greater than 300 seconds and a local Ollama vision profile; the OCR stage SHALL NOT use API escalation in either operating mode.
 
 ### Requirement 4: Egress policy
 
@@ -38,7 +39,8 @@ Every use of a model is a named stage. Administrators register Local or API mode
 
 1. IF the mode is `LOCAL` THEN THE SYSTEM SHALL reject `public` profiles and SHALL NOT call any external API (`REMOTE_AI_DENIED`).
 2. WHEN the mode is `API` THE SYSTEM SHALL send content outside only if the endpoint domain is allow-listed, the transport is HTTPS, the user has `remote_ai_allowed`, every source category allows remote processing and the document is not `restricted` (`AI_EGRESS_DENIED` otherwise).
-3. THE SYSTEM SHALL restrict `embedding` and `rerank` to local profiles in both modes.
+3. THE SYSTEM SHALL restrict `embedding`, `rerank` and `ocr` to local profiles in both modes.
+4. WHEN an `ocr` profile is tested THE SYSTEM SHALL verify Ollama vision capability and read a known synthetic image probe; text-only success or non-empty output alone SHALL NOT make the profile ready (`model_registry/adapters/ollama_local.py`, `diagnostics.py`).
 
 ### Requirement 5: Hybrid Auto policy and cost caps
 

@@ -65,7 +65,8 @@ $ollamaSource = Join-Path $erag 'tools\ollama'
 $tessRoots = @(Get-ChildItem -LiteralPath (Join-Path $erag 'tools\tesseract') -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'tesseract.exe') })
 if ($tessRoots.Count -ne 1) { throw "Expected exactly one Tesseract under tools\tesseract, found $($tessRoots.Count)." }
 $tessSource = $tessRoots[0].FullName
-$modelsSource = Join-Path $erag 'models\ollama'
+$repoModels = Join-Path $repo 'models\ollama'
+$modelsSource = if (Test-Path -LiteralPath $repoModels) { $repoModels } else { Join-Path $erag 'models\ollama' }
 $nodeExe = Join-Path $erag 'runtimes\node\node.exe'
 $pnpmCjs = Join-Path $erag 'tools\pnpm\node_modules\pnpm\bin\pnpm.cjs'
 $frontendDir = Join-Path $repo 'frontend'
@@ -220,6 +221,7 @@ foreach ($file in 'Start-Server.bat', 'Stop-Server.bat', 'Backup-Data.bat', 'Res
 foreach ($file in 'Allow-LAN-Firewall.bat', 'Verify-Package.bat', 'Status.bat') { Write-TextAsset (Join-Path $templates "tools\$file") (Join-Path $package "tools\$file") $false }
 foreach ($file in 'portable.ps1', 'portable-lib.ps1') { Write-TextAsset (Join-Path $templates "tools\$file") (Join-Path $package "tools\$file") $true }
 Write-TextAsset (Join-Path $templates 'config\evidence.env') (Join-Path $package 'config\evidence.env') $true
+Copy-Item -LiteralPath (Join-Path $templates 'config\ocr-probe.png') -Destination (Join-Path $package 'config\ocr-probe.png')
 Write-TextAsset (Join-Path $templates 'README.txt') (Join-Path $package 'README.txt') $true
 foreach ($file in 'README.en.txt', 'HUONG_DAN_SU_DUNG.vi.md', 'USER_GUIDE.en.md') { Write-TextAsset (Join-Path $templates $file) (Join-Path $package $file) $true }
 foreach ($dir in 'logs', 'run', 'backups', 'secrets') { New-Item -ItemType Directory -Force (Join-Path $package $dir) | Out-Null }
@@ -287,7 +289,7 @@ $files = Get-ChildItem -LiteralPath $package -Recurse -File | Sort-Object FullNa
 foreach ($file in $files) {
     $rel = $file.FullName.Substring($package.Length + 1)
     $top = ($rel -split '\\')[0]
-    if ($rel -eq $markerName -or $rel -like 'config\*' -or $rel -like 'logs\*' -or $rel -like 'run\*' -or $rel -like 'backups\*' -or $rel -like 'secrets\*' -or $rel -eq 'MANIFEST.json' -or $rel -eq 'checksums.sha256') { continue }
+    if ($rel -eq $markerName -or ($rel -like 'config\*' -and $rel -ne 'config\ocr-probe.png') -or $rel -like 'logs\*' -or $rel -like 'run\*' -or $rel -like 'backups\*' -or $rel -like 'secrets\*' -or $rel -eq 'MANIFEST.json' -or $rel -eq 'checksums.sha256') { continue }
     $hash = Get-FileSha256 $file.FullName
     $sums.Add("$hash  $rel")
     if ($rel -like 'models\ollama\blobs\sha256-*' -and $file.Name -ne ('sha256-' + $hash)) { $badBlobs += $rel }
@@ -312,8 +314,22 @@ foreach ($name in $modelNames) {
     if (-not (Test-Path -LiteralPath $manifestFile)) { throw "Ollama manifest for $name not found in the model store: $relManifest" }
     $mm = Get-Content -LiteralPath $manifestFile -Raw -Encoding UTF8 | ConvertFrom-Json
     $weights = @($mm.layers | Where-Object { $_.mediaType -eq 'application/vnd.ollama.image.model' })[0]
+    $projector = @($mm.layers | Where-Object { $_.mediaType -eq 'application/vnd.ollama.image.projector' })[0]
+    $requiredDigests = @($mm.config.digest) + @($mm.layers | ForEach-Object { $_.digest })
+    foreach ($digest in $requiredDigests) {
+        if (-not $digest) { continue }
+        $blobFile = Join-Path $package ('models\ollama\blobs\' + ([string]$digest).Replace(':', '-'))
+        if (-not (Test-Path -LiteralPath $blobFile)) { throw "Ollama blob for $name missing in model store: $digest" }
+    }
+    $layerSummary = @($mm.layers | ForEach-Object {
+        [ordered]@{ media_type = $_.mediaType; digest = $_.digest; size = [int64]$_.size }
+    })
     $blobBytes = ([int64]$mm.config.size) + (($mm.layers | Measure-Object size -Sum).Sum)
     $isEmbedding = @($profiles | Where-Object { $_.Model -eq $name -and $_.Capabilities -match 'embedding' }).Count -gt 0
+    $isOcr = @($profiles | Where-Object { $_.Model -eq $name -and $_.Capabilities -match 'ocr' }).Count -gt 0
+    if ($isOcr -and -not $projector) {
+        throw "Model $name is assigned capability 'ocr' but is missing its vision projector layer in $relManifest."
+    }
     $dims = 0
     if ($isEmbedding) {
         $row = @($registryLines | Where-Object { $_.StartsWith("I|$name|") } | Select-Object -First 1)
@@ -321,8 +337,11 @@ foreach ($name in $modelNames) {
     }
     $roles = @($profiles | Where-Object { $_.Model -eq $name } | ForEach-Object { $_.Capabilities.Trim('[', ']') -replace '"', '' } | Select-Object -Unique)
     $models += [ordered]@{
-        name = $name; role = $(if ($isEmbedding) { 'embedding' } else { 'generate' }); capabilities = $roles; dimensions = $dims
-        manifest = $relManifest; weights_sha256 = ([string]$weights.digest).Replace('sha256:', ''); size_bytes = $blobBytes
+        name = $name; role = $(if ($isEmbedding) { 'embedding' } elseif ($isOcr -and ($roles -notmatch 'answer')) { 'ocr' } else { 'generate' })
+        ocr_capable = $isOcr; vision_projector = ($null -ne $projector)
+        projector_sha256 = $(if ($projector) { ([string]$projector.digest).Replace('sha256:', '') } else { $null })
+        capabilities = $roles; dimensions = $dims; manifest = $relManifest
+        weights_sha256 = ([string]$weights.digest).Replace('sha256:', ''); layers = $layerSummary; size_bytes = $blobBytes
         profiles = @($profiles | Where-Object { $_.Model -eq $name } | ForEach-Object { $_.Key })
     }
 }

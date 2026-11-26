@@ -7,9 +7,10 @@ from enum import StrEnum
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 from .ai_limits import MAX_AI_OUTPUT_TOKENS
+from .model_registry.stages import StagePolicy
 
 
 class ScopeMode(StrEnum):
@@ -443,6 +444,10 @@ class ModelParams(BaseModel):
     # Embedding profiles only: requested vector size for models that can shorten their
     # output ("dimensions" in the OpenAI-compatible API).  None = the model's own size.
     embedding_dimensions: int | None = Field(default=None, ge=1, le=4000)
+    # Ollama native (/api/chat) controls; omitted on legacy OpenAI-compatible profiles.
+    ollama_native: bool = False
+    think: bool | None = None
+    num_ctx: int | None = Field(default=None, ge=1024, le=32_768)
 
     def to_stored(self) -> dict[str, Any]:
         stored: dict[str, Any] = {}
@@ -460,6 +465,12 @@ class ModelParams(BaseModel):
             stored["token_limit_field"] = self.token_limit_field
         if self.embedding_dimensions is not None:
             stored["dimensions"] = self.embedding_dimensions
+        if self.ollama_native:
+            stored["ollama_native"] = True
+        if self.think is not None:
+            stored["think"] = self.think
+        if self.num_ctx is not None:
+            stored["num_ctx"] = self.num_ctx
         return stored
 
 
@@ -500,8 +511,19 @@ class StagePolicyRequest(BaseModel):
     stage: str = Field(min_length=1, max_length=80)
     max_attempts: int = Field(ge=1, le=10)
     max_output_tokens: int | None = Field(default=None, ge=1, le=16_384)
-    timeout_seconds: float | None = Field(default=None, gt=0, le=30)
+    timeout_seconds: float | None = Field(default=None, gt=0, le=300)
     max_concurrency: int | None = Field(default=None, ge=1, le=64)
+
+    @model_validator(mode="after")
+    def _validate_stage_bounds(self) -> StagePolicyRequest:
+        StagePolicy(
+            max_attempts=self.max_attempts,
+            max_output_tokens=self.max_output_tokens,
+            timeout_seconds=self.timeout_seconds,
+            max_concurrency=self.max_concurrency,
+            stage=self.stage.strip(),
+        )
+        return self
 
 
 class ApiError(BaseModel):

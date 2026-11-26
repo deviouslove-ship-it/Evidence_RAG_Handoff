@@ -27,13 +27,22 @@ from uuid import UUID
 import httpx
 
 from ..ai_limits import MAX_AI_OUTPUT_TOKENS
-from .adapters import AdapterBudget, AdapterError, OpenAICompatibleAdapter
-from .profiles import ModelProfile, OperatingMode, PrivacyZone
+from .adapters import AdapterBudget, AdapterError, OllamaLocalAdapter, OpenAICompatibleAdapter
+from .adapters.ollama_local import (
+    OCR_PROBE_PROMPT,
+    OCR_PROBE_SCHEMA,
+    synthetic_ocr_probe_png,
+    valid_ocr_probe,
+)
+from .profiles import ModelProfile, OperatingMode, PrivacyZone, profile_fingerprint
 from .secret_store import SecretStore, SecretStoreError, secret_name
 from .stages import (
     ESCALATION_STAGES,
     LOCAL_ONLY_STAGES,
     MAX_STAGE_ATTEMPTS,
+    OCR_DEFAULT_TIMEOUT_SECONDS,
+    OCR_MAX_OUTPUT_TOKENS,
+    OCR_MAX_TIMEOUT_SECONDS,
     STAGES,
     StagePolicy,
 )
@@ -198,9 +207,10 @@ class EndpointPolicy:
         if not math.isfinite(timeout_seconds) or timeout_seconds <= 0 or timeout_seconds > 30:
             raise ValueError("AI timeout must be between 0 and 30 seconds")
 
-        remote_domains = frozenset(_normalise_domain(item) for item in _csv(
-            os.getenv("EVIDENCE_AI_ALLOWED_REMOTE_DOMAINS")
-        ))
+        remote_domains = frozenset(
+            _normalise_domain(item)
+            for item in _csv(os.getenv("EVIDENCE_AI_ALLOWED_REMOTE_DOMAINS"))
+        )
         lan_endpoints = frozenset(
             _normalise_endpoint(item)
             for item in _csv(os.getenv("EVIDENCE_AI_ALLOWED_LAN_ENDPOINTS"))
@@ -208,12 +218,8 @@ class EndpointPolicy:
         return cls(
             allowed_remote_domains=remote_domains,
             allowed_lan_endpoints=lan_endpoints,
-            remote_processing_allowed=_strict_bool(
-                os.getenv("EVIDENCE_REMOTE_PROCESSING_ALLOWED")
-            ),
-            remote_embedding_allowed=_strict_bool(
-                os.getenv("EVIDENCE_REMOTE_EMBEDDING_ALLOWED")
-            ),
+            remote_processing_allowed=_strict_bool(os.getenv("EVIDENCE_REMOTE_PROCESSING_ALLOWED")),
+            remote_embedding_allowed=_strict_bool(os.getenv("EVIDENCE_REMOTE_EMBEDDING_ALLOWED")),
             timeout_seconds=timeout_seconds,
         )
 
@@ -273,6 +279,30 @@ class EndpointPolicy:
         return True
 
 
+def _is_loopback_endpoint(endpoint: str) -> bool:
+    try:
+        host = urlsplit(endpoint).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    if host.lower().rstrip(".") == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _uses_ollama_native(profile: ModelProfile, stage: str = "") -> bool:
+    if profile.adapter.strip().lower() != "ollama_local":
+        return False
+    if stage == "ocr" or "ocr" in profile.capabilities:
+        return True
+    params = profile.params if isinstance(profile.params, dict) else {}
+    return bool(params.get("ollama_native"))
+
+
 def validate_profile(
     profile: ModelProfile,
     mode: OperatingMode | str | None = None,
@@ -325,6 +355,12 @@ def validate_profile(
             zone = PrivacyZone(str(zone))
     except ValueError as exc:
         raise ProfileValidationError("PROFILE_INVALID") from exc
+
+    if stage == "ocr" or "ocr" in profile.capabilities:
+        if adapter != "ollama_local":
+            raise ProfileValidationError("ADAPTER_UNSUPPORTED")
+        if zone == PrivacyZone.PUBLIC or not _is_loopback_endpoint(profile.endpoint):
+            raise PolicyError("AI_LOCAL_ENDPOINT_DENIED")
 
     if mode is not None:
         selected_mode = OperatingMode(mode)
@@ -472,6 +508,19 @@ class EmbeddingOutcome:
         return len(self.vectors[0]) if self.vectors else None
 
 
+@dataclass(frozen=True)
+class VisionGenerationOutcome:
+    """Result of one bounded local OCR vision call (single attempt, no escalation)."""
+
+    content: str | None = None
+    error_code: str | None = None
+    profile_id: str = ""
+    profile_revision: str = ""
+    model_digest: str = ""
+    attempts_used: int = 0
+    profile_fingerprint: str = ""
+
+
 @dataclass
 class _CallState:
     local_sends: int = 0
@@ -579,8 +628,13 @@ class RegistryRuntime:
         """
 
         return await self.generate(
-            "answer", messages, principal_id=principal_id, document_ids=document_ids,
-            parse=_canonical_selection, accept=accept, deep_analysis=deep_analysis,
+            "answer",
+            messages,
+            principal_id=principal_id,
+            document_ids=document_ids,
+            parse=_canonical_selection,
+            accept=accept,
+            deep_analysis=deep_analysis,
         )
 
     async def generate(
@@ -611,9 +665,16 @@ class RegistryRuntime:
             escalation = plan.escalation if stage in ESCALATION_STAGES else None
             if deep_analysis and escalation is not None:
                 content = await self._send(
-                    escalation, stage, messages, plan.policy, state,
-                    principal_id=principal_id, document_ids=document_ids,
-                    parse=parse, accept=accept, escalation=True,
+                    escalation,
+                    stage,
+                    messages,
+                    plan.policy,
+                    state,
+                    principal_id=principal_id,
+                    document_ids=document_ids,
+                    parse=parse,
+                    accept=accept,
+                    escalation=True,
                 )
                 if content is not None:
                     return state.outcome(content)
@@ -622,9 +683,16 @@ class RegistryRuntime:
                 if budget.used >= budget.limit:
                     break
                 content = await self._send(
-                    profile, stage, messages, plan.policy, state,
-                    principal_id=principal_id, document_ids=document_ids,
-                    parse=parse, accept=accept, budget=budget,
+                    profile,
+                    stage,
+                    messages,
+                    plan.policy,
+                    state,
+                    principal_id=principal_id,
+                    document_ids=document_ids,
+                    parse=parse,
+                    accept=accept,
+                    budget=budget,
                 )
                 if content is not None:
                     return state.outcome(content)
@@ -633,9 +701,16 @@ class RegistryRuntime:
             # be used at all is a configuration problem, not a quality problem.
             if escalation is not None and not deep_analysis and state.local_sends > 0:
                 content = await self._send(
-                    escalation, stage, messages, plan.policy, state,
-                    principal_id=principal_id, document_ids=document_ids,
-                    parse=parse, accept=accept, escalation=True,
+                    escalation,
+                    stage,
+                    messages,
+                    plan.policy,
+                    state,
+                    principal_id=principal_id,
+                    document_ids=document_ids,
+                    parse=parse,
+                    accept=accept,
+                    escalation=True,
                 )
                 if content is not None:
                     return state.outcome(content)
@@ -679,10 +754,12 @@ class RegistryRuntime:
                            LIMIT 1""",
                         self.mode.value,
                     )
-                loaded = self._stage_policy(policy_row)
+                loaded = self._stage_policy(policy_row, stage="embedding")
                 stage_policy = StagePolicy(
-                    max_attempts=1, timeout_seconds=loaded.timeout_seconds,
+                    max_attempts=1,
+                    timeout_seconds=loaded.timeout_seconds,
                     max_concurrency=loaded.max_concurrency,
+                    stage="embedding",
                 )
             else:
                 plan = await self._load_plan("embedding")
@@ -719,8 +796,10 @@ class RegistryRuntime:
                         self.policy.timeout_seconds,
                     ),
                     max_response_bytes=max(self.policy.max_response_bytes, 10_000_000)
-                    if len(texts) > 1 else self.policy.max_response_bytes,
-                    api_key=secret, transport=self.transport,
+                    if len(texts) > 1
+                    else self.policy.max_response_bytes,
+                    api_key=secret,
+                    transport=self.transport,
                 )
                 started = time.monotonic()
                 payload = [{"content": "\n".join(texts)}]
@@ -733,17 +812,33 @@ class RegistryRuntime:
                     )
                     if unreachable:
                         self._start_cooldown(profile)
-                    error = "MODEL_UNREACHABLE" if unreachable else (
-                        str(exc) if isinstance(exc, AdapterError) else "MODEL_REQUEST_FAILED"
+                    error = (
+                        "MODEL_UNREACHABLE"
+                        if unreachable
+                        else (str(exc) if isinstance(exc, AdapterError) else "MODEL_REQUEST_FAILED")
                     )
                     await self._record_usage(
-                        profile, "embedding", adapter, payload, 0, started, "error",
-                        principal_id=principal_id or "", escalated=False,
+                        profile,
+                        "embedding",
+                        adapter,
+                        payload,
+                        0,
+                        started,
+                        "error",
+                        principal_id=principal_id or "",
+                        escalated=False,
                     )
                     continue
                 await self._record_usage(
-                    profile, "embedding", adapter, payload, 0, started, "ok",
-                    principal_id=principal_id or "", escalated=False,
+                    profile,
+                    "embedding",
+                    adapter,
+                    payload,
+                    0,
+                    started,
+                    "ok",
+                    principal_id=principal_id or "",
+                    escalated=False,
                 )
                 return EmbeddingOutcome(
                     vectors, profile.profile_id, profile.model_id, profile.revision
@@ -773,8 +868,10 @@ class RegistryRuntime:
                 "SELECT remote_ai_allowed, disabled_at FROM users WHERE id = $1 LIMIT 1",
                 principal,
             )
-        if user is None or not bool(user.get("remote_ai_allowed")) or (
-            user.get("disabled_at") is not None
+        if (
+            user is None
+            or not bool(user.get("remote_ai_allowed"))
+            or (user.get("disabled_at") is not None)
         ):
             return "REMOTE_EMBEDDING_DENIED"
         return None
@@ -832,19 +929,36 @@ class RegistryRuntime:
         max_tokens = min(
             stage_policy.max_output_tokens or self.policy.max_tokens, self.policy.max_tokens
         )
-        adapter = OpenAICompatibleAdapter(
-            timeout_seconds=timeout,
-            max_response_bytes=self.policy.max_response_bytes,
-            max_tokens=max_tokens,
-            api_key=secret,
-            transport=self.transport,
-        )
+        adapter: OpenAICompatibleAdapter
+        if _uses_ollama_native(profile, stage):
+            adapter = OllamaLocalAdapter(
+                timeout_seconds=timeout,
+                max_response_bytes=self.policy.max_response_bytes,
+                max_tokens=max_tokens,
+                api_key=secret,
+                transport=self.transport,
+            )
+        else:
+            adapter = OpenAICompatibleAdapter(
+                timeout_seconds=timeout,
+                max_response_bytes=self.policy.max_response_bytes,
+                max_tokens=max_tokens,
+                api_key=secret,
+                transport=self.transport,
+            )
         started = time.monotonic()
 
         def record(outcome: str) -> Coroutine[Any, Any, None]:
             return self._record_usage(
-                profile, stage, adapter, messages, max_tokens, started, outcome,
-                principal_id=principal_id, escalated=escalation,
+                profile,
+                stage,
+                adapter,
+                messages,
+                max_tokens,
+                started,
+                outcome,
+                principal_id=principal_id,
+                escalated=escalation,
             )
 
         try:
@@ -933,8 +1047,8 @@ class RegistryRuntime:
         if profile.input_price_per_mtok is not None or profile.output_price_per_mtok is not None:
             # Unreported usage is estimated high (full output budget) so a cap errs
             # on the side of stopping early.
-            billed_in = input_tokens if input_tokens is not None else _estimated_input_tokens(
-                messages
+            billed_in = (
+                input_tokens if input_tokens is not None else _estimated_input_tokens(messages)
             )
             billed_out = output_tokens if output_tokens is not None else max_tokens
             cost = (
@@ -965,6 +1079,206 @@ class RegistryRuntime:
                 )
         except Exception as exc:
             _LOG.warning("AI usage event not recorded: %s", _reason(exc))
+
+    async def generate_vision(
+        self,
+        *,
+        image_png: bytes,
+        prompt: str,
+        schema: dict[str, Any],
+        principal_id: UUID | str,
+        document_id: UUID | str,
+        on_fingerprint: Callable[[VisionGenerationOutcome], Coroutine[Any, Any, bool]]
+        | None = None,
+    ) -> VisionGenerationOutcome:
+        """Run one bounded local vision call on the ``ocr`` route (no API escalation)."""
+        del document_id  # Document ACL is verified before/after by the caller & worker.
+        if self.pool is None:
+            return VisionGenerationOutcome(error_code="OCR_NOT_CONFIGURED")
+        try:
+            plan = await self._load_plan("ocr")
+        except Exception as exc:
+            _LOG.warning("AI ocr unavailable: %s", _reason(exc))
+            return VisionGenerationOutcome(error_code="OCR_UNAVAILABLE")
+        if plan is None or not plan.candidates:
+            return VisionGenerationOutcome(error_code="OCR_NOT_CONFIGURED")
+
+        profile = plan.candidates[0]
+        if not profile.provider_approved:
+            return VisionGenerationOutcome(
+                error_code="PROFILE_UNAPPROVED",
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+            )
+        if profile.health != "ready":
+            return VisionGenerationOutcome(
+                error_code="PROFILE_UNHEALTHY",
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+            )
+        if self._cooling_down(profile):
+            return VisionGenerationOutcome(
+                error_code="MODEL_UNREACHABLE",
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+            )
+        try:
+            validate_profile(profile, OperatingMode.LOCAL, self.policy, "ocr")
+            secret = self._resolve_secret(profile)
+        except RegistryRuntimeError as exc:
+            return VisionGenerationOutcome(
+                error_code=str(exc),
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+            )
+        if await self._over_cost_limit(profile):
+            return VisionGenerationOutcome(
+                error_code="AI_COST_LIMIT_REACHED",
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+            )
+
+        timeout = min(
+            plan.policy.timeout_seconds or OCR_DEFAULT_TIMEOUT_SECONDS,
+            OCR_MAX_TIMEOUT_SECONDS,
+        )
+        max_tokens = min(
+            plan.policy.max_output_tokens or OCR_MAX_OUTPUT_TOKENS,
+            OCR_MAX_OUTPUT_TOKENS,
+        )
+        adapter = OllamaLocalAdapter(
+            timeout_seconds=timeout,
+            max_response_bytes=min(self.policy.max_response_bytes, 2_000_000),
+            max_tokens=max_tokens,
+            api_key=secret,
+            transport=self.transport,
+        )
+        started = time.monotonic()
+        attempts_used = 0
+        model_digest = ""
+
+        def record(outcome: str) -> Coroutine[Any, Any, None]:
+            return self._record_usage(
+                profile,
+                "ocr",
+                adapter,
+                [{"content": prompt}],
+                max_tokens,
+                started,
+                outcome,
+                principal_id=principal_id,
+                escalated=False,
+            )
+
+        try:
+            async with self._semaphore("ocr", plan.policy):
+                show_info = await adapter.show_model(profile)
+                model_digest = adapter.last_model_digest or ""
+                if not OllamaLocalAdapter.supports_vision(show_info):
+                    return VisionGenerationOutcome(
+                        error_code="OCR_VISION_UNSUPPORTED",
+                        profile_id=profile.profile_id,
+                        profile_revision=profile.revision,
+                        model_digest=model_digest,
+                        attempts_used=0,
+                    )
+                attempts_used = 1
+                if on_fingerprint is not None and not await on_fingerprint(
+                    VisionGenerationOutcome(
+                        profile_id=profile.profile_id,
+                        profile_revision=profile.revision,
+                        model_digest=model_digest,
+                        profile_fingerprint=profile_fingerprint(profile),
+                    )
+                ):
+                    attempts_used = 0
+                    raise AdapterError("OCR_AI_CANCELLED")
+                content = await adapter.generate_vision(
+                    image_png=image_png,
+                    prompt=prompt,
+                    schema=schema,
+                    profile=profile,
+                )
+                current_plan = await self._load_plan("ocr")
+                await adapter.show_model(profile)
+                if (
+                    current_plan is None
+                    or not current_plan.candidates
+                    or current_plan.candidates[0] != profile
+                    or adapter.last_model_digest != model_digest
+                ):
+                    raise AdapterError("OCR_AI_MODEL_CHANGED")
+        except asyncio.CancelledError:
+            if attempts_used:
+                task = asyncio.ensure_future(record("cancelled"))
+                self._background.add(task)
+                task.add_done_callback(self._background.discard)
+            raise
+        except (AdapterError, httpx.HTTPError, TimeoutError) as exc:
+            unreachable = isinstance(exc, TimeoutError | httpx.TransportError) or (
+                isinstance(exc, AdapterError) and exc.unreachable
+            )
+            if unreachable:
+                self._start_cooldown(profile)
+            _LOG.warning("AI ocr attempt failed: %s", _reason(exc))
+            if attempts_used:
+                await record("unreachable" if unreachable else "error")
+            if isinstance(exc, TimeoutError):
+                code = "OCR_TIMEOUT"
+            elif isinstance(exc, AdapterError):
+                code = "MODEL_UNREACHABLE" if exc.unreachable else str(exc)
+            else:
+                code = "MODEL_REQUEST_FAILED"
+            return VisionGenerationOutcome(
+                error_code=code,
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+                model_digest=model_digest,
+                attempts_used=attempts_used,
+            )
+        await record("ok")
+        return VisionGenerationOutcome(
+            content=content,
+            error_code=None,
+            profile_id=profile.profile_id,
+            profile_revision=profile.revision,
+            model_digest=model_digest,
+            attempts_used=attempts_used,
+            profile_fingerprint=profile_fingerprint(profile),
+        )
+
+    async def validate_vision_snapshot(self, snapshot: Mapping[str, Any]) -> bool:
+        """Check a saved proposal against the active route and installed weights."""
+        try:
+            plan = await self._load_plan("ocr")
+            if plan is None or not plan.candidates:
+                return False
+            profile = plan.candidates[0]
+            params = snapshot.get("render_params") or {}
+            if isinstance(params, str):
+                params = json.loads(params)
+            if (
+                profile.profile_id != snapshot.get("profile_id")
+                or profile.revision != snapshot.get("profile_revision")
+                or profile_fingerprint(profile) != params.get("model_profile_sha256")
+                or not profile.provider_approved
+            ):
+                return False
+            validate_profile(profile, OperatingMode.LOCAL, self.policy, "ocr")
+            adapter = OllamaLocalAdapter(
+                timeout_seconds=min(self.policy.timeout_seconds, 30),
+                max_response_bytes=self.policy.max_response_bytes,
+                max_tokens=1,
+                api_key=self._resolve_secret(profile),
+                transport=self.transport,
+            )
+            await adapter.show_model(profile)
+            return bool(adapter.last_model_digest) and adapter.last_model_digest == snapshot.get(
+                "model_digest"
+            )
+        except (RegistryRuntimeError, AdapterError, httpx.HTTPError, TimeoutError, ValueError):
+            return False
+
     async def probe(self, profile_id: str) -> dict[str, Any]:
         """Probe ``GET /models`` and persist only a sanitized health state."""
 
@@ -992,19 +1306,48 @@ class RegistryRuntime:
         except ProfileValidationError:
             return await self._probe_health_result(profile, base, "unsupported", "unknown")
 
-        adapter = OpenAICompatibleAdapter(
-            timeout_seconds=self.policy.timeout_seconds,
-            max_response_bytes=self.policy.max_response_bytes,
-            max_tokens=self.policy.max_tokens,
-            api_key=secret,
-            transport=self.transport,
-        )
+        adapter: OpenAICompatibleAdapter
+        if _uses_ollama_native(profile, stage):
+            adapter = OllamaLocalAdapter(
+                timeout_seconds=self.policy.timeout_seconds,
+                max_response_bytes=self.policy.max_response_bytes,
+                max_tokens=self.policy.max_tokens,
+                api_key=secret,
+                transport=self.transport,
+            )
+        else:
+            adapter = OpenAICompatibleAdapter(
+                timeout_seconds=self.policy.timeout_seconds,
+                max_response_bytes=self.policy.max_response_bytes,
+                max_tokens=self.policy.max_tokens,
+                api_key=secret,
+                transport=self.transport,
+            )
         try:
             advertised = await adapter.list_models(profile)
         except (AdapterError, httpx.HTTPError, TimeoutError):
             return await self._probe_health_result(profile, base, "unhealthy", "unhealthy")
         if not model_advertised(advertised, profile.model_id):
             return await self._probe_health_result(profile, base, "unhealthy", "unhealthy")
+        if stage == "ocr" and isinstance(adapter, OllamaLocalAdapter):
+            try:
+                show_info = await adapter.show_model(profile)
+                if not OllamaLocalAdapter.supports_vision(show_info):
+                    return await self._probe_health_result(
+                        profile, base, "vision_unsupported", "unhealthy"
+                    )
+                probe_content = await adapter.generate_vision(
+                    image_png=synthetic_ocr_probe_png(),
+                    prompt=OCR_PROBE_PROMPT,
+                    schema=OCR_PROBE_SCHEMA,
+                    profile=profile,
+                )
+                if not valid_ocr_probe(probe_content):
+                    return await self._probe_health_result(
+                        profile, base, "ocr_probe_mismatch", "unhealthy"
+                    )
+            except (AdapterError, httpx.HTTPError, TimeoutError):
+                return await self._probe_health_result(profile, base, "unhealthy", "unhealthy")
         # A successful probe is the administrator's signal that the server is back.
         self._cooldown_until.pop(self._cooldown_key(profile), None)
         return await self._probe_health_result(profile, base, "ready", "ready")
@@ -1046,19 +1389,25 @@ class RegistryRuntime:
                 self.mode.value,
                 stage,
             )
-        return _StagePlan(candidates, escalation, self._stage_policy(policy_row))
+        return _StagePlan(candidates, escalation, self._stage_policy(policy_row, stage=stage))
 
-    def _stage_policy(self, row: Mapping[str, Any] | None) -> StagePolicy:
-        default = StagePolicy(max_attempts=self.attempt_limit)
+    def _stage_policy(self, row: Mapping[str, Any] | None, *, stage: str = "answer") -> StagePolicy:
+        default = StagePolicy(
+            max_attempts=1 if stage == "ocr" else self.attempt_limit,
+            stage=stage,
+        )
         if row is None:
             return default
         try:
             timeout = _optional_number(row.get("timeout_seconds"))
             return StagePolicy(
-                max_attempts=int(row.get("max_attempts") or self.attempt_limit),
+                max_attempts=int(
+                    row.get("max_attempts") or (1 if stage == "ocr" else self.attempt_limit)
+                ),
                 max_output_tokens=row.get("max_output_tokens"),
                 timeout_seconds=timeout,
                 max_concurrency=row.get("max_concurrency"),
+                stage=stage,
             )
         except (TypeError, ValueError):
             return default
@@ -1278,5 +1627,6 @@ __all__ = [
     "RegistryRuntime",
     "RegistryRuntimeError",
     "SecretError",
+    "VisionGenerationOutcome",
     "validate_profile",
 ]
