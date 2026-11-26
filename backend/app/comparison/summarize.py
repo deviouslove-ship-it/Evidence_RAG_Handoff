@@ -175,7 +175,14 @@ def _prompt(
                 "text": text[:_PROMPT_QUOTE_CHARS],
             }
         if item["amendment_link"] is not None:
-            entry["amendment_link"] = item["amendment_link"]
+            link = item["amendment_link"]
+            valid_from = link["valid_from"]
+            entry["amendment_link"] = {
+                "action": link["action"],
+                # date → ISO string: the prompt payload must be JSON-serializable.
+                "valid_from": valid_from.isoformat() if valid_from is not None else None,
+                "source_quote": link["source_quote"],
+            }
         payload_items.append(entry)
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
@@ -213,8 +220,10 @@ async def _ai_summary(
     top: list[dict[str, Any]],
     comparison: dict[str, Any],
 ) -> dict[str, Any]:
-    messages, keys, evidence = _prompt(top, comparison)
     try:
+        # Prompt building is inside the guard too: any serialization failure must
+        # degrade to the deterministic fallback, never surface as a 500.
+        messages, keys, evidence = _prompt(top, comparison)
         async with asyncio.timeout(_AI_TIMEOUT_SECONDS):
             outcome = await runtime.generate(
                 "summarize", messages, principal_id=principal_id,
