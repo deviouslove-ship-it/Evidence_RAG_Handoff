@@ -11,9 +11,10 @@ import {
   listenOrbWorkspaceSync,
 } from "./desktop/bridge";
 import { AdminPortal } from "./pages/AdminPortal";
+import { DocumentComparePage } from "./pages/DocumentComparePage";
 import { EvidenceChat, type ExternalWorkspaceSync } from "./pages/EvidenceChat";
 import { SearchPage } from "./pages/SearchPage";
-import type { QueryResponse, UserInfo } from "./types";
+import type { ComparePreset, QueryResponse, UserInfo } from "./types";
 
 const ADMIN_ROLES = new Set(["CURATOR", "REVIEWER", "SYS_ADMIN", "AUDITOR"]);
 
@@ -70,8 +71,11 @@ export default function App() {
   const [surface, setSurface] = useState<"user" | "admin">("user");
   // One search page ("Tìm kiếm văn bản", built on the comprehensive search); the former
   // "Tìm toàn diện" view is merged into it.
-  const [userView, setUserView] = useState<"chat" | "search">(initialUserView);
+  const [userView, setUserView] = useState<"chat" | "search" | "compare">(initialUserView);
   const [searchQuery, setSearchQuery] = useState<string>();
+  // Quick access: "So sánh" on a search result opens the compare tab with that document
+  // preselected as side A (Task C3).
+  const [comparePreset, setComparePreset] = useState<ComparePreset>();
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [externalSync, setExternalSync] = useState<ExternalWorkspaceSync>();
   const [desktopError, setDesktopError] = useState<string>();
@@ -118,6 +122,7 @@ export default function App() {
     setSurface("user");
     setUserView("chat");
     setSearchQuery(undefined);
+    setComparePreset(undefined);
     setShowLogin(false);
     setExternalSync(undefined);
     setDesktopError(undefined);
@@ -135,6 +140,11 @@ export default function App() {
     const trimmed = query?.trim();
     setSearchQuery(trimmed ? trimmed : undefined);
     setUserView("search");
+  }, []);
+
+  const openCompare = useCallback((preset?: ComparePreset) => {
+    setComparePreset(preset);
+    setUserView("compare");
   }, []);
 
   useEffect(() => {
@@ -191,6 +201,7 @@ export default function App() {
     setShowLogin(false);
     setUserView(initialUserView());
     setSearchQuery(undefined);
+    setComparePreset(undefined);
     setExternalSync(undefined);
     setDesktopError(undefined);
     const hasAdmin = next.user.roles.some((r) => ADMIN_ROLES.has(r));
@@ -264,6 +275,14 @@ export default function App() {
                 type="button"
               >
                 Tìm kiếm văn bản
+              </button>
+              <button
+                aria-current={userView === "compare" ? "page" : undefined}
+                className={userView === "compare" ? "topbar-button active" : "topbar-button"}
+                onClick={() => openCompare()}
+                type="button"
+              >
+                So sánh văn bản
               </button>
             </nav>
           )}
@@ -427,7 +446,20 @@ export default function App() {
             </div>
             {userView === "search" && (
               <div className="user-view">
-                <SearchPage accessToken={session?.accessToken} initialQuery={searchQuery} />
+                <SearchPage
+                  accessToken={session?.accessToken}
+                  initialQuery={searchQuery}
+                  onCompareDocument={(documentId) =>
+                    openCompare({ mode: "versions", leftDocumentId: documentId })}
+                />
+              </div>
+            )}
+            {userView === "compare" && (
+              <div className="user-view">
+                <DocumentComparePage
+                  accessToken={session?.accessToken}
+                  preset={comparePreset}
+                />
               </div>
             )}
 

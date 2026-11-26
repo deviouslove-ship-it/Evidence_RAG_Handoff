@@ -10,16 +10,21 @@ import type {
   AnswerDocument,
   AuditEventsResponse,
   AuthorizedCategory,
+  CompareRequest,
+  CompareResponse,
+  DocumentVersionsResponse,
   EmbeddingJob,
   EmbeddingOverview,
   EmbeddingPreflight,
   LoginResponse,
   ModelRegistryState,
+  NodeDiffResponse,
   PageTextResponse,
   PdfDraftListItem,
   QueryResponse,
   SearchMode,
   SearchResponse,
+  SummarizeResponse,
   EffectivityView,
   Excerpt,
   TextSpan,
@@ -104,7 +109,12 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
         // Embedding preflight probes the service and asks for a test vector (server cap 90 s).
         : path === "/api/v1/admin/embeddings/preflight" ||
             (path === "/api/v1/admin/embeddings/jobs" && init.method === "POST") ? 95000
-          : 20000;
+          // Deterministic comparison / A5 node diff run under a 60 s server statement timeout.
+          : path === "/api/v1/compare/documents" ||
+              /^\/api\/v1\/nodes\/[^/]+\/diff$/.test(path) ? 65000
+          // AI summarize: 60 s server outer timeout around the model plus the recomparison.
+          : path === "/api/v1/compare/summarize" ? 90000
+            : 20000;
   const { signal, cleanup } = createTimeoutController(init.signal, timeoutMs);
   try {
     const response = await fetch(`${API_BASE}${path}`, {
@@ -1577,6 +1587,71 @@ export function cancelPageTextTask(
       headers: bearerHeader(accessToken),
     },
   );
+}
+
+/**
+ * Document comparison (C2 contract). Every endpoint is ACL-scoped server-side: only
+ * approved, source-verified versions of ALLOWED documents are ever returned.
+ */
+
+/** Approved + verified versions of one document (DESC) and related amendment documents. */
+export function getDocumentVersions(
+  accessToken: string,
+  documentId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<DocumentVersionsResponse> {
+  return request<DocumentVersionsResponse>(
+    `/api/v1/documents/${encodeURIComponent(documentId)}/versions`,
+    { method: "GET", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+/** Deterministic comparison of two sides; `versions` mode needs one document, two versions. */
+export function compareDocuments(
+  accessToken: string,
+  payload: CompareRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<CompareResponse> {
+  return request<CompareResponse>("/api/v1/compare/documents", {
+    method: "POST",
+    headers: bearerHeader(accessToken),
+    body: JSON.stringify(payload),
+    signal: options.signal,
+  });
+}
+
+/** A5 timeline of one node against its previous version; missing previous → 200 + message. */
+export function getNodeDiff(
+  accessToken: string,
+  nodeId: string,
+  options: { asOfDate?: string; signal?: AbortSignal } = {},
+): Promise<NodeDiffResponse> {
+  const query = options.asOfDate
+    ? `?as_of_date=${encodeURIComponent(options.asOfDate)}`
+    : "";
+  return request<NodeDiffResponse>(
+    `/api/v1/nodes/${encodeURIComponent(nodeId)}/diff${query}`,
+    { method: "GET", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+/**
+ * Optional AI summary of the core changes. The server recomputes the comparison itself
+ * (client diffs are never trusted) and always answers 200 for a valid selection: AI
+ * problems degrade to `mode_used="deterministic_fallback"` with a reason code. The
+ * request can take ~60 s in the worst AI case (per-path timeout above).
+ */
+export function summarizeComparison(
+  accessToken: string,
+  payload: CompareRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<SummarizeResponse> {
+  return request<SummarizeResponse>("/api/v1/compare/summarize", {
+    method: "POST",
+    headers: bearerHeader(accessToken),
+    body: JSON.stringify(payload),
+    signal: options.signal,
+  });
 }
 
 export function fetchDocumentVersionPdf(

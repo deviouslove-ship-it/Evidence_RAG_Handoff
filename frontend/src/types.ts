@@ -662,3 +662,297 @@ export interface AdminOcrAiApplyResponse {
   status: string;
   proposal: AdminOcrAiProposal;
 }
+
+/**
+ * Document comparison (Task C1/C2 backend contract, frozen). Field names and casing
+ * mirror the OpenAPI schemas of /api/v1/compare/*, /api/v1/documents/{id}/versions and
+ * /api/v1/nodes/{id}/diff exactly; dates are ISO strings, UUIDs are strings.
+ */
+export type CompareMode = "versions" | "amendment_pair" | "cross_document";
+
+export type CompareChangeKind =
+  | "unchanged"
+  | "modified"
+  | "moved_or_renumbered"
+  | "added"
+  | "removed";
+
+export type CompareAlignmentMethod =
+  | "explicit_amendment"
+  | "structural_key"
+  | "semantic_lexical";
+
+export type CompareImpactLevel = "high" | "medium" | "low";
+
+export type CompareDiffOp = "equal" | "delete" | "insert";
+
+/** OpenAPI `DocumentMeta`: identity of one compared/picked document. */
+export interface DocumentMeta {
+  id: string;
+  title: string;
+  document_number: string | null;
+  doc_type: string;
+  issuing_body: string | null;
+}
+
+/** OpenAPI `VersionInfo`. `reviewed_at` is the DB column (never `approved_at`). */
+export interface VersionInfo {
+  id: string;
+  version_number: number;
+  publication_date: string | null;
+  effective_from: string | null;
+  /** retired_at IS NULL — the version currently in force. */
+  is_current: boolean;
+  based_on_version_id: string | null;
+  reviewed_at: string | null;
+}
+
+export type RelatedAmendmentDirection =
+  | "amends_this_document"
+  | "amended_by_this_document";
+
+export type RelatedAmendmentAction = "add" | "modify" | "replace";
+
+/** OpenAPI `RelatedAmendmentDocument`: another ALLOWED document linked by approved links. */
+export interface RelatedAmendmentDocument {
+  id: string;
+  title: string;
+  document_number: string | null;
+  doc_type: string;
+  issuing_body: string | null;
+  directions: RelatedAmendmentDirection[];
+  actions: RelatedAmendmentAction[];
+}
+
+/** GET /api/v1/documents/{id}/versions — approved + verified versions, DESC. */
+export interface DocumentVersionsResponse {
+  document: DocumentMeta;
+  versions: VersionInfo[];
+  related_amendment_documents: RelatedAmendmentDocument[];
+}
+
+/** OpenAPI `SideView`: one stitched logical node of a compared side. */
+export interface SideView {
+  /** Primary (first member) node id; citation id is "ev_" + node_id. */
+  node_id: string;
+  member_node_ids: string[];
+  citation_label: string | null;
+  structural_key: string;
+  text_original: string;
+  page_start: number | null;
+  page_end: number | null;
+}
+
+export interface DiffSegmentView {
+  op: CompareDiffOp;
+  text: string;
+}
+
+/** A deadline/amount span whose (value, unit) key is absent on the other side. */
+export interface SpanView {
+  value_num: number;
+  unit_normalized: string;
+  raw_text: string;
+}
+
+/** OpenAPI `ChangeSignalsView`. `dates_changed` entries are [day, month, year]. */
+export interface ChangeSignalsView {
+  deadlines_changed: SpanView[];
+  amounts_changed: SpanView[];
+  dates_changed: Array<[number, number, number]>;
+  modality_shifted: boolean;
+  exception_changed: boolean;
+  impact_level: CompareImpactLevel;
+}
+
+/** OpenAPI `AmendmentLinkView`; non-null only for explicit_amendment alignment. */
+export interface AmendmentLinkView {
+  action: string | null;
+  valid_from: string | null;
+  source_quote: string | null;
+}
+
+/** OpenAPI `ComparisonItem`. Exactly one side is null ⇔ added/removed. */
+export interface ComparisonItem {
+  item_key: string;
+  change_kind: CompareChangeKind;
+  /** Meaningful ONLY for moved_or_renumbered: the text changed too. */
+  content_also_modified: boolean;
+  /** null ⇔ added/removed (unpaired). */
+  alignment_method: CompareAlignmentMethod | null;
+  alignment_score: number | null;
+  impact_level: CompareImpactLevel;
+  signals: ChangeSignalsView;
+  amendment_link: AmendmentLinkView | null;
+  left: SideView | null;
+  right: SideView | null;
+  diff_segments: DiffSegmentView[];
+}
+
+/** OpenAPI `DocumentSide`: document identity + resolved version + effectivity. */
+export interface DocumentSide {
+  id: string;
+  title: string;
+  document_number: string | null;
+  doc_type: string;
+  issuing_body: string | null;
+  version_id: string;
+  version_number: number;
+  effectivity: EffectivityView;
+}
+
+export interface CompareSummary {
+  /** ALL aligned pairs, before only_changes filtering. */
+  total_items: number;
+  added: number;
+  removed: number;
+  modified: number;
+  moved_or_renumbered: number;
+  unchanged: number;
+  high_impact_changes: number;
+  explicit_amendment_links: number;
+  deterministic_highlights: string[];
+}
+
+/** POST /api/v1/compare/documents request (`extra="forbid"` server-side). */
+export interface CompareRequest {
+  mode: CompareMode;
+  left_document_id: string;
+  right_document_id: string;
+  /** null/omitted → latest active approved + verified version. */
+  left_version_id?: string | null;
+  right_version_id?: string | null;
+  /** null/omitted → server local today. */
+  as_of_date?: string | null;
+  only_changes?: boolean;
+  include_embeddings?: boolean;
+}
+
+/** POST /api/v1/compare/documents response. */
+export interface CompareResponse {
+  comparison_id: string;
+  mode: CompareMode;
+  as_of_date: string;
+  left_doc: DocumentSide;
+  right_doc: DocumentSide;
+  summary: CompareSummary;
+  items: ComparisonItem[];
+  disclaimer: string;
+}
+
+export interface NodeVersionRef {
+  id: string;
+  version_number: number;
+}
+
+/** OpenAPI `NodeAmendmentView`: one approved link acting on a node/its document (A5). */
+export interface NodeAmendmentView {
+  id: string;
+  action: string;
+  scope: "document" | "node";
+  valid_from: string | null;
+  source_quote: string | null;
+  evidence_source: string;
+  source_node_id: string;
+  source_label: string | null;
+  source_document: DocumentMeta;
+}
+
+/** GET /api/v1/nodes/{id}/diff response (spec A5). Missing previous → 200 + message. */
+export interface NodeDiffResponse {
+  node_id: string;
+  document: DocumentMeta;
+  version: NodeVersionRef;
+  as_of_date: string;
+  current: SideView;
+  has_previous: boolean;
+  previous_version: NodeVersionRef | null;
+  previous: SideView | null;
+  message: string | null;
+  change_kind: CompareChangeKind | null;
+  content_also_modified: boolean;
+  alignment_method: CompareAlignmentMethod | null;
+  alignment_score: number | null;
+  impact_level: CompareImpactLevel | null;
+  signals: ChangeSignalsView | null;
+  diff_segments: DiffSegmentView[];
+  amendments: NodeAmendmentView[];
+  effectivity: EffectivityView | null;
+  disclaimer: string;
+}
+
+export type SummarizeFallbackReason =
+  | "no_changes"
+  | "ai_not_configured"
+  | "remote_blocked_by_document_policy"
+  | "ai_timeout"
+  | "ai_unavailable"
+  | "ai_error"
+  | "ai_output_rejected";
+
+/** OpenAPI `KeyChangeView`; needs_review points MUST be visibly badged in the UI. */
+export interface KeyChangeView {
+  point: string;
+  item_keys: string[];
+  evidence_ids: string[];
+  status: "verified" | "needs_review";
+  check_notes: string[];
+}
+
+/** POST /api/v1/compare/summarize response — always 200 for a valid selection. */
+export interface SummarizeResponse {
+  comparison_id: string;
+  mode_used: "ai" | "deterministic_fallback";
+  reason: SummarizeFallbackReason | null;
+  executive_summary: string | null;
+  summary_status: "verified" | "needs_review" | null;
+  key_changes: KeyChangeView[];
+  deterministic_highlights: string[];
+  external_api_used: boolean;
+  ai_limited: boolean;
+  disclaimer: string;
+}
+
+/** Quick-access preset: SearchPage/DocumentCard "So sánh" opens the compare tab. */
+export interface ComparePreset {
+  mode: CompareMode;
+  leftDocumentId?: string;
+  rightDocumentId?: string;
+}
+
+/** Vietnamese UI labels shared by the compare page, the diff view and the report. */
+export const COMPARE_MODE_LABELS: Record<CompareMode, string> = {
+  versions: "So sánh phiên bản",
+  amendment_pair: "So sánh gốc – sửa đổi/bổ sung",
+  cross_document: "So sánh 2 văn bản cùng chủ đề",
+};
+
+export const COMPARE_KIND_LABELS: Record<CompareChangeKind, string> = {
+  added: "Thêm mới",
+  removed: "Bị bãi bỏ/Xóa",
+  modified: "Sửa đổi",
+  moved_or_renumbered: "Đổi vị trí/số Điều",
+  unchanged: "Không đổi",
+};
+
+export const COMPARE_ALIGNMENT_LABELS: Record<CompareAlignmentMethod, string> = {
+  explicit_amendment: "Liên kết sửa đổi đã duyệt",
+  structural_key: "Khớp số Điều",
+  semantic_lexical: "Khớp nội dung",
+};
+
+export const COMPARE_IMPACT_LABELS: Record<CompareImpactLevel, string> = {
+  high: "Tác động cốt lõi",
+  medium: "Tác động trung bình",
+  low: "Tác động thấp",
+};
+
+export const COMPARE_AMENDMENT_ACTION_LABELS: Record<string, string> = {
+  add: "bổ sung",
+  modify: "sửa đổi",
+  replace: "thay thế",
+  repeal: "bãi bỏ",
+  repeal_partial: "bãi bỏ một phần",
+  suspend: "tạm ngưng",
+  commence: "cho hiệu lực",
+};

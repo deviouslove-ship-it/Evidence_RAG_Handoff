@@ -141,10 +141,12 @@ interface DocumentCardProps {
   index?: number;
   onLoadMore?: () => void;
   loadingMore?: boolean;
+  /** Quick access (Task C3): open the compare tab with this document as side A. */
+  onCompare?: (documentId: string) => void;
 }
 
 export function DocumentCard({
-  document, accessToken, index, onLoadMore, loadingMore,
+  document, accessToken, index, onLoadMore, loadingMore, onCompare,
 }: DocumentCardProps) {
   const date = formatVnDate(document.publicationDate);
   const firstPage = document.clauses.find((clause) => clause.page)?.page;
@@ -167,12 +169,24 @@ export function DocumentCard({
             {document.number ?? "Chưa có số hiệu trong kho"}
           </h3>
         </div>
-        <OpenOriginalButton
-          accessToken={accessToken}
-          page={document.sourceFormat === "pdf" ? firstPage : undefined}
-          sourceFormat={document.sourceFormat}
-          url={document.originalUrl}
-        />
+        <div className="doc-card-actions">
+          {onCompare && (
+            <button
+              className="secondary-button"
+              onClick={() => onCompare(document.key)}
+              title="So sánh văn bản này với văn bản khác hoặc giữa các phiên bản"
+              type="button"
+            >
+              So sánh
+            </button>
+          )}
+          <OpenOriginalButton
+            accessToken={accessToken}
+            page={document.sourceFormat === "pdf" ? firstPage : undefined}
+            sourceFormat={document.sourceFormat}
+            url={document.originalUrl}
+          />
+        </div>
       </header>
       <p className="doc-card-title">{document.title}</p>
       <dl className="doc-card-meta">

@@ -119,9 +119,11 @@ function errorMessage(caught: unknown): string {
 interface SearchPageProps {
   accessToken?: string;
   initialQuery?: string;
+  /** Quick access (Task C3): "So sánh" on a card opens the compare tab for that document. */
+  onCompareDocument?: (documentId: string) => void;
 }
 
-export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
+export function SearchPage({ accessToken, initialQuery, onCompareDocument }: SearchPageProps) {
   const [form, setForm] = useState<SearchForm>(() => readForm(initialQuery));
   const [categories, setCategories] = useState<AuthorizedCategory[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -548,6 +550,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
                 index={(result.page - 1) * effectivePageSize + index + 1}
                 key={document.key}
                 loadingMore={loadingDocument === document.key}
+                onCompare={onCompareDocument}
                 onLoadMore={() => void loadMore(document.key)}
               />
             ))}
@@ -596,6 +599,7 @@ export function SearchPage({ accessToken, initialQuery }: SearchPageProps) {
                           document={{ ...view, role: "weak" }}
                           key={view.key}
                           loadingMore={loadingDocument === view.key}
+                          onCompare={onCompareDocument}
                           onLoadMore={() => void loadMore(view.key, true)}
                         />
                       );
