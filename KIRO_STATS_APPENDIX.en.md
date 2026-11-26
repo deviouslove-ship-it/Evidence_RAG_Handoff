@@ -4,7 +4,7 @@
 
 Lists the **product files in Git (commit `34cff8b`)** with at least one Kiro write/edit command in the stored session records. Method and how to read the figures: [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md) section 8. This appendix and the summary files updated after that commit belong to the current turn but are not in the list.
 
-Column **Write type**: `W` = at least one `fs_write` call (Kiro created or overwrote the whole file at that moment); `E` = local edits only (`str_replace`, `fs_append`, rename/move). Column **Period**: `H` = historical records before the Kiroween record-review request (2026-11-05 to 2026-11-09 17:19); `C` = current turn (from 2026-11-09 17:19); `H+C` = both.
+Column **Write type**: `W` = at least one `fs_write` call (Kiro created or overwrote the whole file at that moment); `E` = local edits only (`str_replace`, `fs_append`, rename/move). Column **Period**: `H` = historical records before the Kiroween record-review request (2026-11-05 to 2026-11-09 17:19); `C` = current turn (from 2026-11-09 17:19); `H+C` = both. **New / existing** (only on `C`): the file was absent / already present at commit `08b0021`.
 
 <details><summary>(root) (10)</summary>
 

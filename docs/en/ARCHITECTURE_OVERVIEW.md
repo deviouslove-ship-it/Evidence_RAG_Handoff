@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](../vi/ARCHITECTURE_OVERVIEW.md) · English
 
-A short architecture overview for reviewers, written on 2026-11-09 from the repository code and documents; Kiro-use dates and spec update history were added on 2026-11-11. Details: [System description](SYSTEM_DESCRIPTION.md), the ADRs in `docs/architecture-decisions/` (Vietnamese) and the specs in `.kiro/specs/`.
+A short architecture overview for reviewers, written on 2026-11-09 from the repository code and documents; Kiro-use dates and spec update history were added on 2026-11-11. Details: [System description](SYSTEM_DESCRIPTION.md), the ADRs in `docs/architecture-decisions/` (English siblings `ADR-*.en.md`) and the specs in `.kiro/specs/`.
 
 ## Components
 
