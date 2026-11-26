@@ -195,7 +195,7 @@ flowchart TD
      - Khi `structural_key` khác nhau giữa A và B nhưng Tầng 3 ghép được → gắn `moved_or_renumbered` (kèm cờ `content_also_modified: bool`).
    - Tính `ChangeSignals` cho mỗi cặp sửa đổi: danh sách `deadlines_changed`, `amounts_changed`, `dates_changed`, `modality_shifted` (VD `permission → obligation` hoặc `permission → prohibition`), `exception_changed`, và `impact_level: Literal["high", "medium", "low"]` (`high` nếu đổi thời hạn/số tiền/mức phạt/nghĩa vụ-cấm đoán/ngoại lệ).
 
-- [ ] **Step 1: Viết bộ unit test `backend/tests/test_comparison_engine.py` trước (TDD)**
+- [x] **Step 1: Viết bộ unit test `backend/tests/test_comparison_engine.py` trước (TDD)**
   - Test `stitch_logical_nodes`: nút dài có `000003:dieu:2/khoan:1` + `000004:dieu:2/khoan:1/tiep:2` được gộp thành 1 `LogicalNode` có `member_node_ids` gồm cả 2 UUID, `page_start=1, page_end=2`, không bị báo giả là đoạn mới thêm khi bản v2 ngắn đi dưới 4.000 ký tự.
   - Test `align_nodes` cho 3 kịch bản:
     1. Cùng cấu trúc `Điều 1..3`, sửa thời hạn `"10 ngày"` → `"15 ngày"` và đổi `"được phép"` → `"nghiêm cấm"` → trả `change_kind="modified"`, `impact_level="high"`, có `deadlines_changed` và `modality_shifted`.
@@ -204,13 +204,13 @@ flowchart TD
     4. Cặp có `AmendmentLink` tường minh (`action="replace"`, `target_path="dieu:5/khoan:2"`) → ưu tiên Tầng 1 `alignment_method="explicit_amendment"`.
   - Test `compute_token_diff`: giữ nguyên dấu tiếng Việt NFC, không cắt giữa từ, bỏ qua nhiễu nhiều dấu cách khi chấm `unchanged`.
 
-- [ ] **Step 2: Chạy test mới để xác nhận fail đúng lý do (module chưa tồn tại)**
+- [x] **Step 2: Chạy test mới để xác nhận fail đúng lý do (module chưa tồn tại)**
   - Run: `pytest backend/tests/test_comparison_engine.py -q`
 
-- [ ] **Step 3: Triển khai `backend/app/analysis/signals.py`, `backend/app/comparison/align.py`, `backend/app/comparison/diff.py`**
+- [x] **Step 3: Triển khai `backend/app/analysis/signals.py`, `backend/app/comparison/align.py`, `backend/app/comparison/diff.py`**
   - Tái sử dụng trực tiếp các helper trong `backend/app/synthesis/checks.py` và `backend/app/vietnamese_nlp/unicode_norm.py` (không nhân bản bảng stopwords/regex không cần thiết).
 
-- [ ] **Step 4: Chạy lại unit test xác nhận PASS**
+- [x] **Step 4: Chạy lại unit test xác nhận PASS**
   - Run: `pytest backend/tests/test_comparison_engine.py -q`
 
 ---
@@ -261,15 +261,15 @@ flowchart TD
    - Gọi stage `summarize` trên top `15` item thay đổi quan trọng nhất (`high_impact` trước), yêu cầu JSON cấu trúc `{"executive_summary": str, "key_changes": [{"point": str, "item_keys": [str], "evidence_ids": [str]}]}`.
    - Hậu kiểm từng `point` qua `check_point()` trong `synthesis/checks.py` (mọi số, ngày, số hiệu văn bản, Điều/Khoản phải xuất hiện trong căn cứ vế A hoặc vế B tương ứng; cấm kết luận nghiệp vụ). Điểm trượt kiểm tra bị gắn `"needs_review"` hoặc loại bỏ; nếu model tắt/lỗi/timeout → trả `mode_used: "deterministic_fallback"` với `deterministic_highlights` (không trả lỗi 500 làm gián đoạn trải nghiệm).
 
-- [ ] **Step 1: Thêm mã lỗi `COMPARE_*` vào `backend/app/api/v1/errors.py`**
+- [x] **Step 1: Thêm mã lỗi `COMPARE_*` vào `backend/app/api/v1/errors.py`**
   - Các mã: `COMPARE_SAME_TARGET`, `COMPARE_VERSION_NOT_FOUND`, `COMPARE_DOCUMENT_TOO_LARGE`, `COMPARE_MODE_MISMATCH`.
 
-- [ ] **Step 2: Triển khai `backend/app/comparison/service.py` và `backend/app/comparison/summarize.py`**
+- [x] **Step 2: Triển khai `backend/app/comparison/service.py` và `backend/app/comparison/summarize.py`**
   - Đảm bảo 100% query chạy trong transaction với `set_config('app.user_id', principal.id, true)` và kiểm tra `node_source_text_valid(n.id)`.
 
-- [ ] **Step 3: Triển khai `backend/app/api/v1/comparison.py` và đăng ký router trong `backend/app/main.py`**
+- [x] **Step 3: Triển khai `backend/app/api/v1/comparison.py` và đăng ký router trong `backend/app/main.py`**
 
-- [ ] **Step 4: Cập nhật và kiểm tra `docs/openapi.json`**
+- [x] **Step 4: Cập nhật và kiểm tra `docs/openapi.json`**
   - Run: `python scripts/export_openapi.py && python scripts/export_openapi.py --check`
 
 ---
@@ -305,14 +305,14 @@ flowchart TD
    - Render `diff_segments` hoàn toàn bằng JSX (`<del className="diff-del">`, `<ins className="diff-ins">`, `<span>`), tuyệt đối không dùng `dangerouslySetInnerHTML`.
    - Mỗi thẻ mục so sánh hiển thị: badge loại thay đổi, badge phương pháp căn chỉnh (VD *"Liên kết sửa đổi đã duyệt"* / *"Khớp số Điều"* / *"Khớp nội dung — đổi số hiệu"*), chip tín hiệu thay đổi (`Thời hạn: 10 ngày → 15 ngày`, `Tính bắt buộc thay đổi`), nút `OpenOriginalButton` cho **cả vế A (trang nguồn A)** và **vế B (trang nguồn B)**, và nhãn hiệu lực `EffectivityBadges` của từng văn bản.
 
-- [ ] **Step 1: Bổ sung TypeScript types (`frontend/src/types.ts`) và hàm gọi API (`frontend/src/api/client.ts`)**
+- [x] **Step 1: Bổ sung TypeScript types (`frontend/src/types.ts`) và hàm gọi API (`frontend/src/api/client.ts`)**
   - Hàm: `getDocumentVersions`, `compareDocuments`, `getNodeDiff`, `summarizeComparison`.
 
-- [ ] **Step 2: Triển khai `CompareDiffView.tsx`, `DocumentComparePage.tsx` và CSS trong `styles.css`**
+- [x] **Step 2: Triển khai `CompareDiffView.tsx`, `DocumentComparePage.tsx` và CSS trong `styles.css`**
 
-- [ ] **Step 3: Gắn tab `"So sánh văn bản"` vào `App.tsx` và nút `"So sánh"` trên `DocumentCard.tsx` / `SearchPage.tsx`**
+- [x] **Step 3: Gắn tab `"So sánh văn bản"` vào `App.tsx` và nút `"So sánh"` trên `DocumentCard.tsx` / `SearchPage.tsx`**
 
-- [ ] **Step 4: Chạy build kiểm tra TypeScript**
+- [x] **Step 4: Chạy build kiểm tra TypeScript**
   - Run: `npm --prefix frontend run build`
 
 ---
