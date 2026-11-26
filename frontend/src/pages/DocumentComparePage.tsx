@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ApiRequestError,
@@ -343,20 +343,46 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [errorHint, setErrorHint] = useState<string>();
-  const [aiResult, setAiResult] = useState<SummarizeResponse>();
+  // The summary is tied to the comparison_id of the result that was on screen when the
+  // user asked for it (NOT aiResult.response.comparison_id — the server recomputes and
+  // issues a fresh UUID per request). It renders only while that tie still matches.
+  const [aiResult, setAiResult] =
+    useState<{ comparisonId: string; response: SummarizeResponse }>();
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState<string>();
   const [copied, setCopied] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string>();
 
+  // Stale-response guards (review fix round 1): every selection change bumps the
+  // sequence and aborts in-flight requests; a response may populate state only if its
+  // captured sequence is still current and its own controller was not aborted.
+  const requestSeq = useRef(0);
+  const compareController = useRef<AbortController | null>(null);
+  const aiController = useRef<AbortController | null>(null);
+
   const resetOutputs = useCallback(() => {
+    requestSeq.current += 1;
+    compareController.current?.abort();
+    compareController.current = null;
+    aiController.current?.abort();
+    aiController.current = null;
     setResult(undefined);
     setAiResult(undefined);
     setError(undefined);
     setErrorHint(undefined);
     setAiError(undefined);
+    setBusy(false);
+    setAiBusy(false);
     setCopied(false);
     setCopyMessage(undefined);
+  }, []);
+
+  // Unmount: abort everything and invalidate any pending response so no state update
+  // can leak after the page is gone (logout/tab switch unmounts it).
+  useEffect(() => () => {
+    requestSeq.current += 1;
+    compareController.current?.abort();
+    aiController.current?.abort();
   }, []);
 
   // Quick-access preset: resolve the preselected document id(s) to metadata.
@@ -490,11 +516,20 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
   async function runCompare() {
     const payload = buildPayload();
     if (!accessToken || !payload) return;
-    setBusy(true);
     resetOutputs();
+    const seq = requestSeq.current;
+    const controller = new AbortController();
+    compareController.current = controller;
+    setBusy(true);
     try {
-      setResult(await compareDocuments(accessToken, payload));
+      const response = await compareDocuments(accessToken, payload, { signal: controller.signal });
+      // A selection change (or unmount) bumped the sequence: this response belongs to
+      // an old selection and must never populate state.
+      if (seq !== requestSeq.current || controller.signal.aborted) return;
+      setResult(response);
     } catch (caught) {
+      // Aborted requests (selection change/unmount) are silent, never an error banner.
+      if (seq !== requestSeq.current || controller.signal.aborted) return;
       if (caught instanceof ApiRequestError) {
         setError(caught.message);
         const hint = caught.details?.hint;
@@ -503,19 +538,31 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
         setError(errorMessage(caught));
       }
     } finally {
-      setBusy(false);
+      if (seq === requestSeq.current && compareController.current === controller) {
+        setBusy(false);
+        compareController.current = null;
+      }
     }
   }
 
   async function runSummarize() {
     const payload = buildPayload();
-    if (!accessToken || !payload) return;
+    if (!accessToken || !payload || !result) return;
+    // Identity tie: remember which on-screen comparison this summary was requested for.
+    const comparisonId = result.comparison_id;
+    const seq = requestSeq.current;
+    aiController.current?.abort();
+    const controller = new AbortController();
+    aiController.current = controller;
     setAiBusy(true);
     setAiError(undefined);
     setAiResult(undefined);
     try {
-      setAiResult(await summarizeComparison(accessToken, payload));
+      const response = await summarizeComparison(accessToken, payload, { signal: controller.signal });
+      if (seq !== requestSeq.current || controller.signal.aborted) return;
+      setAiResult({ comparisonId, response });
     } catch (caught) {
+      if (seq !== requestSeq.current || controller.signal.aborted) return;
       if (caught instanceof ApiRequestError) {
         const hint = caught.details?.hint;
         setAiError(typeof hint === "string" ? `${caught.message} ${hint}` : caught.message);
@@ -523,9 +570,18 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
         setAiError(errorMessage(caught));
       }
     } finally {
-      setAiBusy(false);
+      if (seq === requestSeq.current && aiController.current === controller) {
+        setAiBusy(false);
+        aiController.current = null;
+      }
     }
   }
+
+  // The AI block (and the report's AI section) only renders when the stored tie still
+  // matches the current result — a summary for comparison A can never appear under B.
+  const aiForCurrentResult = aiResult && result && aiResult.comparisonId === result.comparison_id
+    ? aiResult.response
+    : undefined;
 
   const visibleItems = (result?.items ?? []).filter((item) =>
     (!onlyChanges || item.change_kind !== "unchanged")
@@ -533,7 +589,7 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
 
   function copyReport() {
     if (!result) return;
-    const text = buildMarkdownReport(result, visibleItems, aiResult, { onlyChanges, impactFilter });
+    const text = buildMarkdownReport(result, visibleItems, aiForCurrentResult, { onlyChanges, impactFilter });
     const report = (ok: boolean) => {
       setCopied(ok);
       setCopyMessage(ok
@@ -949,31 +1005,31 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
             </p>
           )}
           {aiError && <p className="status-pill status-danger" role="alert">{aiError}</p>}
-          {aiResult && (
+          {aiForCurrentResult && (
             <div className="compare-ai-result">
-              {aiResult.mode_used === "ai" ? (
+              {aiForCurrentResult.mode_used === "ai" ? (
                 <p className="compare-ai-label" data-mode="ai">
                   Tóm tắt tham khảo từ AI — đã đối chiếu số liệu với căn cứ
                 </p>
               ) : (
                 <p className="compare-ai-label" data-mode="fallback">
                   Tóm tắt xác định (không dùng AI)
-                  {aiResult.reason
-                    ? ` — ${FALLBACK_REASON_LABELS[aiResult.reason] ?? aiResult.reason}`
+                  {aiForCurrentResult.reason
+                    ? ` — ${FALLBACK_REASON_LABELS[aiForCurrentResult.reason] ?? aiForCurrentResult.reason}`
                     : ""}
                 </p>
               )}
-              {aiResult.summary_status === "needs_review" && (
+              {aiForCurrentResult.summary_status === "needs_review" && (
                 <span className="tag compare-review-tag" data-status="needs_review">
                   Cần thẩm định
                 </span>
               )}
-              {aiResult.executive_summary && (
-                <p className="compare-ai-summary">{aiResult.executive_summary}</p>
+              {aiForCurrentResult.executive_summary && (
+                <p className="compare-ai-summary">{aiForCurrentResult.executive_summary}</p>
               )}
-              {aiResult.key_changes.length > 0 && (
+              {aiForCurrentResult.key_changes.length > 0 && (
                 <ul className="compare-ai-points">
-                  {aiResult.key_changes.map((change, index) => (
+                  {aiForCurrentResult.key_changes.map((change, index) => (
                     <li key={index}>
                       <span>{change.point}</span>{" "}
                       <span className="tag compare-review-tag" data-status={change.status}>
@@ -997,19 +1053,21 @@ export function DocumentComparePage({ accessToken, preset }: DocumentComparePage
                   ))}
                 </ul>
               )}
-              {aiResult.mode_used === "deterministic_fallback"
-                && aiResult.deterministic_highlights.length > 0 && (
+              {aiForCurrentResult.mode_used === "deterministic_fallback"
+                && aiForCurrentResult.deterministic_highlights.length > 0 && (
                 <ul className="compare-highlights">
-                  {aiResult.deterministic_highlights.map((highlight, index) => (
+                  {aiForCurrentResult.deterministic_highlights.map((highlight, index) => (
                     <li key={index}>{highlight}</li>
                   ))}
                 </ul>
               )}
-              {aiResult.external_api_used && <p role="note">Đã dùng API ngoài cho lượt này.</p>}
-              {aiResult.ai_limited && (
+              {aiForCurrentResult.external_api_used && (
+                <p role="note">Đã dùng API ngoài cho lượt này.</p>
+              )}
+              {aiForCurrentResult.ai_limited && (
                 <p role="note">Đã chạm trần chi phí; phần tóm tắt AI bị giới hạn.</p>
               )}
-              <p className="admin-hint">{aiResult.disclaimer}</p>
+              <p className="admin-hint">{aiForCurrentResult.disclaimer}</p>
             </div>
           )}
         </section>
