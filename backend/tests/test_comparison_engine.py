@@ -247,6 +247,58 @@ def test_signals_empty_text() -> None:
     assert signals.subject_tokens == frozenset()
 
 
+def test_number_parser_total_for_regex_accepted_forms() -> None:
+    # Review fix 1: US-format thousands commas must parse, not crash (probe input 1).
+    signals = extract_normative_signals("Phạt 1,234,567 đồng.")
+    assert QuantitySpan(1234567.0, "dong", "1,234,567 đồng") in signals.amounts_and_percents
+    # Mangled OCR groups (probe input 2): documented best effort, never an exception.
+    mangled = extract_normative_signals("Phạt 1.23.45 đồng.")
+    assert mangled.amounts_and_percents[0].value_num == 123.45
+    # Mixed conventions: the last separator is the decimal one.
+    vi = extract_normative_signals("Phạt 1.234,56 đồng.")
+    assert vi.amounts_and_percents[0].value_num == 1234.56
+    us = extract_normative_signals("Phạt 1,234.56 đồng.")
+    assert us.amounts_and_percents[0].value_num == 1234.56
+
+
+def test_us_format_amount_does_not_abort_comparison() -> None:
+    left = _node("dieu:1/khoan:1", "Phạt 1,234,567 đồng.", ordinal=0)
+    right = _node("dieu:1/khoan:1", "Phạt 2,000,000 đồng.", ordinal=0)
+    pairs = align_nodes([left], [right], mode="cross_document")
+    assert len(pairs) == 1
+    result = diff_pair(pairs[0])
+    assert result.change_kind == "modified"
+    assert result.signals.amounts_changed
+    assert result.signals.impact_level == "high"
+
+
+def test_partial_dates_do_not_become_deadlines() -> None:
+    # Review fix 2: month-year and day-month dates are dates, not durations.
+    assert extract_normative_signals("Hiệu lực từ tháng 7 năm 2030.").deadlines == ()
+    assert extract_normative_signals("Từ ngày 01 tháng 7.").deadlines == ()
+    assert extract_normative_signals("Từ ngày 01 tháng 7 năm 2030.").deadlines == ()
+    # Genuine durations must survive the partial-date pre-strip.
+    assert DeadlineSpan(7.0, "nam", "7 năm") in extract_normative_signals(
+        "trong 7 năm"
+    ).deadlines
+    assert DeadlineSpan(1.0, "thang", "01 tháng") in extract_normative_signals(
+        "gia hạn 01 tháng"
+    ).deadlines
+    assert DeadlineSpan(10.0, "ngay", "10 ngày") in extract_normative_signals(
+        "trong 10 ngày kể từ ngày 01 tháng 7"
+    ).deadlines
+
+
+def test_month_only_date_change_stays_medium() -> None:
+    left = _node("dieu:1/khoan:1", "Hiệu lực từ tháng 7 năm 2030.", ordinal=0)
+    right = _node("dieu:1/khoan:1", "Hiệu lực từ tháng 8 năm 2030.", ordinal=0)
+    pair = AlignedPair(left=left, right=right, alignment_method="structural_key")
+    result = diff_pair(pair)
+    assert result.change_kind == "modified"
+    assert not result.signals.deadlines_changed
+    assert result.signals.impact_level == "medium"
+
+
 # --------------------------------------------------------------- align scenarios
 
 

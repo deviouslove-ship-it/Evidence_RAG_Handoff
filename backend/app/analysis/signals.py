@@ -45,6 +45,12 @@ _PROHIBITION = ("nghiêm cấm", "không được", "cấm")
 _DEADLINE = re.compile(
     r"(\d+(?:[.,]\d+)?)\s*(ngày làm việc|ngày|tháng|năm|giờ)\b", re.IGNORECASE
 )
+# Partial dates are stripped before _DEADLINE runs so "tháng 7 năm 2030" / "ngày 01 tháng 7"
+# are not read as durations.  Targeted additions to the reused checks._DATE_WORDS/_DATE_SLASH;
+# a genuine duration ("trong 7 năm", "gia hạn 01 tháng") has no leading ngày/tháng keyword
+# before its number and is kept.
+_MONTH_YEAR = re.compile(r"\btháng\s+\d{1,2}\s+năm\s+\d{4}\b", re.IGNORECASE)
+_DAY_MONTH = re.compile(r"\bngày\s+\d{1,2}\s+tháng\s+\d{1,2}\b", re.IGNORECASE)
 _MONEY = re.compile(r"(\d+(?:[.,]\d+)*)\s*(triệu\s+đồng|tỷ\s+đồng|đồng)", re.IGNORECASE)
 _PERCENT = re.compile(r"(\d+(?:[.,]\d+)?)\s*%")
 _COUNT_UNITS = ("bản", "bộ", "người", "lần", "chiếc", "cái")
@@ -195,17 +201,34 @@ class NormativeSignals:
     subject_tokens: frozenset[str]
 
 
+_THOUSANDS_DOT = re.compile(r"\d{1,3}(?:\.\d{3})+")
+_THOUSANDS_COMMA = re.compile(r"\d{1,3}(?:,\d{3})+")
+
+
 def _parse_vi_number(raw: str) -> float:
-    """Vietnamese number: '.' groups thousands, ',' is the decimal separator."""
+    """Total parser for every number form the signal regexes accept — never raises.
+
+    Documented normalization: repeated groups of three ("15.000.000", "1,234,567") are
+    thousands separators; otherwise the LAST separator is the decimal one and any earlier
+    separators are dropped ("1,5" -> 1.5, "1.234,56" and "1,234.56" -> 1234.56).  Mangled
+    forms the money regex still accepts ("1.23.45") get the same last-separator best
+    effort (-> 123.45) instead of an exception.
+    """
 
     value = raw.strip()
-    if "," in value and "." in value:
-        value = value.replace(".", "").replace(",", ".")
-    elif "," in value:
-        value = value.replace(",", ".")
-    elif re.fullmatch(r"\d{1,3}(?:\.\d{3})+", value):
-        value = value.replace(".", "")
-    return float(value)
+    if _THOUSANDS_DOT.fullmatch(value) or _THOUSANDS_COMMA.fullmatch(value):
+        value = value.replace(".", "").replace(",", "")
+    elif "," in value or "." in value:
+        decimal_at = max(value.rfind(","), value.rfind("."))
+        value = (
+            value[:decimal_at].replace(",", "").replace(".", "")
+            + "."
+            + value[decimal_at + 1:]
+        )
+    try:
+        return float(value)
+    except ValueError:  # defensive: the normalization above always yields a valid literal
+        return 0.0
 
 
 def _unit_key(unit: str) -> str:
@@ -215,8 +238,9 @@ def _unit_key(unit: str) -> str:
 def extract_normative_signals(text: str) -> NormativeSignals:
     """Deterministic normative signals for one node text (no LLM, no network).
 
-    Deadlines are read on date-stripped text so "ngày 01 tháng 7 năm 2030" is a date,
-    not a one-month deadline.  ``dates``/``plain_numbers`` come from ``checks._facts``
+    Deadlines are read on date-stripped text so full and partial dates ("ngày 01 tháng 7
+    năm 2030", "tháng 7 năm 2030", "ngày 01 tháng 7") are dates, not durations.
+    ``dates``/``plain_numbers`` come from ``checks._facts``
     (indices 1 and 3 of its 4-tuple).  Deontic labels distinguish prohibition
     ("nghiêm cấm"/"không được"/"cấm"), permission (``_PERMISSION``), obligation
     (``_OBLIGATION``) and generic negation (``_NEGATION`` without a prohibition cue);
@@ -225,7 +249,9 @@ def extract_normative_signals(text: str) -> NormativeSignals:
 
     normalized = normalize_text(text)
     _, dates, _, plain = _facts(text)
-    stripped = _DATE_WORDS.sub(" ", _DATE_SLASH.sub(" ", normalized))
+    stripped = normalized
+    for date_pattern in (_DATE_WORDS, _MONTH_YEAR, _DAY_MONTH, _DATE_SLASH):
+        stripped = date_pattern.sub(" ", stripped)
     deadlines = tuple(
         DeadlineSpan(_parse_vi_number(match.group(1)), _unit_key(match.group(2)),
                      match.group(0))
