@@ -9,6 +9,8 @@ from datetime import date, datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
+import asyncpg
+
 from ..audit import append_audit
 from ..auth_acl.policy import Permission, Principal
 from ..config import Settings
@@ -30,6 +32,22 @@ _ALLOWED_SEVERITIES = frozenset({"high", "medium", "low"})
 _ALLOWED_REVIEW_STATUSES = frozenset(
     {"pending", "confirmed", "dismissed", "linked_amendment"}
 )
+_ALLOWED_DOC_TYPES = frozenset(
+    {
+        "code",
+        "law",
+        "ordinance",
+        "resolution",
+        "decree",
+        "joint_circular",
+        "circular",
+        "decision",
+        "directive",
+        "consolidated",
+        "other",
+    }
+)
+_RULE_CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,100}$")
 
 
 class ConflictStoreError(Exception):
@@ -61,6 +79,10 @@ def _unique_sorted_uuids(values: Sequence[UUID]) -> list[UUID]:
     for item in values:
         seen[str(item)] = item
     return [seen[key] for key in sorted(seen)]
+
+
+def _unique_sorted_texts(values: Sequence[str]) -> list[str]:
+    return sorted({str(item).strip() for item in values if str(item).strip()})
 
 
 def _serialize_run(row: Any, *, deduplicated: bool = False) -> dict[str, Any]:
@@ -166,20 +188,26 @@ async def resolve_scoped_document_ids(
     *,
     document_ids: Sequence[UUID] = (),
     category_ids: Sequence[UUID] = (),
+    doc_types: Sequence[str] = (),
+    taxonomy_codes: Sequence[str] = (),
     limit: int | None = None,
 ) -> list[UUID]:
     """Resolve authorized document IDs via ``ALLOWED_DOCUMENTS_SQL`` & ``document_categories``.
 
     Ruling P6: ``documents`` has no ``category_id`` column, so category filtering joins
     ``document_categories(document_id, category_id)`` inside the principal-scoped tx.
+    ``taxonomy_codes`` is node-level and enforced by the worker before pairing.
     """
+    del taxonomy_codes
     if not principal.has(Permission.QUERY):
         return []
     await conn.execute("SELECT set_config('app.user_id', $1, true)", principal.id)
     doc_param = list(document_ids) if document_ids else None
     cat_param = list(category_ids) if category_ids else None
-    limit_sql = "LIMIT $3" if limit is not None else ""
-    params: list[Any] = [doc_param, cat_param]
+    cleaned_types = _unique_sorted_texts(doc_types)
+    type_param = cleaned_types if cleaned_types else None
+    limit_sql = "LIMIT $4" if limit is not None else ""
+    params: list[Any] = [doc_param, cat_param, type_param]
     if limit is not None:
         params.append(max(1, limit))
 
@@ -196,6 +224,7 @@ async def resolve_scoped_document_ids(
                     AND dc.category_id = ANY($2::uuid[])
                 )
               )
+              AND ($3::text[] IS NULL OR d.doc_type = ANY($3::text[]))
             ORDER BY d.created_at DESC, d.id ASC
             {limit_sql}""",
         *params,
@@ -210,6 +239,8 @@ async def create_conflict_run(
     request_id: str,
     document_ids: Sequence[UUID] = (),
     category_ids: Sequence[UUID] = (),
+    doc_types: Sequence[str] = (),
+    taxonomy_codes: Sequence[str] = (),
     as_of_date: date | None = None,
     use_ai: bool = False,
     include_expired: bool = False,
@@ -235,9 +266,13 @@ async def create_conflict_run(
     effective_date = as_of_date or date.today()
     unique_doc_ids = _unique_sorted_uuids(document_ids)
     unique_cat_ids = _unique_sorted_uuids(category_ids)
+    unique_doc_types = _unique_sorted_texts(doc_types)
+    unique_taxonomy_codes = _unique_sorted_texts(taxonomy_codes)
     requested_scope = {
         "document_ids": [str(item) for item in unique_doc_ids],
         "category_ids": [str(item) for item in unique_cat_ids],
+        "doc_types": unique_doc_types,
+        "taxonomy_codes": unique_taxonomy_codes,
         "include_expired": bool(include_expired),
     }
 
@@ -255,6 +290,9 @@ async def create_conflict_run(
             if (
                 existing_scope.get("document_ids", []) != requested_scope["document_ids"]
                 or existing_scope.get("category_ids", []) != requested_scope["category_ids"]
+                or existing_scope.get("doc_types", []) != requested_scope["doc_types"]
+                or existing_scope.get("taxonomy_codes", [])
+                != requested_scope["taxonomy_codes"]
                 or bool(existing_scope.get("include_expired", False))
                 != requested_scope["include_expired"]
                 or existing["as_of_date"] != effective_date
@@ -285,6 +323,8 @@ async def create_conflict_run(
             principal,
             document_ids=unique_doc_ids,
             category_ids=unique_cat_ids,
+            doc_types=unique_doc_types,
+            taxonomy_codes=unique_taxonomy_codes,
             limit=max_documents + 1,
         )
         if unique_doc_ids and (set(unique_doc_ids) - set(allowed_ids)):
@@ -460,6 +500,56 @@ async def cancel_conflict_run(
     return _serialize_run(updated)
 
 
+_FINDINGS_SELECT_COLS = """
+    cf.*,
+    da.document_number AS doc_a_number, da.title AS doc_a_title,
+    db.document_number AS doc_b_number, db.title AS doc_b_title,
+    na.citation_label AS node_a_label, na.path AS node_a_path,
+    na.text_original AS node_a_text, na.page_start AS node_a_page_start,
+    nb.citation_label AS node_b_label, nb.path AS node_b_path,
+    nb.text_original AS node_b_text, nb.page_start AS node_b_page_start
+"""
+
+_FINDINGS_INTEGRITY_JOINS = """
+    FROM conflict_findings cf
+    JOIN documents da ON da.id = cf.document_a_id
+    JOIN documents db ON db.id = cf.document_b_id
+    JOIN document_nodes na ON na.id = cf.node_a_id
+    JOIN document_nodes nb ON nb.id = cf.node_b_id
+    JOIN document_versions dva ON dva.id = na.document_version_id
+    JOIN document_versions dvb ON dvb.id = nb.document_version_id
+    JOIN source_provenance spa ON spa.document_version_id = dva.id
+    JOIN source_provenance spb ON spb.document_version_id = dvb.id
+"""
+
+_FINDINGS_INTEGRITY_CONDITIONS = """
+      AND da.deleted_at IS NULL AND da.suspended_at IS NULL
+      AND db.deleted_at IS NULL AND db.suspended_at IS NULL
+      AND dva.review_status = 'approved'
+      AND dvb.review_status = 'approved'
+      AND spa.verified_at IS NOT NULL
+      AND spb.verified_at IS NOT NULL
+      AND na.review_status = 'approved'
+      AND nb.review_status = 'approved'
+      AND node_source_text_valid(na.id)
+      AND node_source_text_valid(nb.id)
+"""
+
+
+def _validate_finding_filters(
+    *,
+    severity: str | None,
+    finding_type: str | None,
+    review_status: str | None,
+) -> None:
+    if severity is not None and severity not in _ALLOWED_SEVERITIES:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    if finding_type is not None and finding_type not in _ALLOWED_FINDING_TYPES:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    if review_status is not None and review_status not in _ALLOWED_REVIEW_STATUSES:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+
+
 async def list_conflict_findings(
     pool: Any,
     principal: Principal,
@@ -474,12 +564,9 @@ async def list_conflict_findings(
     """Return ACL-filtered conflict findings for ``run_id``."""
     if not principal.has(Permission.QUERY):
         raise ConflictStoreError("QUERY_REQUIRED", 403)
-    if severity is not None and severity not in _ALLOWED_SEVERITIES:
-        raise ConflictStoreError("INVALID_REQUEST", 422)
-    if finding_type is not None and finding_type not in _ALLOWED_FINDING_TYPES:
-        raise ConflictStoreError("INVALID_REQUEST", 422)
-    if review_status is not None and review_status not in _ALLOWED_REVIEW_STATUSES:
-        raise ConflictStoreError("INVALID_REQUEST", 422)
+    _validate_finding_filters(
+        severity=severity, finding_type=finding_type, review_status=review_status
+    )
 
     async with pool.acquire() as conn, conn.transaction():
         await expire_conflict_runs(conn)
@@ -505,26 +592,9 @@ async def list_conflict_findings(
             review_status,
         )
         findings_from_where = f"""
-            FROM conflict_findings cf
-            JOIN documents da ON da.id = cf.document_a_id
-            JOIN documents db ON db.id = cf.document_b_id
-            JOIN document_nodes na ON na.id = cf.node_a_id
-            JOIN document_nodes nb ON nb.id = cf.node_b_id
-            JOIN document_versions dva ON dva.id = na.document_version_id
-            JOIN document_versions dvb ON dvb.id = nb.document_version_id
-            JOIN source_provenance spa ON spa.document_version_id = dva.id
-            JOIN source_provenance spb ON spb.document_version_id = dvb.id
+            {_FINDINGS_INTEGRITY_JOINS}
             WHERE {base_filter}
-              AND da.deleted_at IS NULL AND da.suspended_at IS NULL
-              AND db.deleted_at IS NULL AND db.suspended_at IS NULL
-              AND dva.review_status = 'approved'
-              AND dvb.review_status = 'approved'
-              AND spa.verified_at IS NOT NULL
-              AND spb.verified_at IS NOT NULL
-              AND na.review_status = 'approved'
-              AND nb.review_status = 'approved'
-              AND node_source_text_valid(na.id)
-              AND node_source_text_valid(nb.id)
+              {_FINDINGS_INTEGRITY_CONDITIONS}
               AND EXISTS (
                   SELECT 1 FROM ({ALLOWED_DOCUMENTS_SQL}) a1
                   WHERE a1.document_id = cf.document_a_id
@@ -542,13 +612,7 @@ async def list_conflict_findings(
             review_status,
         )
         rows = await conn.fetch(
-            f"""SELECT cf.*,
-                       da.document_number AS doc_a_number, da.title AS doc_a_title,
-                       db.document_number AS doc_b_number, db.title AS doc_b_title,
-                       na.citation_label AS node_a_label, na.path AS node_a_path,
-                       na.text_original AS node_a_text, na.page_start AS node_a_page_start,
-                       nb.citation_label AS node_b_label, nb.path AS node_b_path,
-                       nb.text_original AS node_b_text, nb.page_start AS node_b_page_start
+            f"""SELECT {_FINDINGS_SELECT_COLS}
                 {findings_from_where}
                 ORDER BY CASE cf.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,
                          cf.similarity_score DESC NULLS LAST,
@@ -574,6 +638,114 @@ async def list_conflict_findings(
     }
 
 
+async def list_admin_conflict_findings(
+    pool: Any,
+    reviewer_id: UUID,
+    *,
+    review_status: str | None = None,
+    severity: str | None = None,
+    finding_type: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """List conflict findings within categories where ``reviewer_id`` has ``can_review``."""
+    _validate_finding_filters(
+        severity=severity, finding_type=finding_type, review_status=review_status
+    )
+    findings_from_where = f"""
+        {_FINDINGS_INTEGRITY_JOINS}
+        WHERE ($1::text IS NULL OR cf.review_status = $1)
+          AND ($2::text IS NULL OR cf.severity = $2)
+          AND ($3::text IS NULL OR cf.finding_type = $3)
+          {_FINDINGS_INTEGRITY_CONDITIONS}
+          AND EXISTS (
+              SELECT 1 FROM document_categories dc
+              JOIN category_acl ca ON ca.category_id = dc.category_id AND ca.can_review
+              JOIN categories c ON c.id = ca.category_id AND c.deleted_at IS NULL
+              JOIN users u ON u.id = ca.user_id AND u.disabled_at IS NULL
+              WHERE ca.user_id = $4
+                AND dc.document_id IN (cf.document_a_id, cf.document_b_id)
+          )
+    """
+    async with pool.acquire() as conn:
+        total = await conn.fetchval(
+            f"SELECT count(*) {findings_from_where}",
+            review_status,
+            severity,
+            finding_type,
+            reviewer_id,
+        )
+        rows = await conn.fetch(
+            f"""SELECT {_FINDINGS_SELECT_COLS}
+                {findings_from_where}
+                ORDER BY CASE cf.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,
+                         cf.created_at DESC,
+                         cf.id ASC
+                LIMIT $5 OFFSET $6""",
+            review_status,
+            severity,
+            finding_type,
+            reviewer_id,
+            max(1, min(limit, 500)),
+            max(0, offset),
+        )
+    return {
+        "total": int(total or 0),
+        "items": [_serialize_finding(dict(row)) for row in rows],
+        "reference_notice": REFERENCE_NOTICE,
+    }
+
+
+async def _review_finding_in_tx(
+    conn: Any,
+    *,
+    reviewer_id: UUID,
+    finding_id: UUID,
+    decision: Literal["confirm", "dismiss"],
+    note: str | None = None,
+) -> Any:
+    if decision not in {"confirm", "dismiss"}:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    cleaned_note = note.strip()[:2000] if note and note.strip() else None
+    new_status = "confirmed" if decision == "confirm" else "dismissed"
+
+    row = await conn.fetchrow(
+        "SELECT * FROM conflict_findings WHERE id = $1 FOR UPDATE",
+        finding_id,
+    )
+    if row is None:
+        raise ConflictStoreError("CONFLICT_FINDING_NOT_FOUND", 404)
+    if row["review_status"] == "linked_amendment":
+        raise ConflictStoreError("CONFLICT_FINDING_ALREADY_LINKED", 409)
+    if not await can_review(
+        conn, reviewer_id, [row["document_a_id"], row["document_b_id"]]
+    ):
+        raise ConflictStoreError("REVIEW_SCOPE_REQUIRED", 403)
+
+    updated = await conn.fetchrow(
+        """UPDATE conflict_findings
+           SET review_status = $2,
+               reviewed_by = $3,
+               reviewed_at = now(),
+               review_note = $4
+           WHERE id = $1
+           RETURNING *""",
+        finding_id,
+        new_status,
+        reviewer_id,
+        cleaned_note,
+    )
+    await append_audit(
+        conn,
+        principal_id=reviewer_id,
+        action="conflict_finding.review",
+        target_type="conflict_finding",
+        target_id=str(finding_id),
+        metadata={"decision": decision, "review_status": new_status},
+    )
+    return updated
+
+
 async def review_conflict_finding(
     pool: Any,
     *,
@@ -583,45 +755,13 @@ async def review_conflict_finding(
     note: str | None = None,
 ) -> dict[str, Any]:
     """Confirm or dismiss a ``conflict_findings`` item (REVIEWER scope required)."""
-    if decision not in {"confirm", "dismiss"}:
-        raise ConflictStoreError("INVALID_REQUEST", 422)
-    cleaned_note = note.strip()[:2000] if note and note.strip() else None
-    new_status = "confirmed" if decision == "confirm" else "dismissed"
-
     async with pool.acquire() as conn, conn.transaction():
-        row = await conn.fetchrow(
-            "SELECT * FROM conflict_findings WHERE id = $1 FOR UPDATE",
-            finding_id,
-        )
-        if row is None:
-            raise ConflictStoreError("CONFLICT_FINDING_NOT_FOUND", 404)
-        if row["review_status"] == "linked_amendment":
-            raise ConflictStoreError("CONFLICT_FINDING_ALREADY_LINKED", 409)
-        if not await can_review(
-            conn, reviewer_id, [row["document_a_id"], row["document_b_id"]]
-        ):
-            raise ConflictStoreError("REVIEW_SCOPE_REQUIRED", 403)
-
-        updated = await conn.fetchrow(
-            """UPDATE conflict_findings
-               SET review_status = $2,
-                   reviewed_by = $3,
-                   reviewed_at = now(),
-                   review_note = $4
-               WHERE id = $1
-               RETURNING *""",
-            finding_id,
-            new_status,
-            reviewer_id,
-            cleaned_note,
-        )
-        await append_audit(
+        updated = await _review_finding_in_tx(
             conn,
-            principal_id=reviewer_id,
-            action="conflict_finding.review",
-            target_type="conflict_finding",
-            target_id=str(finding_id),
-            metadata={"decision": decision, "review_status": new_status},
+            reviewer_id=reviewer_id,
+            finding_id=finding_id,
+            decision=decision,
+            note=note,
         )
     return _serialize_finding(dict(updated))
 
@@ -648,6 +788,145 @@ async def _load_verified_approved_node(
     )
 
 
+async def _create_amendment_draft_in_tx(
+    conn: Any,
+    *,
+    reviewer_id: UUID,
+    finding_id: UUID,
+    amendment_action: str,
+    source_side: Literal["a", "b"] = "a",
+    note: str | None = None,
+    valid_from: date | None = None,
+) -> tuple[dict[str, Any], Any]:
+    if amendment_action not in _ALLOWED_AMENDMENT_ACTIONS or source_side not in {"a", "b"}:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    cleaned_note = note.strip()[:2000] if note and note.strip() else None
+
+    finding = await conn.fetchrow(
+        "SELECT * FROM conflict_findings WHERE id = $1 FOR UPDATE",
+        finding_id,
+    )
+    if finding is None:
+        raise ConflictStoreError("CONFLICT_FINDING_NOT_FOUND", 404)
+    if (
+        finding["linked_amendment_id"] is not None
+        or finding["review_status"] == "linked_amendment"
+    ):
+        raise ConflictStoreError("CONFLICT_FINDING_ALREADY_LINKED", 409)
+    if finding["review_status"] == "dismissed":
+        raise ConflictStoreError("CONFLICT_FINDING_DISMISSED", 409)
+    if not await can_review(
+        conn,
+        reviewer_id,
+        [finding["document_a_id"], finding["document_b_id"]],
+    ):
+        raise ConflictStoreError("REVIEW_SCOPE_REQUIRED", 403)
+
+    if source_side == "a":
+        source_doc_id = finding["document_a_id"]
+        source_node_id = finding["node_a_id"]
+        target_doc_id = finding["document_b_id"]
+        target_node_id = finding["node_b_id"]
+    else:
+        source_doc_id = finding["document_b_id"]
+        source_node_id = finding["node_b_id"]
+        target_doc_id = finding["document_a_id"]
+        target_node_id = finding["node_a_id"]
+
+    source_node = await _load_verified_approved_node(
+        conn, source_node_id, source_doc_id
+    )
+    if source_node is None:
+        raise ConflictStoreError("SOURCE_NODE_NOT_FOUND", 404)
+
+    target_node = await _load_verified_approved_node(
+        conn, target_node_id, target_doc_id
+    )
+    if target_node is None:
+        raise ConflictStoreError("DOCUMENT_NOT_FOUND", 404)
+
+    target_path = target_node["citation_label"] or target_node["path"]
+    target_number = target_node["document_number"]
+    target_expression = (
+        f"{target_path} {target_number}".strip() if target_number else target_path
+    )
+    source_quote = str(source_node["text_original"] or "")[:1200]
+    evidence_source = f"conflict_review:{finding_id}"
+
+    amendment_id = await conn.fetchval(
+        """INSERT INTO node_amendments (
+             source_node_id, source_document_id,
+             target_document_id, target_node_id,
+             scope, action, valid_from, evidence_source,
+             review_status, target_number, target_doc_type,
+             target_path, target_expression, resolution_state,
+             condition_text, proposed_by, proposer_id,
+             source_quote, source_page
+           )
+           VALUES (
+             $1, $2,
+             $3, $4,
+             'node', $5, $6, $7,
+             'draft', $8, $9,
+             $10, $11, 'resolved',
+             $12, 'conflict_review', $13,
+             $14, $15
+           )
+           RETURNING id""",
+        source_node_id,
+        source_doc_id,
+        target_doc_id,
+        target_node_id,
+        amendment_action,
+        valid_from,
+        evidence_source,
+        target_number,
+        target_node["doc_type"],
+        target_path,
+        target_expression,
+        cleaned_note,
+        reviewer_id,
+        source_quote,
+        source_node["page_start"],
+    )
+
+    updated = await conn.fetchrow(
+        """UPDATE conflict_findings
+           SET review_status = 'linked_amendment',
+               linked_amendment_id = $2,
+               reviewed_by = $3,
+               reviewed_at = now(),
+               review_note = COALESCE($4, review_note)
+           WHERE id = $1
+           RETURNING *""",
+        finding_id,
+        amendment_id,
+        reviewer_id,
+        cleaned_note,
+    )
+    await append_audit(
+        conn,
+        principal_id=reviewer_id,
+        action="conflict_finding.create_amendment_draft",
+        target_type="conflict_finding",
+        target_id=str(finding_id),
+        metadata={
+            "linked_amendment_id": str(amendment_id),
+            "action": amendment_action,
+            "source_side": source_side,
+            "review_status": "draft",
+        },
+    )
+
+    return {
+        "finding_id": str(finding_id),
+        "review_status": "linked_amendment",
+        "linked_amendment_id": str(amendment_id),
+        "amendment_review_status": "draft",
+        "reference_notice": REFERENCE_NOTICE,
+    }, updated
+
+
 async def create_amendment_draft_from_finding(
     pool: Any,
     *,
@@ -659,131 +938,71 @@ async def create_amendment_draft_from_finding(
     valid_from: date | None = None,
 ) -> dict[str, Any]:
     """Create a ``node_amendments`` draft from a conflict finding (Ruling P8)."""
-    if amendment_action not in _ALLOWED_AMENDMENT_ACTIONS or source_side not in {"a", "b"}:
+    async with pool.acquire() as conn, conn.transaction():
+        result, _ = await _create_amendment_draft_in_tx(
+            conn,
+            reviewer_id=reviewer_id,
+            finding_id=finding_id,
+            amendment_action=amendment_action,
+            source_side=source_side,
+            note=note,
+            valid_from=valid_from,
+        )
+    return result
+
+
+async def review_conflict_finding_with_draft(
+    pool: Any,
+    *,
+    reviewer_id: UUID,
+    finding_id: UUID,
+    decision: Literal["confirm", "dismiss"],
+    note: str | None = None,
+    create_amendment_draft: bool = False,
+    amendment_action: str | None = None,
+    source_side: Literal["a", "b"] | None = None,
+    valid_from: date | None = None,
+) -> dict[str, Any]:
+    """Atomically review a finding and optionally create a draft ``node_amendments`` row."""
+    if decision == "dismiss" and create_amendment_draft:
         raise ConflictStoreError("INVALID_REQUEST", 422)
-    cleaned_note = note.strip()[:2000] if note and note.strip() else None
+    if decision == "confirm" and create_amendment_draft and not amendment_action:
+        raise ConflictStoreError("CONFLICT_AMENDMENT_ACTION_REQUIRED", 422)
 
     async with pool.acquire() as conn, conn.transaction():
-        finding = await conn.fetchrow(
-            "SELECT * FROM conflict_findings WHERE id = $1 FOR UPDATE",
-            finding_id,
-        )
-        if finding is None:
-            raise ConflictStoreError("CONFLICT_FINDING_NOT_FOUND", 404)
-        if (
-            finding["linked_amendment_id"] is not None
-            or finding["review_status"] == "linked_amendment"
-        ):
-            raise ConflictStoreError("CONFLICT_FINDING_ALREADY_LINKED", 409)
-        if finding["review_status"] == "dismissed":
-            raise ConflictStoreError("CONFLICT_FINDING_DISMISSED", 409)
-        if not await can_review(
+        updated = await _review_finding_in_tx(
             conn,
-            reviewer_id,
-            [finding["document_a_id"], finding["document_b_id"]],
-        ):
-            raise ConflictStoreError("REVIEW_SCOPE_REQUIRED", 403)
-
-        if source_side == "a":
-            source_doc_id = finding["document_a_id"]
-            source_node_id = finding["node_a_id"]
-            target_doc_id = finding["document_b_id"]
-            target_node_id = finding["node_b_id"]
-        else:
-            source_doc_id = finding["document_b_id"]
-            source_node_id = finding["node_b_id"]
-            target_doc_id = finding["document_a_id"]
-            target_node_id = finding["node_a_id"]
-
-        source_node = await _load_verified_approved_node(
-            conn, source_node_id, source_doc_id
+            reviewer_id=reviewer_id,
+            finding_id=finding_id,
+            decision=decision,
+            note=note,
         )
-        if source_node is None:
-            raise ConflictStoreError("SOURCE_NODE_NOT_FOUND", 404)
-
-        target_node = await _load_verified_approved_node(
-            conn, target_node_id, target_doc_id
-        )
-        if target_node is None:
-            raise ConflictStoreError("DOCUMENT_NOT_FOUND", 404)
-
-        target_path = target_node["citation_label"] or target_node["path"]
-        target_number = target_node["document_number"]
-        target_expression = (
-            f"{target_path} {target_number}".strip() if target_number else target_path
-        )
-        source_quote = str(source_node["text_original"] or "")[:1200]
-        evidence_source = f"conflict_review:{finding_id}"
-
-        amendment_id = await conn.fetchval(
-            """INSERT INTO node_amendments (
-                 source_node_id, source_document_id,
-                 target_document_id, target_node_id,
-                 scope, action, valid_from, evidence_source,
-                 review_status, target_number, target_doc_type,
-                 target_path, target_expression, resolution_state,
-                 condition_text, proposed_by, proposer_id,
-                 source_quote, source_page
-               )
-               VALUES (
-                 $1, $2,
-                 $3, $4,
-                 'node', $5, $6, $7,
-                 'draft', $8, $9,
-                 $10, $11, 'resolved',
-                 $12, 'conflict_review', $13,
-                 $14, $15
-               )
-               RETURNING id""",
-            source_node_id,
-            source_doc_id,
-            target_doc_id,
-            target_node_id,
-            amendment_action,
-            valid_from,
-            evidence_source,
-            target_number,
-            target_node["doc_type"],
-            target_path,
-            target_expression,
-            cleaned_note,
-            reviewer_id,
-            source_quote,
-            source_node["page_start"],
-        )
-
-        await conn.execute(
-            """UPDATE conflict_findings
-               SET review_status = 'linked_amendment',
-                   linked_amendment_id = $2,
-                   reviewed_by = $3,
-                   reviewed_at = now(),
-                   review_note = COALESCE($4, review_note)
-               WHERE id = $1""",
-            finding_id,
-            amendment_id,
-            reviewer_id,
-            cleaned_note,
-        )
-        await append_audit(
-            conn,
-            principal_id=reviewer_id,
-            action="conflict_finding.create_amendment_draft",
-            target_type="conflict_finding",
-            target_id=str(finding_id),
-            metadata={
-                "linked_amendment_id": str(amendment_id),
-                "action": amendment_action,
-                "source_side": source_side,
-                "review_status": "draft",
-            },
-        )
+        amendment_review_status: str | None = None
+        if decision == "confirm" and create_amendment_draft:
+            assert amendment_action is not None
+            draft_res, updated = await _create_amendment_draft_in_tx(
+                conn,
+                reviewer_id=reviewer_id,
+                finding_id=finding_id,
+                amendment_action=amendment_action,
+                source_side=source_side or "a",
+                note=note,
+                valid_from=valid_from,
+            )
+            amendment_review_status = draft_res["amendment_review_status"]
 
     return {
-        "finding_id": str(finding_id),
-        "review_status": "linked_amendment",
-        "linked_amendment_id": str(amendment_id),
-        "amendment_review_status": "draft",
+        "finding_id": str(updated["id"]),
+        "review_status": updated["review_status"],
+        "reviewed_by": str(updated["reviewed_by"]) if updated["reviewed_by"] else None,
+        "reviewed_at": _iso(updated["reviewed_at"]),
+        "review_note": updated["review_note"],
+        "linked_amendment_id": (
+            str(updated["linked_amendment_id"])
+            if updated["linked_amendment_id"] is not None
+            else None
+        ),
+        "amendment_review_status": amendment_review_status,
         "reference_notice": REFERENCE_NOTICE,
     }
 
@@ -814,6 +1033,35 @@ async def load_authority_rule_objects(conn: Any) -> list[AuthorityRule]:
     ]
 
 
+def _serialize_authority_rule(row: Any) -> dict[str, Any]:
+    return {
+        "id": str(row["id"]),
+        "rule_code": row["rule_code"],
+        "doc_type": row["doc_type"],
+        "issuing_body_pattern": row["issuing_body_pattern"],
+        "authority_rank": int(row["authority_rank"]),
+        "authority_tier_label": row["authority_tier_label"],
+        "is_ambiguous_without_issuer": bool(row["is_ambiguous_without_issuer"]),
+        "match_priority": int(row["match_priority"]),
+        "note": row["note"],
+        "is_active": bool(row["is_active"]),
+        "updated_by": str(row["updated_by"]) if row["updated_by"] is not None else None,
+        "updated_at": _iso(row["updated_at"]),
+    }
+
+
+def _validate_issuing_body_pattern(pattern: str | None) -> str | None:
+    if pattern is None:
+        return None
+    if pattern == "":
+        return None
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        raise ConflictStoreError("INVALID_REGEX_PATTERN", 422) from exc
+    return pattern
+
+
 async def list_authority_rules(
     pool: Any, *, include_inactive: bool = False
 ) -> list[dict[str, Any]]:
@@ -828,30 +1076,91 @@ async def list_authority_rules(
                 {where}
                 ORDER BY authority_rank ASC, doc_type ASC, match_priority ASC, rule_code ASC"""
         )
-    return [
-        {
-            "id": str(row["id"]),
-            "rule_code": row["rule_code"],
-            "doc_type": row["doc_type"],
-            "issuing_body_pattern": row["issuing_body_pattern"],
-            "authority_rank": int(row["authority_rank"]),
-            "authority_tier_label": row["authority_tier_label"],
-            "is_ambiguous_without_issuer": bool(row["is_ambiguous_without_issuer"]),
-            "match_priority": int(row["match_priority"]),
-            "note": row["note"],
-            "is_active": bool(row["is_active"]),
-            "updated_by": str(row["updated_by"]) if row["updated_by"] is not None else None,
-            "updated_at": _iso(row["updated_at"]),
-        }
-        for row in rows
-    ]
+    return [_serialize_authority_rule(row) for row in rows]
+
+
+async def create_authority_rule(
+    pool: Any,
+    *,
+    actor_id: UUID,
+    rule_code: str,
+    doc_type: str,
+    authority_rank: int,
+    authority_tier_label: str,
+    issuing_body_pattern: str | None = None,
+    is_ambiguous_without_issuer: bool = False,
+    match_priority: int = 100,
+    note: str | None = None,
+    is_active: bool = True,
+) -> dict[str, Any]:
+    """Create a new ``legal_authority_rules`` entry and record audit trail."""
+    cleaned_code = rule_code.strip()
+    if not _RULE_CODE_RE.fullmatch(cleaned_code):
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    cleaned_doc_type = doc_type.strip()
+    if cleaned_doc_type not in _ALLOWED_DOC_TYPES:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    if not 1 <= authority_rank <= 1000:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    cleaned_label = authority_tier_label.strip()
+    if not cleaned_label or len(cleaned_label) > 200:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    if not 0 <= match_priority <= 10000:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    cleaned_pattern = _validate_issuing_body_pattern(issuing_body_pattern)
+    cleaned_note = note.strip()[:2000] if note and note.strip() else None
+
+    async with pool.acquire() as conn, conn.transaction():
+        exists = await conn.fetchval(
+            "SELECT 1 FROM legal_authority_rules WHERE rule_code = $1",
+            cleaned_code,
+        )
+        if exists is not None:
+            raise ConflictStoreError("AUTHORITY_RULE_EXISTS", 409)
+        try:
+            inserted = await conn.fetchrow(
+                """INSERT INTO legal_authority_rules (
+                     rule_code, doc_type, issuing_body_pattern, authority_rank,
+                     authority_tier_label, is_ambiguous_without_issuer,
+                     match_priority, note, is_active, updated_by
+                   )
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                   RETURNING *""",
+                cleaned_code,
+                cleaned_doc_type,
+                cleaned_pattern,
+                authority_rank,
+                cleaned_label,
+                bool(is_ambiguous_without_issuer),
+                match_priority,
+                cleaned_note,
+                bool(is_active),
+                actor_id,
+            )
+        except asyncpg.UniqueViolationError as exc:
+            raise ConflictStoreError("AUTHORITY_RULE_EXISTS", 409) from exc
+        await append_audit(
+            conn,
+            principal_id=actor_id,
+            action="authority_rule.created",
+            target_type="legal_authority_rule",
+            target_id=str(inserted["id"]),
+            metadata={
+                "rule_code": cleaned_code,
+                "doc_type": cleaned_doc_type,
+                "authority_rank": authority_rank,
+                "is_active": bool(is_active),
+            },
+        )
+    return _serialize_authority_rule(inserted)
 
 
 async def update_authority_rule(
     pool: Any,
     *,
     actor_id: UUID,
-    rule_code: str,
+    rule_id: UUID | None = None,
+    rule_code: str | None = None,
     authority_rank: int | None = None,
     authority_tier_label: str | None = None,
     issuing_body_pattern: str | None = None,
@@ -859,22 +1168,30 @@ async def update_authority_rule(
     is_ambiguous_without_issuer: bool | None = None,
     match_priority: int | None = None,
     note: str | None = None,
+    clear_note: bool = False,
     is_active: bool | None = None,
 ) -> dict[str, Any]:
-    """Update an existing ``legal_authority_rules`` entry and record audit trail."""
+    """Update an existing ``legal_authority_rules`` entry by ID or ``rule_code``."""
+    cleaned_code = rule_code.strip() if rule_code is not None else None
+    if rule_id is None and not cleaned_code:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
     if authority_rank is not None and not 1 <= authority_rank <= 1000:
         raise ConflictStoreError("INVALID_REQUEST", 422)
-    if issuing_body_pattern is not None:
-        try:
-            re.compile(issuing_body_pattern)
-        except re.error as exc:
-            raise ConflictStoreError("INVALID_REGEX_PATTERN", 422) from exc
+    if match_priority is not None and not 0 <= match_priority <= 10000:
+        raise ConflictStoreError("INVALID_REQUEST", 422)
+    validated_pattern = _validate_issuing_body_pattern(issuing_body_pattern)
 
     async with pool.acquire() as conn, conn.transaction():
-        existing = await conn.fetchrow(
-            "SELECT * FROM legal_authority_rules WHERE rule_code = $1 FOR UPDATE",
-            rule_code,
-        )
+        if rule_id is not None:
+            existing = await conn.fetchrow(
+                "SELECT * FROM legal_authority_rules WHERE id = $1 FOR UPDATE",
+                rule_id,
+            )
+        else:
+            existing = await conn.fetchrow(
+                "SELECT * FROM legal_authority_rules WHERE rule_code = $1 FOR UPDATE",
+                cleaned_code,
+            )
         if existing is None:
             raise ConflictStoreError("AUTHORITY_RULE_NOT_FOUND", 404)
 
@@ -882,7 +1199,7 @@ async def update_authority_rule(
             None
             if clear_pattern
             else (
-                issuing_body_pattern
+                validated_pattern
                 if issuing_body_pattern is not None
                 else existing["issuing_body_pattern"]
             )
@@ -903,7 +1220,15 @@ async def update_authority_rule(
         next_prio = (
             match_priority if match_priority is not None else existing["match_priority"]
         )
-        next_note = note if note is not None else existing["note"]
+        next_note = (
+            None
+            if clear_note
+            else (
+                (note.strip()[:2000] if note.strip() else None)
+                if note is not None
+                else existing["note"]
+            )
+        )
         next_active = is_active if is_active is not None else existing["is_active"]
 
         updated = await conn.fetchrow(
@@ -917,9 +1242,9 @@ async def update_authority_rule(
                    is_active = $8,
                    updated_by = $9,
                    updated_at = now()
-               WHERE rule_code = $1
+               WHERE id = $1
                RETURNING *""",
-            rule_code,
+            existing["id"],
             next_pattern,
             next_rank,
             next_label,
@@ -932,22 +1257,13 @@ async def update_authority_rule(
         await append_audit(
             conn,
             principal_id=actor_id,
-            action="legal_authority_rule.update",
+            action="authority_rule.updated",
             target_type="legal_authority_rule",
-            target_id=rule_code,
-            metadata={"authority_rank": next_rank, "is_active": next_active},
+            target_id=str(updated["id"]),
+            metadata={
+                "rule_code": updated["rule_code"],
+                "authority_rank": next_rank,
+                "is_active": next_active,
+            },
         )
-    return {
-        "id": str(updated["id"]),
-        "rule_code": updated["rule_code"],
-        "doc_type": updated["doc_type"],
-        "issuing_body_pattern": updated["issuing_body_pattern"],
-        "authority_rank": int(updated["authority_rank"]),
-        "authority_tier_label": updated["authority_tier_label"],
-        "is_ambiguous_without_issuer": bool(updated["is_ambiguous_without_issuer"]),
-        "match_priority": int(updated["match_priority"]),
-        "note": updated["note"],
-        "is_active": bool(updated["is_active"]),
-        "updated_by": str(updated["updated_by"]) if updated["updated_by"] else None,
-        "updated_at": _iso(updated["updated_at"]),
-    }
+    return _serialize_authority_rule(updated)

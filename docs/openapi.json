@@ -1,6 +1,37 @@
 {
   "components": {
     "schemas": {
+      "AdminConflictFindingsResponse": {
+        "properties": {
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConflictFindingView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "reference_notice": {
+            "title": "Reference Notice",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items",
+          "disclaimer",
+          "reference_notice"
+        ],
+        "title": "AdminConflictFindingsResponse",
+        "type": "object"
+      },
       "AiProposalRequest": {
         "additionalProperties": false,
         "properties": {
@@ -575,6 +606,116 @@
           "source_note"
         ],
         "title": "AttestationRequest",
+        "type": "object"
+      },
+      "AuthorityRuleListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuthorityRuleView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "AuthorityRuleListResponse",
+        "type": "object"
+      },
+      "AuthorityRuleView": {
+        "properties": {
+          "authority_rank": {
+            "title": "Authority Rank",
+            "type": "integer"
+          },
+          "authority_tier_label": {
+            "title": "Authority Tier Label",
+            "type": "string"
+          },
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_ambiguous_without_issuer": {
+            "title": "Is Ambiguous Without Issuer",
+            "type": "boolean"
+          },
+          "issuing_body_pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Body Pattern"
+          },
+          "match_priority": {
+            "title": "Match Priority",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "rule_code": {
+            "title": "Rule Code",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "id",
+          "rule_code",
+          "doc_type",
+          "authority_rank",
+          "authority_tier_label",
+          "is_ambiguous_without_issuer",
+          "match_priority",
+          "is_active",
+          "updated_at"
+        ],
+        "title": "AuthorityRuleView",
         "type": "object"
       },
       "Body_create_document_draft_api_v1_admin_documents_drafts_post": {
@@ -1390,6 +1531,743 @@
         "title": "ConceptReviewRequest",
         "type": "object"
       },
+      "ConflictFindingView": {
+        "properties": {
+          "ai_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Confidence"
+          },
+          "ai_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Verified"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detection_method": {
+            "enum": [
+              "rule",
+              "rule_plus_ai"
+            ],
+            "title": "Detection Method",
+            "type": "string"
+          },
+          "document_a_id": {
+            "format": "uuid",
+            "title": "Document A Id",
+            "type": "string"
+          },
+          "document_a_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document A Number"
+          },
+          "document_a_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document A Title"
+          },
+          "document_b_id": {
+            "format": "uuid",
+            "title": "Document B Id",
+            "type": "string"
+          },
+          "document_b_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document B Number"
+          },
+          "document_b_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document B Title"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "finding_type": {
+            "enum": [
+              "contradiction",
+              "overlap",
+              "exception_refinement",
+              "superseded_already"
+            ],
+            "title": "Finding Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "linked_amendment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Amendment Id"
+          },
+          "node_a_id": {
+            "format": "uuid",
+            "title": "Node A Id",
+            "type": "string"
+          },
+          "node_a_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node A Label"
+          },
+          "node_a_page_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node A Page Start"
+          },
+          "node_a_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node A Path"
+          },
+          "node_a_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node A Text"
+          },
+          "node_b_id": {
+            "format": "uuid",
+            "title": "Node B Id",
+            "type": "string"
+          },
+          "node_b_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node B Label"
+          },
+          "node_b_page_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node B Page Start"
+          },
+          "node_b_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node B Path"
+          },
+          "node_b_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node B Text"
+          },
+          "precedence_basis_json": {
+            "additionalProperties": true,
+            "title": "Precedence Basis Json",
+            "type": "object"
+          },
+          "precedence_result": {
+            "enum": [
+              "higher_authority_a",
+              "higher_authority_b",
+              "same_tier_newer_a",
+              "same_tier_newer_b",
+              "superseded_by_amendment",
+              "undetermined_requires_review"
+            ],
+            "title": "Precedence Result",
+            "type": "string"
+          },
+          "reference_notice": {
+            "title": "Reference Notice",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "review_status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "dismissed",
+              "linked_amendment"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "shared_labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Shared Labels",
+            "type": "array"
+          },
+          "signals_json": {
+            "additionalProperties": true,
+            "title": "Signals Json",
+            "type": "object"
+          },
+          "similarity_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similarity Score"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "document_a_id",
+          "document_b_id",
+          "node_a_id",
+          "node_b_id",
+          "finding_type",
+          "severity",
+          "detection_method",
+          "signals_json",
+          "precedence_result",
+          "precedence_basis_json",
+          "explanation",
+          "review_status",
+          "created_at",
+          "reference_notice"
+        ],
+        "title": "ConflictFindingView",
+        "type": "object"
+      },
+      "ConflictScanDetailResponse": {
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deduplicated": {
+            "default": false,
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ConflictFindingView"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "hidden_due_to_acl": {
+            "title": "Hidden Due To Acl",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "limits_json": {
+            "additionalProperties": true,
+            "title": "Limits Json",
+            "type": "object"
+          },
+          "model_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Profile Id"
+          },
+          "progress_done": {
+            "title": "Progress Done",
+            "type": "integer"
+          },
+          "progress_total": {
+            "title": "Progress Total",
+            "type": "integer"
+          },
+          "reference_notice": {
+            "title": "Reference Notice",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scope_document_count": {
+            "title": "Scope Document Count",
+            "type": "integer"
+          },
+          "scope_json": {
+            "additionalProperties": true,
+            "title": "Scope Json",
+            "type": "object"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Json"
+          },
+          "total_findings": {
+            "title": "Total Findings",
+            "type": "integer"
+          },
+          "use_ai": {
+            "title": "Use Ai",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "requested_by",
+          "request_id",
+          "status",
+          "scope_json",
+          "scope_document_count",
+          "as_of_date",
+          "use_ai",
+          "limits_json",
+          "progress_total",
+          "progress_done",
+          "created_at",
+          "expires_at",
+          "reference_notice",
+          "findings",
+          "total_findings",
+          "hidden_due_to_acl",
+          "disclaimer"
+        ],
+        "title": "ConflictScanDetailResponse",
+        "type": "object"
+      },
+      "ConflictScanListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConflictScanRunView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "ConflictScanListResponse",
+        "type": "object"
+      },
+      "ConflictScanRunView": {
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deduplicated": {
+            "default": false,
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "limits_json": {
+            "additionalProperties": true,
+            "title": "Limits Json",
+            "type": "object"
+          },
+          "model_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Profile Id"
+          },
+          "progress_done": {
+            "title": "Progress Done",
+            "type": "integer"
+          },
+          "progress_total": {
+            "title": "Progress Total",
+            "type": "integer"
+          },
+          "reference_notice": {
+            "title": "Reference Notice",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scope_document_count": {
+            "title": "Scope Document Count",
+            "type": "integer"
+          },
+          "scope_json": {
+            "additionalProperties": true,
+            "title": "Scope Json",
+            "type": "object"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Json"
+          },
+          "use_ai": {
+            "title": "Use Ai",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "requested_by",
+          "request_id",
+          "status",
+          "scope_json",
+          "scope_document_count",
+          "as_of_date",
+          "use_ai",
+          "limits_json",
+          "progress_total",
+          "progress_done",
+          "created_at",
+          "expires_at",
+          "reference_notice"
+        ],
+        "title": "ConflictScanRunView",
+        "type": "object"
+      },
       "CoverageChecks": {
         "additionalProperties": false,
         "properties": {
@@ -1433,6 +2311,201 @@
         ],
         "title": "CoverageState",
         "type": "string"
+      },
+      "CreateAuthorityRuleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_rank": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Authority Rank",
+            "type": "integer"
+          },
+          "authority_tier_label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Authority Tier Label",
+            "type": "string"
+          },
+          "doc_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_ambiguous_without_issuer": {
+            "default": false,
+            "title": "Is Ambiguous Without Issuer",
+            "type": "boolean"
+          },
+          "issuing_body_pattern": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Body Pattern"
+          },
+          "match_priority": {
+            "default": 100,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Match Priority",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "rule_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Rule Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_code",
+          "doc_type",
+          "authority_rank",
+          "authority_tier_label"
+        ],
+        "title": "CreateAuthorityRuleRequest",
+        "type": "object"
+      },
+      "CreateConflictScanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "doc_types": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Doc Types",
+            "type": "array"
+          },
+          "document_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Document Ids",
+            "type": "array"
+          },
+          "include_expired": {
+            "default": false,
+            "title": "Include Expired",
+            "type": "boolean"
+          },
+          "request_id": {
+            "maxLength": 64,
+            "minLength": 8,
+            "title": "Request Id",
+            "type": "string"
+          },
+          "taxonomy_codes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Taxonomy Codes",
+            "type": "array"
+          },
+          "use_ai": {
+            "default": false,
+            "title": "Use Ai",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "CreateConflictScanRequest",
+        "type": "object"
+      },
+      "CreateConflictScanResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deduplicated": {
+            "default": false,
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scope_document_count": {
+            "title": "Scope Document Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "scope_document_count",
+          "created_at"
+        ],
+        "title": "CreateConflictScanResponse",
+        "type": "object"
       },
       "DiffSegmentView": {
         "properties": {
@@ -2225,6 +3298,95 @@
         ],
         "title": "FactStatus",
         "type": "string"
+      },
+      "FindingReviewResponse": {
+        "properties": {
+          "amendment_review_status": {
+            "anyOf": [
+              {
+                "const": "draft",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amendment Review Status"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "linked_amendment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Amendment Id"
+          },
+          "reference_notice": {
+            "title": "Reference Notice",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "review_status": {
+            "enum": [
+              "pending",
+              "confirmed",
+              "dismissed",
+              "linked_amendment"
+            ],
+            "title": "Review Status",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          }
+        },
+        "required": [
+          "finding_id",
+          "review_status",
+          "reference_notice"
+        ],
+        "title": "FindingReviewResponse",
+        "type": "object"
       },
       "GroupRequest": {
         "additionalProperties": false,
@@ -4133,6 +5295,87 @@
         "title": "ReviewBatchRequest",
         "type": "object"
       },
+      "ReviewFindingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amendment_action": {
+            "anyOf": [
+              {
+                "enum": [
+                  "modify",
+                  "replace",
+                  "add",
+                  "repeal",
+                  "repeal_partial",
+                  "suspend"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amendment Action"
+          },
+          "create_amendment_draft": {
+            "default": false,
+            "title": "Create Amendment Draft",
+            "type": "boolean"
+          },
+          "decision": {
+            "enum": [
+              "confirm",
+              "dismiss"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "source_side": {
+            "anyOf": [
+              {
+                "enum": [
+                  "a",
+                  "b"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Side"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ReviewFindingRequest",
+        "type": "object"
+      },
       "ReviewTaskResolveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -5121,6 +6364,103 @@
         "title": "TurnRequest",
         "type": "object"
       },
+      "UpdateAuthorityRuleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_rank": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Rank"
+          },
+          "authority_tier_label": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Tier Label"
+          },
+          "clear_pattern": {
+            "default": false,
+            "title": "Clear Pattern",
+            "type": "boolean"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "is_ambiguous_without_issuer": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Ambiguous Without Issuer"
+          },
+          "issuing_body_pattern": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Body Pattern"
+          },
+          "match_priority": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Match Priority"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "UpdateAuthorityRuleRequest",
+        "type": "object"
+      },
       "UserInfo": {
         "properties": {
           "display_name": {
@@ -5570,6 +6910,317 @@
         "summary": "Get Audit Events",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/authority-rules": {
+      "get": {
+        "operationId": "list_authority_rules_route_api_v1_admin_authority_rules_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorityRuleListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "List Authority Rules Route",
+        "tags": [
+          "conflicts"
+        ]
+      },
+      "post": {
+        "operationId": "create_authority_rule_route_api_v1_admin_authority_rules_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAuthorityRuleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorityRuleView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Create Authority Rule Route",
+        "tags": [
+          "conflicts"
+        ]
+      }
+    },
+    "/api/v1/admin/authority-rules/{rule_id}": {
+      "put": {
+        "operationId": "update_authority_rule_route_api_v1_admin_authority_rules__rule_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAuthorityRuleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorityRuleView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Update Authority Rule Route",
+        "tags": [
+          "conflicts"
         ]
       }
     },
@@ -6302,6 +7953,296 @@
         "summary": "Review Concepts",
         "tags": [
           "comprehensive-search"
+        ]
+      }
+    },
+    "/api/v1/admin/conflicts/findings": {
+      "get": {
+        "operationId": "list_admin_conflict_findings_route_api_v1_admin_conflicts_findings_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "review_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "confirmed",
+                    "dismissed",
+                    "linked_amendment"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Review Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "finding_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "contradiction",
+                    "overlap",
+                    "exception_refinement",
+                    "superseded_already"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Finding Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConflictFindingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "List Admin Conflict Findings Route",
+        "tags": [
+          "conflicts"
+        ]
+      }
+    },
+    "/api/v1/admin/conflicts/findings/{finding_id}/review": {
+      "post": {
+        "operationId": "review_conflict_finding_route_api_v1_admin_conflicts_findings__finding_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewFindingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Review Conflict Finding Route",
+        "tags": [
+          "conflicts"
         ]
       }
     },
@@ -13799,6 +15740,509 @@
         "summary": "Summarize Route",
         "tags": [
           "comparison"
+        ]
+      }
+    },
+    "/api/v1/conflicts/scans": {
+      "get": {
+        "operationId": "list_conflict_scans_route_api_v1_conflicts_scans_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictScanListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "List Conflict Scans Route",
+        "tags": [
+          "conflicts"
+        ]
+      },
+      "post": {
+        "operationId": "create_conflict_scan_route_api_v1_conflicts_scans_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConflictScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateConflictScanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Create Conflict Scan Route",
+        "tags": [
+          "conflicts"
+        ]
+      }
+    },
+    "/api/v1/conflicts/scans/{run_id}": {
+      "get": {
+        "operationId": "get_conflict_scan_detail_route_api_v1_conflicts_scans__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "finding_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "contradiction",
+                    "overlap",
+                    "exception_refinement",
+                    "superseded_already"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Finding Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "review_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "confirmed",
+                    "dismissed",
+                    "linked_amendment"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Review Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictScanDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get Conflict Scan Detail Route",
+        "tags": [
+          "conflicts"
+        ]
+      }
+    },
+    "/api/v1/conflicts/scans/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_conflict_scan_route_api_v1_conflicts_scans__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictScanRunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Cancel Conflict Scan Route",
+        "tags": [
+          "conflicts"
         ]
       }
     },

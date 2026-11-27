@@ -386,14 +386,16 @@ class ConflictScanWorker:
     ) -> dict[str, Any]:
         req_docs = [UUID(str(x)) for x in scope.get("document_ids") or ()]
         req_cats = [UUID(str(x)) for x in scope.get("category_ids") or ()]
+        req_doc_types = [str(x) for x in scope.get("doc_types") or ()]
         resolved_before = [UUID(str(x)) for x in scope.get("resolved_document_ids") or ()]
 
-        if req_docs or req_cats:
+        if req_docs or req_cats or req_doc_types:
             live_doc_ids = await resolve_scoped_document_ids(
                 conn,
                 principal,
                 document_ids=req_docs,
                 category_ids=req_cats,
+                doc_types=req_doc_types,
                 limit=max_documents,
             )
         else:
@@ -530,6 +532,17 @@ class ConflictScanWorker:
         # Ruling P7: read stored pgvector similarities only; never call embedding model.
         include_expired = bool(scope.get("include_expired", False))
         scoped_nodes = filter_normative_nodes(doc_inputs, include_expired=include_expired)
+        taxonomy_filter = {
+            str(code).strip()
+            for code in scope.get("taxonomy_codes") or ()
+            if str(code).strip()
+        }
+        if taxonomy_filter:
+            scoped_nodes = [
+                sn
+                for sn in scoped_nodes
+                if taxonomy_filter.intersection(sn.node.taxonomy_codes)
+            ]
         scoped_node_ids = [sn.node.primary_node_id for sn in scoped_nodes]
         vector_sims = await fetch_pgvector_candidate_similarities(conn, scoped_node_ids)
 

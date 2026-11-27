@@ -200,6 +200,47 @@ _MESSAGES = {
         "Chế độ so sánh không khớp lựa chọn: chế độ 'versions' cần cùng một văn bản "
         "và hai phiên bản khác nhau."
     ),
+    "INVALID_REQUEST": "Dữ liệu gửi lên không hợp lệ.",
+    "CONFLICT_RUN_NOT_FOUND": "Không tìm thấy lượt rà soát mâu thuẫn trong phạm vi của bạn.",
+    "CONFLICT_FINDING_NOT_FOUND": "Không tìm thấy phát hiện mâu thuẫn.",
+    "AUTHORITY_RULE_NOT_FOUND": "Không tìm thấy quy tắc thứ bậc hiệu lực.",
+    "TARGET_NODE_NOT_FOUND": "Không tìm thấy điều khoản đích đã duyệt.",
+    "CONFLICT_SCAN_IDEMPOTENCY_CONFLICT": (
+        "Mã yêu cầu rà soát đã được dùng cho phạm vi hoặc tham số khác."
+    ),
+    "CONFLICT_SCAN_INVALID_STATE": (
+        "Trạng thái hiện tại của lượt rà soát không cho phép thao tác này."
+    ),
+    "CONFLICT_FINDING_ALREADY_LINKED": (
+        "Phát hiện này đã được gắn với một đề xuất sửa đổi trước đó."
+    ),
+    "CONFLICT_FINDING_DISMISSED": (
+        "Phát hiện đã bị bác bỏ; không thể tạo đề xuất sửa đổi."
+    ),
+    "INVALID_REGEX_PATTERN": "Biểu thức chính quy (regex) của cơ quan ban hành không hợp lệ.",
+    "CONFLICT_SCAN_TOO_MANY_DOCUMENTS": (
+        "Số lượng văn bản trong phạm vi rà soát vượt quá giới hạn cho phép."
+    ),
+    "CONFLICT_SCAN_INSUFFICIENT_DOCUMENTS": (
+        "Cần ít nhất 2 văn bản hợp lệ trong phạm vi của bạn để rà soát mâu thuẫn."
+    ),
+    "CONFLICT_SCAN_QUEUE_FULL": (
+        "Hàng đợi rà soát mâu thuẫn đang đầy. Vui lòng thử lại sau."
+    ),
+    "AUTHORITY_RULE_EXISTS": "Mã quy tắc thứ bậc hiệu lực đã tồn tại.",
+    "CONFLICT_SCAN_ACCESS_REVOKED": (
+        "Tài khoản đã bị khóa hoặc mất quyền tra cứu trước khi lượt rà soát hoàn tất."
+    ),
+    "CONFLICT_SCAN_INTERRUPTED": (
+        "Lượt rà soát bị gián đoạn do hệ thống khởi động lại hoặc quá thời gian giữ lượt."
+    ),
+    "CONFLICT_SCAN_EXPIRED": "Lượt rà soát mâu thuẫn đã hết hạn.",
+    "CONFLICT_SCAN_CANCELLED": "Lượt rà soát mâu thuẫn đã bị hủy.",
+    "CONFLICT_SCAN_TIMEOUT": "Lượt rà soát mâu thuẫn vượt quá thời gian xử lý cho phép.",
+    "CONFLICT_SCAN_FAILED": "Không thể hoàn tất lượt rà soát mâu thuẫn do lỗi xử lý.",
+    "CONFLICT_AMENDMENT_ACTION_REQUIRED": (
+        "Cần chọn hành động sửa đổi (amendment_action) khi tạo đề xuất sửa đổi."
+    ),
 }
 
 
