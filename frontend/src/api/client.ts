@@ -1,5 +1,6 @@
 import type { ModelCheckResult, ModelProfilePayload } from "../components/ai/aiConfig";
 import type {
+  AdminConflictFindingsResponse,
   AdminDocumentAction,
   AdminDocumentDetail,
   AdminDocumentList,
@@ -9,19 +10,32 @@ import type {
   AdminUserItem,
   AnswerDocument,
   AuditEventsResponse,
+  AuthorityRuleListResponse,
+  AuthorityRuleView,
   AuthorizedCategory,
   CompareRequest,
   CompareResponse,
+  ConflictFindingType,
+  ConflictReviewStatus,
+  ConflictScanDetailResponse,
+  ConflictScanListResponse,
+  ConflictScanRunView,
+  ConflictSeverity,
+  CreateAuthorityRuleRequest,
+  CreateConflictScanRequest,
+  CreateConflictScanResponse,
   DocumentVersionsResponse,
   EmbeddingJob,
   EmbeddingOverview,
   EmbeddingPreflight,
+  FindingReviewResponse,
   LoginResponse,
   ModelRegistryState,
   NodeDiffResponse,
   PageTextResponse,
   PdfDraftListItem,
   QueryResponse,
+  ReviewFindingRequest,
   SearchMode,
   SearchResponse,
   SummarizeResponse,
@@ -29,6 +43,7 @@ import type {
   Excerpt,
   TextSpan,
   StagePolicy,
+  UpdateAuthorityRuleRequest,
   UserInfo,
 } from "../types";
 
@@ -114,6 +129,9 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
               /^\/api\/v1\/nodes\/[^/]+\/diff(?:\?|$)/.test(path) ? 65000
           // AI summarize: 60 s server outer timeout around the model plus the recomparison.
           : path === "/api/v1/compare/summarize" ? 90000
+          // Conflict scan create / detail: allow extra headroom for scope resolution & large finding lists.
+          : (path === "/api/v1/conflicts/scans" && init.method === "POST") ||
+              (/^\/api\/v1\/conflicts\/scans\/[^/?]+(?:\?|$)/.test(path) && init.method === "GET") ? 45000
             : 20000;
   const { signal, cleanup } = createTimeoutController(init.signal, timeoutMs);
   try {
@@ -1663,5 +1681,157 @@ export function fetchDocumentVersionPdf(
   return fetchSourcePdf(
     `/api/v1/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(versionId)}/pdf`,
     { accessToken, signal },
+  );
+}
+
+/**
+ * Conflict review & legal authority rules (Phase 2 D5 contract).
+ */
+export function createConflictScan(
+  accessToken: string,
+  payload: CreateConflictScanRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<CreateConflictScanResponse> {
+  return request<CreateConflictScanResponse>("/api/v1/conflicts/scans", {
+    method: "POST",
+    headers: bearerHeader(accessToken),
+    body: JSON.stringify(payload),
+    signal: options.signal,
+  });
+}
+
+export function listConflictScans(
+  accessToken: string,
+  options: { limit?: number; offset?: number; signal?: AbortSignal } = {},
+): Promise<ConflictScanListResponse> {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.offset !== undefined) params.set("offset", String(options.offset));
+  const query = params.toString();
+  return request<ConflictScanListResponse>(
+    `/api/v1/conflicts/scans${query ? `?${query}` : ""}`,
+    { method: "GET", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+export function getConflictScan(
+  accessToken: string,
+  runId: string,
+  options: {
+    severity?: ConflictSeverity;
+    finding_type?: ConflictFindingType;
+    review_status?: ConflictReviewStatus;
+    limit?: number;
+    offset?: number;
+    signal?: AbortSignal;
+  } = {},
+): Promise<ConflictScanDetailResponse> {
+  const params = new URLSearchParams();
+  if (options.severity) params.set("severity", options.severity);
+  if (options.finding_type) params.set("finding_type", options.finding_type);
+  if (options.review_status) params.set("review_status", options.review_status);
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.offset !== undefined) params.set("offset", String(options.offset));
+  const query = params.toString();
+  return request<ConflictScanDetailResponse>(
+    `/api/v1/conflicts/scans/${encodeURIComponent(runId)}${query ? `?${query}` : ""}`,
+    { method: "GET", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+export function cancelConflictScan(
+  accessToken: string,
+  runId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ConflictScanRunView> {
+  return request<ConflictScanRunView>(
+    `/api/v1/conflicts/scans/${encodeURIComponent(runId)}/cancel`,
+    { method: "POST", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+export function listAdminConflictFindings(
+  accessToken: string,
+  options: {
+    review_status?: ConflictReviewStatus;
+    severity?: ConflictSeverity;
+    finding_type?: ConflictFindingType;
+    limit?: number;
+    offset?: number;
+    signal?: AbortSignal;
+  } = {},
+): Promise<AdminConflictFindingsResponse> {
+  const params = new URLSearchParams();
+  if (options.review_status) params.set("review_status", options.review_status);
+  if (options.severity) params.set("severity", options.severity);
+  if (options.finding_type) params.set("finding_type", options.finding_type);
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.offset !== undefined) params.set("offset", String(options.offset));
+  const query = params.toString();
+  return request<AdminConflictFindingsResponse>(
+    `/api/v1/admin/conflicts/findings${query ? `?${query}` : ""}`,
+    { method: "GET", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+export function reviewConflictFinding(
+  accessToken: string,
+  findingId: string,
+  payload: ReviewFindingRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<FindingReviewResponse> {
+  return request<FindingReviewResponse>(
+    `/api/v1/admin/conflicts/findings/${encodeURIComponent(findingId)}/review`,
+    {
+      method: "POST",
+      headers: bearerHeader(accessToken),
+      body: JSON.stringify(payload),
+      signal: options.signal,
+    },
+  );
+}
+
+export function listAuthorityRules(
+  accessToken: string,
+  options: { include_inactive?: boolean; signal?: AbortSignal } = {},
+): Promise<AuthorityRuleListResponse> {
+  const params = new URLSearchParams();
+  if (options.include_inactive !== undefined) {
+    params.set("include_inactive", String(options.include_inactive));
+  }
+  const query = params.toString();
+  return request<AuthorityRuleListResponse>(
+    `/api/v1/admin/authority-rules${query ? `?${query}` : ""}`,
+    { method: "GET", headers: bearerHeader(accessToken), signal: options.signal },
+  );
+}
+
+export function createAuthorityRule(
+  accessToken: string,
+  payload: CreateAuthorityRuleRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<AuthorityRuleView> {
+  return request<AuthorityRuleView>("/api/v1/admin/authority-rules", {
+    method: "POST",
+    headers: bearerHeader(accessToken),
+    body: JSON.stringify(payload),
+    signal: options.signal,
+  });
+}
+
+export function updateAuthorityRule(
+  accessToken: string,
+  ruleId: string,
+  payload: UpdateAuthorityRuleRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<AuthorityRuleView> {
+  return request<AuthorityRuleView>(
+    `/api/v1/admin/authority-rules/${encodeURIComponent(ruleId)}`,
+    {
+      method: "PUT",
+      headers: bearerHeader(accessToken),
+      body: JSON.stringify(payload),
+      signal: options.signal,
+    },
   );
 }

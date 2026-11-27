@@ -24,6 +24,22 @@ English counterpart of `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (the Vietnames
 4. In Q&A or in search results, choose **Diễn giải AI** (AI interpretation) if you want an interpretation from suitable evidence. Read the parts lacking evidence, the warnings and **Căn cứ hỗ trợ** (Supporting evidence); use **Diễn giải tiếp** (Continue interpreting) if offered. Statements checked automatically still need verification before use.
 5. Choose **Mở văn bản gốc** (Open original) on an evidence card. A PDF opens separately at the source page; Word/TXT downloads the original file. A refusal does not mean the file was deleted: the session, permission, source state or integrity check may have failed.
 
+### Document comparison
+
+1. Open the **So sánh văn bản** (Document comparison) tab in the navigation bar, click **So sánh** (Compare) on a search result card, or click **So sánh chi tiết 2 văn bản này** (Compare these 2 documents in detail) from a conflict finding card.
+2. Choose one of three modes: **So sánh phiên bản** (Compare versions of the same document), **So sánh gốc – sửa đổi/bổ sung** (Base vs. amending/supplementing document), or **So sánh 2 văn bản cùng chủ đề** (Two documents on the same topic). Optionally set **Hiệu lực tại ngày** (Effective as of date) and click **So sánh** (Compare).
+3. Filter with **Chỉ xem điểm thay đổi** (Show changes only) and **Mức tác động** (Impact level), switch between **Song song (2 cột)** (Side-by-side) and **Gộp dòng (Inline)**, open either side's original file at its page via **Mở gốc vế A** / **Mở gốc vế B**, or copy the Markdown report with **Sao chép báo cáo đối chiếu (Markdown)**.
+4. Optionally click **Tóm tắt bằng AI** (AI summary). Every AI point is verified against the underlying clauses; unverified points are marked **Cần thẩm định** (Needs review), and all outputs remain reference suggestions only.
+
+### Conflict review
+
+1. Open the **Rà soát mâu thuẫn** (Conflict review) tab in the navigation bar.
+2. Choose the scan scope: **Chọn trực tiếp 2–20 văn bản** (Pick 2–20 documents directly via exact search) or **Quét theo 1 danh mục** (Scan 1 authorized category).
+3. Optionally narrow the scan by document type, the 11 content taxonomy groups, **Hiệu lực tại ngày** (As-of date), or **Bao gồm văn bản đã hết hiệu lực / bị thay thế** (Include expired/replaced documents).
+4. **Bổ sung phân tích AI** (Add AI analysis) is off by default so deterministic results return promptly; when enabled, the scan runs in the background queue and sends pairs externally only if every source category allows remote processing.
+5. Click **Bắt đầu rà soát mâu thuẫn** (Start conflict scan). Status polls automatically every 2 seconds until completion; use **Hủy lượt quét** (Cancel scan) while queued/running, or inspect past runs under **Lượt quét gần đây** (Recent scans).
+6. Filter findings by type (**Tất cả**, **Trái ngược tiềm ẩn**, **Chồng chéo**, **Ngoại lệ / chi tiết hóa**, **Đã có quan hệ sửa đổi**). Each finding card displays the fixed disclaimer *“Gợi ý tự động — cần chuyên viên thẩm định trước khi áp dụng”*, side-by-side verbatim quotes with original file links and effectivity badges, the **Đánh giá thứ bậc hiệu lực tham khảo** (Reference precedence assessment) block (with a yellow warning box for `undetermined_requires_review` or *lex specialis* caveats), and the shortcut button **So sánh chi tiết 2 văn bản này**.
+
 ### Read one PDF page from Q&A
 
 After a lookup, select a turn containing the source document and enter “Cho tôi nội dung text trang 17 của văn bản này”, or identify the document by title/number. Select the intended document if several match. “Trang 17” means PDF page 17; a request for printed page 17 requires confirmation of the corresponding PDF page.
@@ -39,6 +55,8 @@ These sections appear according to the CURATOR/REVIEWER permissions granted.
 3. For scanned PDFs, the reviewer opens each page in the review screen, compares OCR text and warnings with the page image, then confirms. Do not confirm a page that is unreadable or wrong; configure OCR and re-extract, or reject the draft as appropriate. Even approved OCR text must be compared with the image when used.
 4. The editor chooses **Gửi duyệt** (Submit for review). A different reviewer opens the pending draft, resolves open tasks, chooses the applicable categories and enters review notes. Press **Phê duyệt & Phát hành** (Approve & Publish) when conditions are met, or **Từ chối** (Reject). Byte-identical files are blocked; content-duplicate warnings need to be considered.
 5. Go to **Hiệu lực** (Effectivity) to review effectivity proposals, relations and labels where permitted. An unverified proposal is not a conclusion about legal effectivity.
+6. Go to **Rà soát mâu thuẫn** (Conflict review, visible to CURATOR/REVIEWER with review permission on the source categories) to triage automated findings: filter by review status, enter **Ghi chú thẩm định** (Review note), and choose **Xác nhận** (Confirm) or **Bỏ qua** (Dismiss). When confirming, you may check **Tạo đề xuất sửa đổi (bản nháp)** (Create amendment proposal draft) and select the amendment action, source side, and optional effective date; the created record always remains in **draft** status and must go through approval in the **Hiệu lực** tab before changing legal effectivity.
+7. As **SYS_ADMIN**, open **Thứ bậc văn bản** (Authority hierarchy rules) to inspect active and inactive rules, create new rules, or **Sửa** (Edit) existing rules by document type and issuing-body regex pattern (lower `authority_rank` means higher authority) for both statutory and internal organizational documents.
 
 ### Document management
 

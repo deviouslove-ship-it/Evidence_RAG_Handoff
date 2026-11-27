@@ -24,6 +24,22 @@
 4. Trong Hỏi đáp hoặc kết quả tìm kiếm, chọn **Diễn giải AI** nếu cần một bản diễn giải từ những căn cứ phù hợp. Đọc phần thiếu căn cứ, cảnh báo và **Căn cứ hỗ trợ**; dùng **Diễn giải tiếp** nếu có. Các ý được kiểm tự động vẫn cần đối chiếu trước khi sử dụng.
 5. Chọn **Mở văn bản gốc** trên thẻ căn cứ. PDF mở riêng tại trang nguồn; Word/TXT tải đúng tệp gốc. Nếu bị từ chối, không có nghĩa tệp bị xóa: phiên, quyền, trạng thái nguồn hoặc kiểm tra toàn vẹn có thể không đạt.
 
+### So sánh văn bản
+
+1. Mở tab **So sánh văn bản** trên thanh điều hướng, hoặc bấm nút **So sánh** trên thẻ kết quả ở **Tìm kiếm văn bản**, hoặc bấm **So sánh chi tiết 2 văn bản này** trên một thẻ phát hiện mâu thuẫn.
+2. Chọn một trong ba chế độ: **So sánh phiên bản** (cùng một văn bản giữa hai phiên bản đã duyệt), **So sánh gốc – sửa đổi/bổ sung** (gợi ý văn bản liên quan hoặc chọn thủ công), hoặc **So sánh 2 văn bản cùng chủ đề**. Có thể đặt **Hiệu lực tại ngày** rồi bấm **So sánh**.
+3. Dùng bộ lọc **Chỉ xem điểm thay đổi**, **Mức tác động**, chuyển đổi hiển thị **Song song (2 cột)** / **Gộp dòng (Inline)**, bấm **Mở gốc vế A** / **Mở gốc vế B** để mở đúng trang tệp nguồn, hoặc **Sao chép báo cáo đối chiếu (Markdown)**.
+4. Khi cần tổng hợp ngắn, bấm **Tóm tắt bằng AI**. Các ý AI sinh ra đều được đối chiếu lại với căn cứ; ý nào không đủ đối chiếu được gắn nhãn **Cần thẩm định**, và mọi kết quả đều là gợi ý tham khảo.
+
+### Rà soát mâu thuẫn
+
+1. Mở tab **Rà soát mâu thuẫn** trên thanh điều hướng.
+2. Chọn phạm vi rà soát: **Chọn trực tiếp 2–20 văn bản** (tìm kiếm theo số hiệu/từ khóa và thêm vào danh sách đã chọn) hoặc **Quét theo 1 danh mục** trong các danh mục được cấp quyền.
+3. Có thể thu hẹp bằng bộ lọc **Loại văn bản**, **Nhóm nội dung** (11 nhóm), **Hiệu lực tại ngày**, hoặc bật **Bao gồm văn bản đã hết hiệu lực / bị thay thế**.
+4. Tùy chọn **Bổ sung phân tích AI** mặc định tắt để trả kết quả xác định tức thời; khi bật, lượt quét chạy nền theo hàng đợi và chỉ gửi cặp văn bản ra mô hình ngoài khi toàn bộ danh mục nguồn cho phép xử lý từ xa.
+5. Bấm **Bắt đầu rà soát mâu thuẫn**. Trạng thái lượt quét tự động cập nhật mỗi 2 giây cho đến khi hoàn tất; có thể bấm **Hủy lượt quét** khi đang chờ hoặc đang xử lý, hoặc mở lại kết quả cũ trong **Lượt quét gần đây**.
+6. Dùng bộ lọc loại phát hiện (**Tất cả**, **Trái ngược tiềm ẩn**, **Chồng chéo**, **Ngoại lệ / chi tiết hóa**, **Đã có quan hệ sửa đổi**). Mỗi thẻ luôn hiển thị cảnh báo *“Gợi ý tự động — cần chuyên viên thẩm định trước khi áp dụng”*, nguyên văn vế A / vế B kèm nút mở tệp gốc, khối **Đánh giá thứ bậc hiệu lực tham khảo** (có khung cảnh báo vàng khi chưa đủ căn cứ hoặc cần lưu ý *lex specialis*), và nút tắt **So sánh chi tiết 2 văn bản này**.
+
 ### Đọc riêng một trang PDF trong Hỏi đáp
 
 Sau khi tra cứu và chọn một lượt có văn bản nguồn, nhập “Cho tôi nội dung text trang 17 của văn bản này”, hoặc nêu rõ tên/số hiệu văn bản. Nếu có nhiều văn bản, chọn đúng tài liệu được hỏi. “Trang 17” là trang thứ 17 trong PDF; nếu hỏi “trang in 17”, giao diện yêu cầu xác nhận số trang PDF tương ứng.
@@ -39,6 +55,8 @@ Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
 3. Với PDF scan, reviewer mở từng trang trong màn hình rà soát, so chữ OCR và các cảnh báo với ảnh trang rồi xác nhận. Không xác nhận trang không đọc được hoặc sai; cấu hình OCR và trích xuất lại, hoặc từ chối nháp theo tình huống. Chữ OCR đã duyệt vẫn cần đối chiếu ảnh khi dùng.
 4. Biên tập viên chọn **Gửi duyệt**. Reviewer khác mở nháp đang chờ, xử lý tác vụ còn mở, chọn danh mục áp dụng và nhập ghi chú thẩm định. Bấm **Phê duyệt & Phát hành** khi đủ điều kiện, hoặc **Từ chối**. Trùng byte bị chặn; cảnh báo nội dung trùng cần được xem xét.
 5. Vào **Hiệu lực** để rà soát đề xuất hiệu lực, quan hệ và nhãn khi có quyền. Một đề xuất chưa được xác minh không phải kết luận về hiệu lực pháp lý.
+6. Vào **Rà soát mâu thuẫn** (CURATOR/REVIEWER có quyền duyệt trên danh mục nguồn) để thẩm định các phát hiện do hệ thống gợi ý: lọc theo trạng thái (*Chờ rà soát*, *Đã xác nhận*, *Đã bỏ qua*, *Đã tạo đề xuất sửa đổi (nháp)*), nhập **Ghi chú thẩm định**, rồi bấm **Xác nhận** hoặc **Bỏ qua**. Khi xác nhận, có thể đánh dấu **Tạo đề xuất sửa đổi (bản nháp)** (chọn loại tác động, vế nguồn tác động, ngày hiệu lực tùy chọn); bản ghi sinh ra luôn ở trạng thái **draft** và phải qua quy trình phê duyệt tại tab **Hiệu lực** trước khi làm thay đổi trạng thái văn bản.
+7. Với **SYS_ADMIN**, vào **Thứ bậc văn bản** để xem danh sách quy tắc đang bật/tắt, thêm mới hoặc **Sửa** quy tắc thứ bậc hiệu lực theo loại văn bản và mẫu regex cơ quan ban hành (`authority_rank` nhỏ hơn có thẩm quyền cao hơn), áp dụng cho cả VBQPPL lẫn văn bản nội bộ cơ quan.
 
 ### Quản lý văn bản
 

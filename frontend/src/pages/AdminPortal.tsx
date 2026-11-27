@@ -32,6 +32,8 @@ import { AssignmentsPanel } from "../components/ai/AssignmentsPanel";
 import { ModelProfilesPanel } from "../components/ai/ModelProfilesPanel";
 import { EmbeddingManager } from "../components/EmbeddingManager";
 import { LabelReviewPanel } from "../components/LabelReviewPanel";
+import { ConflictTriagePanel } from "../components/ConflictTriagePanel";
+import { AuthorityRulesPanel } from "../components/AuthorityRulesPanel";
 
 interface AdminPortalProps {
   accessToken: string;
@@ -106,7 +108,16 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
   const isSysAdmin = currentUser.roles.includes("SYS_ADMIN");
   const isAuditor = currentUser.roles.includes("AUDITOR") || isSysAdmin;
 
-  const [tab, setTab] = useState<"manage_documents" | "documents" | "effectivity" | "categories" | "users" | "ai_audit">(
+  const [tab, setTab] = useState<
+    | "manage_documents"
+    | "documents"
+    | "effectivity"
+    | "conflicts"
+    | "authority_rules"
+    | "categories"
+    | "users"
+    | "ai_audit"
+  >(
     canCurate || canReview ? "documents" : isSysAdmin ? "categories" : "ai_audit",
   );
   const [drafts, setDrafts] = useState<PdfDraftListItem[]>([]);
@@ -537,6 +548,26 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
               Hiệu lực
             </button>
           )}
+          {(canCurate || canReview) && (
+            <button
+              className={tab === "conflicts" ? "primary-button" : "secondary-button"}
+              aria-current={tab === "conflicts" ? "page" : undefined}
+              onClick={() => setTab("conflicts")}
+              type="button"
+            >
+              Rà soát mâu thuẫn
+            </button>
+          )}
+          {isSysAdmin && (
+            <button
+              className={tab === "authority_rules" ? "primary-button" : "secondary-button"}
+              aria-current={tab === "authority_rules" ? "page" : undefined}
+              onClick={() => setTab("authority_rules")}
+              type="button"
+            >
+              Thứ bậc văn bản
+            </button>
+          )}
           {isSysAdmin && (
             <button
               className={tab === "categories" ? "primary-button" : "secondary-button"}
@@ -795,6 +826,14 @@ export function AdminPortal({ accessToken, currentUser }: AdminPortalProps) {
           <EffectivityReviewPanel accessToken={accessToken} />
           <LabelReviewPanel accessToken={accessToken} />
         </>
+      )}
+
+      {tab === "conflicts" && (canCurate || canReview) && (
+        <ConflictTriagePanel accessToken={accessToken} />
+      )}
+
+      {tab === "authority_rules" && isSysAdmin && (
+        <AuthorityRulesPanel accessToken={accessToken} />
       )}
 
       {tab === "categories" && isSysAdmin && (

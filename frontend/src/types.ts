@@ -956,3 +956,291 @@ export const COMPARE_AMENDMENT_ACTION_LABELS: Record<string, string> = {
   suspend: "tạm ngưng",
   commence: "cho hiệu lực",
 };
+
+/**
+ * Conflict review & legal authority rules (Phase 2 D5 OpenAPI contract, frozen).
+ */
+export type ConflictRunStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "expired";
+
+export type ConflictFindingType =
+  | "contradiction"
+  | "overlap"
+  | "exception_refinement"
+  | "superseded_already";
+
+export type ConflictSeverity = "high" | "medium" | "low";
+export type ConflictDetectionMethod = "rule" | "rule_plus_ai";
+export type ConflictReviewStatus =
+  | "pending"
+  | "confirmed"
+  | "dismissed"
+  | "linked_amendment";
+
+export type PrecedenceResult =
+  | "higher_authority_a"
+  | "higher_authority_b"
+  | "same_tier_newer_a"
+  | "same_tier_newer_b"
+  | "superseded_by_amendment"
+  | "undetermined_requires_review";
+
+export type ConflictAmendmentAction =
+  | "modify"
+  | "replace"
+  | "add"
+  | "repeal"
+  | "repeal_partial"
+  | "suspend";
+
+export interface CreateConflictScanRequest {
+  request_id: string; // 8..64 chars
+  document_ids?: string[];
+  category_id?: string | null;
+  doc_types?: string[];
+  taxonomy_codes?: string[];
+  as_of_date?: string | null; // YYYY-MM-DD
+  include_expired?: boolean;
+  use_ai?: boolean;
+}
+
+export interface CreateConflictScanResponse {
+  run_id: string;
+  status: ConflictRunStatus;
+  scope_document_count: number;
+  created_at: string;
+  deduplicated: boolean;
+}
+
+export interface ConflictScanRunView {
+  id: string;
+  run_id: string;
+  requested_by: string;
+  request_id: string;
+  status: ConflictRunStatus;
+  scope_json: {
+    document_ids?: string[];
+    category_ids?: string[];
+    doc_types?: string[];
+    taxonomy_codes?: string[];
+    include_expired?: boolean;
+    resolved_document_ids?: string[];
+  };
+  scope_document_count: number;
+  as_of_date: string;
+  use_ai: boolean;
+  model_profile_id: string | null;
+  limits_json: Record<string, number>;
+  progress_total: number;
+  progress_done: number;
+  summary_json: {
+    total_documents: number;
+    total_normative_nodes: number;
+    candidate_pairs_evaluated: number;
+    total_findings: number;
+    by_severity: Record<ConflictSeverity, number>;
+    by_type: Record<ConflictFindingType, number>;
+    ai_used: boolean;
+    ai_pairs_screened: number;
+    ai_verified: number;
+    ai_filtered: number;
+    ai_fallbacks: number;
+    dropped_documents_by_acl: number;
+    disclaimer: string;
+  } | null;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  expires_at: string;
+  reference_notice: string;
+  deduplicated: boolean;
+}
+
+export interface ConflictScanListResponse {
+  total: number;
+  items: ConflictScanRunView[];
+}
+
+export interface ConflictFindingView {
+  id: string;
+  run_id: string;
+  document_a_id: string;
+  document_b_id: string;
+  node_a_id: string;
+  node_b_id: string;
+  document_a_number: string | null;
+  document_a_title: string | null;
+  document_b_number: string | null;
+  document_b_title: string | null;
+  node_a_label: string | null;
+  node_a_path: string | null;
+  node_a_text: string | null;
+  node_a_page_start: number | null;
+  node_b_label: string | null;
+  node_b_path: string | null;
+  node_b_text: string | null;
+  node_b_page_start: number | null;
+  finding_type: ConflictFindingType;
+  severity: ConflictSeverity;
+  detection_method: ConflictDetectionMethod;
+  similarity_score: number | null;
+  shared_labels: string[];
+  signals_json: Record<string, unknown>;
+  precedence_result: PrecedenceResult;
+  precedence_basis_json: Record<string, unknown>;
+  explanation: string;
+  ai_confidence: number | null;
+  ai_verified: boolean | null;
+  review_status: ConflictReviewStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  linked_amendment_id: string | null;
+  created_at: string;
+  reference_notice: string;
+}
+
+export interface ConflictScanDetailResponse extends ConflictScanRunView {
+  findings: ConflictFindingView[];
+  total_findings: number;
+  hidden_due_to_acl: number;
+  disclaimer: "Gợi ý tự động — cần chuyên viên thẩm định trước khi áp dụng.";
+}
+
+export interface AdminConflictFindingsResponse {
+  total: number;
+  items: ConflictFindingView[];
+  disclaimer: "Gợi ý tự động — cần chuyên viên thẩm định trước khi áp dụng.";
+  reference_notice: string;
+}
+
+export interface ReviewFindingRequest {
+  decision: "confirm" | "dismiss";
+  review_note?: string | null;
+  create_amendment_draft?: boolean;
+  amendment_action?: ConflictAmendmentAction | null;
+  source_side?: "a" | "b" | null;
+  valid_from?: string | null;
+}
+
+export interface FindingReviewResponse {
+  finding_id: string;
+  review_status: ConflictReviewStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  linked_amendment_id: string | null;
+  amendment_review_status: "draft" | null;
+  reference_notice: string;
+}
+
+export interface AuthorityRuleView {
+  id: string;
+  rule_code: string;
+  doc_type: string;
+  issuing_body_pattern: string | null;
+  authority_rank: number;
+  authority_tier_label: string;
+  is_ambiguous_without_issuer: boolean;
+  match_priority: number;
+  note: string | null;
+  is_active: boolean;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface AuthorityRuleListResponse {
+  total: number;
+  items: AuthorityRuleView[];
+}
+
+export interface CreateAuthorityRuleRequest {
+  rule_code: string;
+  doc_type: string;
+  issuing_body_pattern?: string | null;
+  authority_rank: number; // 1..1000
+  authority_tier_label: string;
+  is_ambiguous_without_issuer?: boolean;
+  match_priority?: number; // 0..10000
+  note?: string | null;
+  is_active?: boolean;
+}
+
+export interface UpdateAuthorityRuleRequest {
+  authority_rank?: number | null; // 1..1000
+  authority_tier_label?: string | null;
+  issuing_body_pattern?: string | null;
+  clear_pattern?: boolean;
+  is_ambiguous_without_issuer?: boolean | null;
+  match_priority?: number | null; // 0..10000
+  note?: string | null;
+  is_active?: boolean | null;
+}
+
+export const CONFLICT_RUN_STATUS_LABELS: Record<ConflictRunStatus, string> = {
+  queued: "Đang chờ",
+  running: "Đang xử lý",
+  completed: "Hoàn tất",
+  failed: "Thất bại",
+  cancelled: "Đã hủy",
+  expired: "Hết hạn",
+};
+
+export const CONFLICT_FINDING_TYPE_LABELS: Record<ConflictFindingType, string> = {
+  contradiction: "Trái ngược tiềm ẩn",
+  overlap: "Chồng chéo",
+  exception_refinement: "Ngoại lệ / chi tiết hóa",
+  superseded_already: "Đã có quan hệ sửa đổi",
+};
+
+export const CONFLICT_SEVERITY_LABELS: Record<ConflictSeverity, string> = {
+  high: "Mức độ cao",
+  medium: "Mức độ trung bình",
+  low: "Mức độ thấp",
+};
+
+export const CONFLICT_PRECEDENCE_LABELS: Record<PrecedenceResult, string> = {
+  higher_authority_a: "Vế A có thứ bậc pháp lý cao hơn",
+  higher_authority_b: "Vế B có thứ bậc pháp lý cao hơn",
+  same_tier_newer_a: "Cùng bậc hiệu lực — vế A mới hơn",
+  same_tier_newer_b: "Cùng bậc hiệu lực — vế B mới hơn",
+  superseded_by_amendment: "Đã có quan hệ sửa đổi/thay thế được duyệt",
+  undetermined_requires_review: "Chưa xác định tự động — cần chuyên viên thẩm định",
+};
+
+export const CONFLICT_REVIEW_STATUS_LABELS: Record<ConflictReviewStatus, string> = {
+  pending: "Chờ rà soát",
+  confirmed: "Đã xác nhận",
+  dismissed: "Đã bỏ qua",
+  linked_amendment: "Đã tạo đề xuất sửa đổi (nháp)",
+};
+
+export const CONFLICT_AMENDMENT_ACTION_LABELS: Record<ConflictAmendmentAction, string> = {
+  modify: "Sửa đổi",
+  replace: "Thay thế",
+  add: "Bổ sung",
+  repeal: "Bãi bỏ toàn bộ",
+  repeal_partial: "Bãi bỏ một phần",
+  suspend: "Tạm ngưng",
+};
+
+export const CONTENT_TAXONOMY_LABELS: Record<string, string> = {
+  pham_vi_doi_tuong: "Phạm vi điều chỉnh, đối tượng áp dụng",
+  giai_thich_tu_ngu: "Giải thích từ ngữ",
+  nguyen_tac: "Nguyên tắc",
+  dieu_kien_tieu_chuan: "Điều kiện, tiêu chuẩn",
+  ho_so_giay_to: "Hồ sơ, giấy tờ, biểu mẫu",
+  trinh_tu_thu_tuc: "Trình tự, thủ tục",
+  thoi_han: "Thời hạn",
+  tham_quyen_trach_nhiem: "Thẩm quyền, trách nhiệm",
+  quyen_nghia_vu: "Quyền và nghĩa vụ",
+  vi_pham_xu_ly: "Hành vi bị nghiêm cấm, xử lý vi phạm",
+  hieu_luc_chuyen_tiep: "Hiệu lực, điều khoản thi hành, chuyển tiếp",
+};

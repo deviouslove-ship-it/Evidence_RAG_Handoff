@@ -11,6 +11,7 @@ import {
   listenOrbWorkspaceSync,
 } from "./desktop/bridge";
 import { AdminPortal } from "./pages/AdminPortal";
+import { ConflictReviewPage } from "./pages/ConflictReviewPage";
 import { DocumentComparePage } from "./pages/DocumentComparePage";
 import { EvidenceChat, type ExternalWorkspaceSync } from "./pages/EvidenceChat";
 import { SearchPage } from "./pages/SearchPage";
@@ -71,7 +72,9 @@ export default function App() {
   const [surface, setSurface] = useState<"user" | "admin">("user");
   // One search page ("Tìm kiếm văn bản", built on the comprehensive search); the former
   // "Tìm toàn diện" view is merged into it.
-  const [userView, setUserView] = useState<"chat" | "search" | "compare">(initialUserView);
+  const [userView, setUserView] = useState<"chat" | "search" | "compare" | "conflicts">(
+    initialUserView,
+  );
   const [searchQuery, setSearchQuery] = useState<string>();
   // Quick access: "So sánh" on a search result opens the compare tab with that document
   // preselected as side A (Task C3).
@@ -284,6 +287,14 @@ export default function App() {
               >
                 So sánh văn bản
               </button>
+              <button
+                aria-current={userView === "conflicts" ? "page" : undefined}
+                className={userView === "conflicts" ? "topbar-button active" : "topbar-button"}
+                onClick={() => setUserView("conflicts")}
+                type="button"
+              >
+                Rà soát mâu thuẫn
+              </button>
             </nav>
           )}
           {session && canOpenAdmin && canQuery && (
@@ -459,6 +470,20 @@ export default function App() {
                 <DocumentComparePage
                   accessToken={session?.accessToken}
                   preset={comparePreset}
+                />
+              </div>
+            )}
+            {userView === "conflicts" && (
+              <div className="user-view">
+                <ConflictReviewPage
+                  accessToken={session?.accessToken}
+                  onOpenCompare={(leftId, rightId) =>
+                    openCompare({
+                      mode: "cross_document",
+                      leftDocumentId: leftId,
+                      rightDocumentId: rightId,
+                    })
+                  }
                 />
               </div>
             )}
