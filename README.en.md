@@ -11,18 +11,9 @@ This is the English counterpart of `README.md`. The Vietnamese file is the origi
 A public demo is online at **https://108-61-161-195.sslip.io/**
 
 1. Open the URL and click **"Đăng nhập"** (Log in) at the top right.
-2. Sign in with the main tester account: `chuyenvien` / `Demo-2Y4J-AmreN-DmEt4` (Q&A and search).
+2. Sign in with the tester account from the Devpost form.
 
-Other demo accounts:
-
-| Account | Password | Access |
-|---|---|---|
-| `chuyenvien` | `Demo-2Y4J-AmreN-DmEt4` | Q&A and document search (main tester account) |
-| `curator` | `Demo-wKCT-xxAxU-EvTs2` | Add documents and search |
-| `reviewer` | `Demo-sQ9U-JKNfT-bUH2y` | Approve documents and search |
-| `admin` | `Demo-tfEq-ov8tA-68VNi` | Admin portal and audit log (cannot search documents) |
-
-These are public demo credentials from the judge package.
+Login credentials for the test accounts are provided in the Devpost submission form.
 
 **Please test in Vietnamese.** The interface and the corpus (105 Vietnamese Ministry of Public Security legal documents) are Vietnamese. Use the Vietnamese sample questions below; English translations are provided only so you can understand what you are asking. English queries are not supported.
 

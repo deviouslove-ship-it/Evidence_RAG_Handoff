@@ -13,18 +13,9 @@ FastAPI, một PostgreSQL và một kho tài liệu bất biến theo SHA-256 ph
 Bản demo công khai tại **https://108-61-161-195.sslip.io/**
 
 1. Mở đường dẫn và bấm **"Đăng nhập"** (Log in) góc trên bên phải.
-2. Đăng nhập bằng tài khoản thử chính: `chuyenvien` / `Demo-2Y4J-AmreN-DmEt4` (hỏi đáp và tìm kiếm).
+2. Đăng nhập bằng tài khoản thử trong form nộp bài trên Devpost.
 
-Các tài khoản demo khác:
-
-| Tài khoản | Mật khẩu | Quyền |
-|---|---|---|
-| `chuyenvien` | `Demo-2Y4J-AmreN-DmEt4` | Hỏi đáp và tìm kiếm văn bản (tài khoản thử chính) |
-| `curator` | `Demo-wKCT-xxAxU-EvTs2` | Nạp tài liệu và tìm kiếm |
-| `reviewer` | `Demo-sQ9U-JKNfT-bUH2y` | Phê duyệt tài liệu và tìm kiếm |
-| `admin` | `Demo-tfEq-ov8tA-68VNi` | Cổng quản trị và nhật ký kiểm toán (không tìm kiếm được văn bản) |
-
-Đây là tài khoản demo công khai trong gói dành cho giám khảo.
+Thông tin đăng nhập tài khoản thử được cung cấp trong form nộp bài trên Devpost.
 
 **Vui lòng kiểm thử bằng tiếng Việt.** Giao diện và kho tài liệu (105 văn bản pháp luật của Bộ Công an) đều bằng tiếng Việt. Dùng các câu hỏi mẫu tiếng Việt dưới đây; bản dịch tiếng Anh chỉ để hiểu nội dung câu hỏi. Hệ thống không hỗ trợ truy vấn tiếng Anh.
 
