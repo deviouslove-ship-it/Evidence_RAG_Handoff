@@ -614,3 +614,87 @@ def test_ubnd_tp_abbreviation_resolves_provincial_decision_tier_50() -> None:
     assert result.tier_a.authority_rank == 50
     assert result.precedence_result == "same_tier_newer_a"
     assert LEX_SPECIALIS_CAVEAT in result.caveats
+
+
+@pytest.mark.parametrize(
+    "amending_status",
+    [
+        AmendmentStatus.REPEALED,
+        AmendmentStatus.REPLACED,
+        AmendmentStatus.SUSPENDED,
+        AmendmentStatus.NOT_YET_EFFECTIVE,
+    ],
+)
+def test_unidirectional_amendment_fails_closed_when_amending_doc_is_inactive(
+    amending_status: AmendmentStatus,
+) -> None:
+    doc_a = _doc("doc-a", "law", "Quốc hội", status=AmendmentStatus.ACTIVE)
+    doc_b = _doc("doc-b", "decree", "Chính phủ", status=amending_status)
+    amendment = AmendmentBetweenPair(
+        source_document_id="doc-b",
+        target_document_id="doc-a",
+        action="replace",
+        effective_from=None,
+    )
+
+    result = evaluate_precedence(
+        doc_a,
+        doc_b,
+        SEEDED_0018_RULES,
+        approved_amendments=[amendment],
+    )
+
+    assert result.precedence_result == "undetermined_requires_review"
+    assert result.preferred_document_id is None
+    assert "doc-b" in result.basis
+    assert amending_status.value in result.basis
+
+
+def test_inactive_amending_doc_with_unknown_target_preserves_unknown_caveat() -> None:
+    doc_a = _doc("doc-a", "decree", "Chính phủ", status=AmendmentStatus.NOT_YET_EFFECTIVE)
+    doc_b = _doc("doc-b", "circular", "Bộ Tài chính", status=AmendmentStatus.UNKNOWN)
+    amendment = AmendmentBetweenPair(
+        source_document_id="doc-a",
+        target_document_id="doc-b",
+        action="modify",
+        effective_from=None,
+    )
+
+    result = evaluate_precedence(
+        doc_a,
+        doc_b,
+        SEEDED_0018_RULES,
+        approved_amendments=[amendment],
+    )
+
+    assert result.precedence_result == "undetermined_requires_review"
+    assert result.preferred_document_id is None
+    assert UNKNOWN_STATUS_CAVEAT in result.caveats
+
+
+def test_bidirectional_approved_amendments_require_review() -> None:
+    doc_a = _doc("doc-a", "decree", "Chính phủ", status=AmendmentStatus.ACTIVE)
+    doc_b = _doc("doc-b", "decree", "Chính phủ", status=AmendmentStatus.ACTIVE)
+    amend_ab = AmendmentBetweenPair(
+        source_document_id="doc-a",
+        target_document_id="doc-b",
+        action="modify",
+        effective_from=date(2024, 1, 1),
+    )
+    amend_ba = AmendmentBetweenPair(
+        source_document_id="doc-b",
+        target_document_id="doc-a",
+        action="replace",
+        effective_from=date(2024, 6, 1),
+    )
+
+    result = evaluate_precedence(
+        doc_a,
+        doc_b,
+        SEEDED_0018_RULES,
+        approved_amendments=[amend_ab, amend_ba],
+        as_of_date=date(2025, 1, 1),
+    )
+
+    assert result.precedence_result == "undetermined_requires_review"
+    assert result.preferred_document_id is None

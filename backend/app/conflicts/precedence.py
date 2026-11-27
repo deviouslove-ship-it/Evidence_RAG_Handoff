@@ -354,11 +354,35 @@ def _evaluate_amendment_step(
             as_of_date=as_of_date,
         )
     if b_amends_a or a_amends_b:
-        amending_doc, target_doc, relations = (
-            (doc_b, doc_a, b_amends_a) if b_amends_a else (doc_a, doc_b, a_amends_b)
+        amending_doc, amending_status, target_doc, target_status, relations = (
+            (doc_b, status_b, doc_a, status_a, b_amends_a)
+            if b_amends_a
+            else (doc_a, status_a, doc_b, status_b, a_amends_b)
         )
         actions = sorted({rel.action.strip().lower() for rel in relations})
         actions_text = ", ".join(actions)
+        if amending_status in INACTIVE_STATUSES:
+            inactive_caveats: tuple[str, ...] = (
+                (UNKNOWN_STATUS_CAVEAT,)
+                if target_status == AmendmentStatus.UNKNOWN.value
+                else ()
+            )
+            return PrecedenceAssessment(
+                precedence_result="undetermined_requires_review",
+                basis=(
+                    f"Văn bản {_doc_label(amending_doc)} có quan hệ sửa đổi/thay thế đã duyệt "
+                    f"({actions_text}) lên {_doc_label(target_doc)}, nhưng bản thân "
+                    f"{_doc_label(amending_doc)} đang ở trạng thái không còn/chưa có hiệu lực "
+                    f"({amending_status}) tại ngày đối chiếu — cần chuyên viên thẩm định."
+                ),
+                caveats=inactive_caveats,
+                tier_a=tier_a.tier,
+                tier_b=tier_b.tier,
+                status_a=status_a,
+                status_b=status_b,
+                preferred_document_id=None,
+                as_of_date=as_of_date,
+            )
         caveats: tuple[str, ...] = ()
         if all(action in _PARTIAL_AMENDMENT_ACTIONS for action in actions):
             caveats = (
