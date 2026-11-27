@@ -9,7 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from ...auth_acl.policy import Principal
+from ...auth_acl.policy import Permission, Principal
 from ...conflicts.store import (
     ConflictStoreError,
     cancel_conflict_run,
@@ -23,7 +23,7 @@ from ...conflicts.store import (
     review_conflict_finding_with_draft,
     update_authority_rule,
 )
-from .dependencies import no_store
+from .dependencies import get_principal, no_store
 from .errors import api_error
 from .guards import database_pool, require_admin, require_document_reviewer
 from .user import require_user
@@ -31,6 +31,14 @@ from .user import require_user
 router = APIRouter(prefix="/api/v1", tags=["conflicts"], dependencies=[Depends(no_store)])
 
 _DISCLAIMER = "Gợi ý tự động — cần chuyên viên thẩm định trước khi áp dụng."
+
+
+def require_user_or_admin(
+    principal: Annotated[Principal, Depends(get_principal)],
+) -> Principal:
+    if not principal.has(Permission.QUERY) and not principal.has(Permission.ADMIN):
+        raise api_error(status.HTTP_403_FORBIDDEN, "QUERY_REQUIRED")
+    return principal
 
 RunStatusLiteral = Literal[
     "queued", "running", "completed", "failed", "cancelled", "expired"
@@ -339,7 +347,7 @@ async def get_conflict_scan_detail_route(
 async def cancel_conflict_scan_route(
     request: Request,
     run_id: UUID,
-    principal: Annotated[Principal, Depends(require_user)],
+    principal: Annotated[Principal, Depends(require_user_or_admin)],
 ) -> dict[str, Any]:
     try:
         run = await cancel_conflict_run(database_pool(request), principal, run_id)

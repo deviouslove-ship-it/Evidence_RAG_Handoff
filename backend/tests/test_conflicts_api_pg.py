@@ -1034,3 +1034,195 @@ async def test_scan_doc_types_and_taxonomy_codes_scope_filtering(
         f = detail["findings"][0]
         assert {f["document_a_id"], f["document_b_id"]} == {str(doc_decree), str(doc_circular)}
         assert {f["node_a_id"], f["node_b_id"]} == {str(d1_art1), str(c1_art1)}
+
+
+async def test_sys_admin_only_can_cancel_other_user_scan(
+    conflict_api_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(
+        conflict_api_pg_pool, actor_id=uuid4(), name="Quản trị hủy", code="adm_cancel_d5"
+    )
+    cat_id = UUID(cat["id"])
+    curator_id = await _create_user(conflict_api_pg_pool, "cur-adm-c", ["CURATOR"], [cat_id])
+    reviewer_id = await _create_user(conflict_api_pg_pool, "rev-adm-c", ["REVIEWER"], [cat_id])
+    await _create_user(conflict_api_pg_pool, "usr-adm-c1", ["USER"], [cat_id])
+    await _create_user(conflict_api_pg_pool, "usr-adm-c2", ["USER"], [cat_id])
+    await _create_user(conflict_api_pg_pool, "sysadmin-only", ["SYS_ADMIN"], [])
+
+    doc_1, _, _ = await _seed_approved_doc(
+        conflict_api_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Doc Cancel 1",
+        doc_number="81/2024/NĐ-CP",
+        doc_type="decree",
+        issuing_body="Chính phủ",
+        article_text="Điều 1. Thời hạn nộp hồ sơ là 10 ngày.",
+        publication_date=date(2024, 1, 1),
+        effective_from=date(2024, 2, 1),
+    )
+    doc_2, _, _ = await _seed_approved_doc(
+        conflict_api_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Doc Cancel 2",
+        doc_number="82/2024/TT-BTC",
+        doc_type="circular",
+        issuing_body="Bộ Tài chính",
+        article_text="Điều 1. Thời hạn nộp hồ sơ là 20 ngày.",
+        publication_date=date(2024, 1, 1),
+        effective_from=date(2024, 2, 1),
+    )
+
+    app = _make_app(conflict_api_pg_pool)
+    h_owner = await _auth_headers(conflict_api_pg_pool, "usr-adm-c1")
+    h_other_user = await _auth_headers(conflict_api_pg_pool, "usr-adm-c2")
+    h_curator = await _auth_headers(conflict_api_pg_pool, "cur-adm-c")
+    h_admin_only = await _auth_headers(conflict_api_pg_pool, "sysadmin-only")
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        created = await client.post(
+            "/api/v1/conflicts/scans",
+            headers=h_owner,
+            json={
+                "request_id": "req-admin-cancel-1",
+                "document_ids": [str(doc_1), str(doc_2)],
+            },
+        )
+        assert created.status_code == 202
+        run_id = created.json()["run_id"]
+
+        other_resp = await client.post(
+            f"/api/v1/conflicts/scans/{run_id}/cancel", headers=h_other_user
+        )
+        assert other_resp.status_code == 404
+        assert other_resp.json()["code"] == "CONFLICT_RUN_NOT_FOUND"
+
+        curator_resp = await client.post(
+            f"/api/v1/conflicts/scans/{run_id}/cancel", headers=h_curator
+        )
+        assert curator_resp.status_code == 403
+        assert curator_resp.json()["code"] == "QUERY_REQUIRED"
+
+        admin_resp = await client.post(
+            f"/api/v1/conflicts/scans/{run_id}/cancel", headers=h_admin_only
+        )
+        assert admin_resp.status_code == 200
+        assert admin_resp.json()["status"] == "cancelled"
+        assert admin_resp.json()["error_code"] == "CONFLICT_SCAN_CANCELLED"
+
+
+async def test_admin_findings_hides_degraded_source_and_unverified_provenance(
+    conflict_api_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(
+        conflict_api_pg_pool, actor_id=uuid4(), name="Toàn vẹn nguồn", code="integrity_d5"
+    )
+    cat_id = UUID(cat["id"])
+    curator_id = await _create_user(conflict_api_pg_pool, "cur-int", ["CURATOR"], [cat_id])
+    reviewer_id = await _create_user(
+        conflict_api_pg_pool, "rev-int", ["REVIEWER", "USER"], [cat_id]
+    )
+    async with conflict_api_pg_pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE category_acl SET can_review = TRUE WHERE user_id = $1 AND category_id = $2",
+            reviewer_id,
+            cat_id,
+        )
+
+    doc_a, _, _ = await _seed_approved_doc(
+        conflict_api_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Doc Integrity A",
+        doc_number="91/2024/NĐ-CP",
+        doc_type="decree",
+        issuing_body="Chính phủ",
+        article_text="Điều 1. Thời hạn xác minh hồ sơ là 05 ngày làm việc.",
+        publication_date=date(2024, 1, 1),
+        effective_from=date(2024, 2, 1),
+    )
+    doc_b, ver_b, nodes_b = await _seed_approved_doc(
+        conflict_api_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Doc Integrity B",
+        doc_number="92/2024/TT-BTC",
+        doc_type="circular",
+        issuing_body="Bộ Tài chính",
+        article_text="Điều 1. Thời hạn xác minh hồ sơ là 15 ngày làm việc.",
+        publication_date=date(2024, 3, 1),
+        effective_from=date(2024, 4, 1),
+    )
+
+    app = _make_app(conflict_api_pg_pool)
+    h_rev = await _auth_headers(conflict_api_pg_pool, "rev-int")
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        scan = await client.post(
+            "/api/v1/conflicts/scans",
+            headers=h_rev,
+            json={"request_id": "req-integrity-1", "document_ids": [str(doc_a), str(doc_b)]},
+        )
+        assert scan.status_code == 202
+        worker = ConflictScanWorker(conflict_api_pg_pool, runtime=None)
+        assert await worker.run_once() is True
+
+        visible = await client.get("/api/v1/admin/conflicts/findings", headers=h_rev)
+        assert visible.status_code == 200
+        assert visible.json()["total"] == 1
+
+        # Degrade node_source_text_valid on node_b by changing source_page_id to NULL or
+        # mismatching source_pages.text_original
+        node_b_id = nodes_b[0]["id"]
+        async with conflict_api_pg_pool.acquire() as conn:
+            orig_page_text = await conn.fetchval(
+                "SELECT text_original FROM source_pages WHERE document_version_id = $1",
+                ver_b,
+            )
+            await conn.execute(
+                """UPDATE source_pages
+                   SET text_original = 'Nội dung trang đã bị thay đổi khác gốc'
+                   WHERE document_version_id = $1""",
+                ver_b,
+            )
+            assert (
+                await conn.fetchval("SELECT node_source_text_valid($1)", node_b_id)
+            ) is False
+
+        degraded_src = await client.get("/api/v1/admin/conflicts/findings", headers=h_rev)
+        assert degraded_src.status_code == 200
+        assert degraded_src.json()["total"] == 0
+        assert degraded_src.json()["items"] == []
+
+        # Restore page text, then degrade source_provenance.verified_at
+        async with conflict_api_pg_pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE source_pages SET text_original = $2 WHERE document_version_id = $1",
+                ver_b,
+                orig_page_text,
+            )
+            assert (
+                await conn.fetchval("SELECT node_source_text_valid($1)", node_b_id)
+            ) is True
+            await conn.execute(
+                "UPDATE source_provenance SET verified_at = NULL WHERE document_version_id = $1",
+                ver_b,
+            )
+
+        unverified_prov = await client.get("/api/v1/admin/conflicts/findings", headers=h_rev)
+        assert unverified_prov.status_code == 200
+        assert unverified_prov.json()["total"] == 0
+        assert unverified_prov.json()["items"] == []
