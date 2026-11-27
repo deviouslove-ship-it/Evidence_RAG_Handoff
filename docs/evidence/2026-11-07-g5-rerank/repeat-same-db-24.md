@@ -1,5 +1,7 @@
 # Đối chiếu kết quả sau khi dựng lại dữ liệu
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](repeat-same-db-24.en.md)
+
 24 câu hỏi của bộ gốc, so theo (số hiệu, nhãn khoản) theo thứ tự.
 
 - Kích thước nhóm ứng viên bằng nhau: 19/24

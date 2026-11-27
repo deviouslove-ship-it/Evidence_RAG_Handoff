@@ -1,5 +1,7 @@
 # Đánh giá Search v1 — bộ case HƯ CẤU và harness đo chỉ số
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 > ⚠️ **HƯ CẤU & [Không triển khai Gold – xem ADR-010]** — Toàn bộ case trong thư mục này dùng **số hiệu/định danh văn bản, node và nội dung hư cấu** (`HU-CAU/2026/ND-CP`, `HC-ND-CP-N01`, …), **không phải văn bản pháp luật** và **không phải Gold**. Theo [ADR-010](../../docs/architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md), dự án không triển khai bộ câu hỏi Gold; tất cả case đang có `approved_by = null`, vì vậy `evaluate_search.py` chỉ báo `hucau_metrics` và ghi `quality_status = "not_evaluated"`. Không được dùng số liệu trong report để tuyên bố chất lượng tìm kiếm.
 
 ## Mục đích

@@ -1,5 +1,7 @@
 # Prompt khởi động — đồng bộ hồ sơ 1.1 / SRS v1.3
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](PROMPT_KHOI_DONG.en.md)
+
 > **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 
 Tài liệu dùng để giao việc triển khai sau; việc cập nhật bộ hồ sơ không có nghĩa các WP đã được thực hiện.

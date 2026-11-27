@@ -1,5 +1,7 @@
 # Tiếp tục hoàn thiện: PDF và chống trùng nội dung
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 ## Quy tắc chống trùng
 
 1. File PDF có byte giống hệt được nhận diện bằng SHA-256 trước khi chạy bộ trích xuất;

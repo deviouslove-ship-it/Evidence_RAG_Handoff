@@ -17,7 +17,9 @@ Bản demo công khai tại **https://108-61-161-195.sslip.io/**
 
 Thông tin đăng nhập tài khoản thử được cung cấp trong form nộp bài trên Devpost.
 
-**Vui lòng kiểm thử bằng tiếng Việt.** Giao diện và kho tài liệu (105 văn bản pháp luật của Bộ Công an) đều bằng tiếng Việt. Dùng các câu hỏi mẫu tiếng Việt dưới đây; bản dịch tiếng Anh chỉ để hiểu nội dung câu hỏi. Hệ thống không hỗ trợ truy vấn tiếng Anh.
+**Vui lòng kiểm thử bằng tiếng Việt.** Giao diện và kho tài liệu (105 văn bản pháp luật của Bộ Công an) đều bằng tiếng Việt.
+
+Lưu ý: Bản dịch tiếng Anh chỉ để giám khảo hiểu nội dung câu hỏi. Ứng dụng chưa hỗ trợ hỏi bằng tiếng Anh; vui lòng thử bằng tiếng Việt.
 
 ### Cách thử Hỏi đáp
 
@@ -54,8 +56,17 @@ Nếu chỉ cần thử bản demo công khai, dùng phần **Demo trực tuyế
 - **SHA-256:** `989848708e2c1cd3be0d4a0e8978737bc03201f6c75415a37f2a434806636ed8` (kiểm: `Get-FileHash .\Evidence-RAG-Portable-20261111-r4.zip -Algorithm SHA256`)
 - **Cấu hình tối thiểu:** Windows 10 / Server 2016 trở lên (x64), RAM khoảng 8 GB, trống 6 GB đĩa (theo `deploy/lan-portable/README.txt`; model AI chạy bằng CPU).
 - **Khuyến nghị (đã thử):** Intel Core i3, RAM DDR4 32 GB, SSD 512 GB.
-- **Khởi động:** giải nén TOÀN BỘ gói bằng WinRAR hoặc 7-Zip vào thư mục có đường dẫn ngắn (không chạy trong tệp nén), bấm đúp `Start-Server.bat`, chờ cửa sổ in địa chỉ dạng `http://<IP LAN>:8800/` rồi mở bằng trình duyệt. Lần đầu mất thêm 1-3 phút. Dừng bằng `Stop-Server.bat`. Chi tiết: [`deploy/lan-portable/README.txt`](deploy/lan-portable/README.txt) (tiếng Anh: [`README.en.txt`](deploy/lan-portable/README.en.txt)).
-- **Tài khoản thử:** thông tin đăng nhập demo nằm trong file tài khoản `Acount_Demo.md` ở thư mục gốc của gói zip. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**). Gói r4 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
+**Cách khởi động** (các bước lấy từ [`deploy/lan-portable/README.txt`](deploy/lan-portable/README.txt); tiếng Anh: [`README.en.txt`](deploy/lan-portable/README.en.txt)):
+
+1. Giải nén TOÀN BỘ gói bằng WinRAR hoặc 7-Zip vào thư mục có đường dẫn ngắn, ví dụ `D:\EvidenceRAG`. Không chạy trong tệp nén. Không cần quyền Administrator để chạy.
+2. Bấm đúp `Start-Server.bat` (không cần gõ lệnh khác). Script kiểm tra runtime, model, cơ sở dữ liệu, cổng và cấu hình, khởi động PostgreSQL + pgvector, Ollama và máy chủ web/API riêng của gói, kiểm tra sẵn sàng rồi in địa chỉ truy cập qua IP mạng LAN, ví dụ `http://192.168.1.15:8800/`.
+3. Lần đầu mất thêm 1-3 phút: gói tự dựng cơ sở dữ liệu từ bản sao dữ liệu gốc trong `seed\` và đối chiếu từng bảng với bản gốc. Không nhập lại tài liệu, không OCR lại, không tạo lại vector. Các lần sau khởi động trong vài chục giây.
+4. Mở địa chỉ vừa in (hoặc `http://127.0.0.1:8800/` trên cùng máy) bằng trình duyệt. Máy khác trong LAN chỉ cần trình duyệt.
+5. Dừng bằng `Stop-Server.bat`. Nếu máy khác không kết nối được, gói không tự sửa Windows Firewall: xem mục 4 của README, `tools\Allow-LAN-Firewall.bat`. Kết nối là HTTP không mã hóa: chỉ dùng trên mạng tin cậy.
+
+Hướng dẫn đầy đủ trong gói: `HUONG_DAN_SU_DUNG.vi.md` (tiếng Việt) và `USER_GUIDE.en.md` (English).
+
+- **Tài khoản thử:** thông tin đăng nhập demo nằm trong file tài khoản `Acount_Demo.md` ở thư mục gốc của gói zip. `chuyenvien` tra cứu được ngay. Để thử quy trình đầy đủ, admin cấp cho `curator` các danh mục tra cứu, cấp cho `reviewer` cả danh mục tra cứu và danh mục xác nhận hiệu lực (**Tài khoản & Phân quyền**, ô **Danh mục được phép tra cứu (ABAC)** và **Danh mục được xác nhận hiệu lực (người duyệt)**). Gói r4 đã cấp sẵn cả 9 danh mục cho hai tài khoản này; admin có thể sửa tại đó. Người dùng không thể tự duyệt bản do chính mình gửi duyệt.
 ## Phát triển bằng Kiro (Kiroween 2026)
 
 Tính đến 11/11/2026, Kiro (Claude Sonnet 5.5 và Claude Opus 5.5) vẫn đang được dùng trong dự án, bắt đầu từ 30/10/2026. Kiroween 2026 vẫn đang diễn ra, hạn nộp là 04/12/2026, theo xác nhận của chủ dự án.
@@ -103,6 +114,8 @@ khoản (in ra màn hình, lưu ở `secrets\first-login.txt`, buộc đổi ở
 Địa chỉ truy cập (IP, tên máy) được dò lúc chạy; cổng, địa chỉ nghe, chế độ AI nằm ở
 `config\evidence.env`. Hướng dẫn cho người vận hành: `README.txt` trong gói
 (nguồn: `deploy/portable/`). Gói không chứa dữ liệu hay mật khẩu của máy phát triển.
+Gói offline kèm model cục bộ: xem [`deploy/lan-portable/README.txt`](deploy/lan-portable/README.txt)
+và [`deploy/windows/README.md`](deploy/windows/README.md).
 
 ### Chạy cho người khác test qua mạng LAN từ máy phát triển (web)
 
@@ -213,7 +226,8 @@ skip chúng. Đo hiệu năng: `scripts/benchmark_search.py`; smoke HTTP:
 | `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | Hướng dẫn sử dụng và quản trị, gồm Quản lý văn bản (bản tiếng Anh: `docs/en/USER_ADMIN_AND_AI_GUIDE.md`) |
 | `docs/vi/ARCHITECTURE_OVERVIEW.md` | Tổng quan kiến trúc (bản tiếng Anh: `docs/en/ARCHITECTURE_OVERVIEW.md`) |
 | `deploy/lan-portable/README.txt`, `deploy/windows/README.md` | Triển khai Windows LAN Portable và ghi chú Windows (bản tiếng Anh: `README.en.txt`, `README.en.md` cùng thư mục) |
-| `KIRO_WORK_SUMMARY.vi.md`, `PROJECT_TIMELINE.vi.md` | Hồ sơ công việc Kiro và dòng thời gian (bản tiếng Anh: `KIRO_WORK_SUMMARY.en.md`, `PROJECT_TIMELINE.md`) |
+| `deploy/portable/README.txt` | Hướng dẫn gói portable (bản tiếng Anh: `README.en.txt` cùng thư mục) |
+| `KIRO_WORK_SUMMARY.vi.md`, `PROJECT_TIMELINE.vi.md`, `KIRO_STATS_APPENDIX.vi.md` | Hồ sơ công việc Kiro, dòng thời gian và phụ lục thống kê từng tệp (bản tiếng Anh: `KIRO_WORK_SUMMARY.en.md`, `PROJECT_TIMELINE.md`, `KIRO_STATS_APPENDIX.en.md`) |
 | `docs/implementation-status.md` | Trạng thái, kiểm chứng, giới hạn còn lại |
 | `docs/search-v1-runbook.md` | Vận hành tìm kiếm và truy xuất chat |
 | `docs/threat-model.md` | Mô hình đe dọa |

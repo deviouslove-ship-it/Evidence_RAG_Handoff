@@ -1,5 +1,7 @@
 # Requirements: Citation Pinning
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/citation-pinning.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Contracts: `docs/citation-contract.md`, `docs/pdf-anchor-coordinate-contract.md`.
 
 ## Introduction

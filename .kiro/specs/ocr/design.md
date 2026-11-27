@@ -1,5 +1,7 @@
 # Design: PDF Intake, Conversion and OCR
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/ocr.vi.md) · English
+
 > Initially reconstructed from implemented code on 2026-11-09 and updated against the source on 2026-11-17. This is not a historical Kiro-generated spec. Evidence is cited by repository path.
 
 ```mermaid

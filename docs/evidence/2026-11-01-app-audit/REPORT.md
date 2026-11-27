@@ -1,5 +1,7 @@
 # Rà soát độ đúng, độ đầy đủ và độ ổn định — 01/11/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Đã rà soát backend, tìm kiếm văn bản, truy xuất chat, SSE, kiểm soát quá tải,
 quản lý phiên, biên xử lý PDF, giao diện và vỏ Windows. Sửa các lỗi có bằng chứng
 tái hiện; không coi kiểm thử xanh là nghiệm thu nghiệp vụ hoặc bảo đảm máy không

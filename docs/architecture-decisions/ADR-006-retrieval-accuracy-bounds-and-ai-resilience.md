@@ -1,5 +1,7 @@
 # ADR-006 — Độ chính xác truy xuất, giới hạn tải và khả năng chịu lỗi của AI
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-006-retrieval-accuracy-bounds-and-ai-resilience.en.md)
+
 - Ngày: 05/11/2026
 - Trạng thái: Đã triển khai
 - Thay thế một phần: ADR-005 (mục “Hạn chế đã biết” về cap 5.000, legacy chat không có

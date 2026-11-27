@@ -1,5 +1,7 @@
 # HỒ SƠ BÀN GIAO TRIỂN KHAI — Vietnamese Evidence RAG Agent
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](HOSO_BAN_GIAO.en.md)
+
 > **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 
 Phiên bản hồ sơ 1.1 · cập nhật ngày 21/10/2026

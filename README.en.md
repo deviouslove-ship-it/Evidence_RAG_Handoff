@@ -15,7 +15,9 @@ A public demo is online at **https://108-61-161-195.sslip.io/**
 
 Login credentials for the test accounts are provided in the Devpost submission form.
 
-**Please test in Vietnamese.** The interface and the corpus (105 Vietnamese Ministry of Public Security legal documents) are Vietnamese. Use the Vietnamese sample questions below; English translations are provided only so you can understand what you are asking. English queries are not supported.
+**Please test in Vietnamese.** The interface and the corpus (105 Vietnamese Ministry of Public Security legal documents) are Vietnamese.
+
+Note: English translations are provided only to help judges understand the questions. The app does not support English queries yet; please test in Vietnamese.
 
 ### How to test Q&A
 

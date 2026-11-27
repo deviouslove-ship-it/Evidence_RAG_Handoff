@@ -4,6 +4,8 @@ inclusion: always
 
 # Repository Structure
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../docs/vi/kiro/steering/structure.vi.md) · English
+
 > Steering reconstructed from the repository layout on 2026-11-09. It is not a historical Kiro steering file. Vietnamese translation: `docs/vi/kiro/steering/structure.vi.md`.
 
 ```text

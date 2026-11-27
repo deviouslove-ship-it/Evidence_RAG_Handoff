@@ -1,3 +1,5 @@
+**Language / Ngôn ngữ:** [Tiếng Việt](SITE.vi.md) · English
+
 # Evidence RAG — Sitemap & Screen Hierarchy
 
 ## Screens

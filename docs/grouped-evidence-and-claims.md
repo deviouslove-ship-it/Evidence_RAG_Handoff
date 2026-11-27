@@ -1,5 +1,7 @@
 # Grouped evidence và claims
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](grouped-evidence-and-claims.en.md)
+
 Evidence group tổ chức các nguồn theo vai trò: quy định chính, đối tượng, điều kiện, ngoại lệ, chuyển tiếp, thẩm quyền. Auto-merge chỉ là tổ chức UI, không làm mất identity của từng nguồn.
 
 Mỗi claim phải có evidence IDs hợp lệ. Validator kiểm số/ngày/thời hạn, phủ định, modality và ngoại lệ. Validator trả `supported` hoặc `conditional`; không tuyên bố chứng minh ngữ nghĩa tuyệt đối.

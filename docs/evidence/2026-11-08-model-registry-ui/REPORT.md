@@ -1,5 +1,7 @@
 # Thiết kế lại giao diện Model Registry (08/11/2026)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 ## Kết quả
 
 Mục "Mô hình AI & Kiểm toán" có bốn tab: **1. Mô hình AI**, **2. Phân công AI**, **Embedding** (giữ nguyên), **3. Nhật ký Kiểm toán**.

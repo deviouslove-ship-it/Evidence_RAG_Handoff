@@ -1,5 +1,7 @@
 # Báo cáo tiếp quản kỹ thuật — 22/10/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 **WP:** Tiếp quản POC hiện có; phần WP 0.0/0.1 và lát cắt backend, frontend, retrieval.
 
 **Trạng thái:** Xong một phần. Nền tảng POC đã chạy kiểm tra tại máy này; chưa đạt các gate S0/S3 hay nghiệm thu sản phẩm.

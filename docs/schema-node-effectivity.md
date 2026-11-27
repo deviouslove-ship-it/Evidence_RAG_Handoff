@@ -1,5 +1,7 @@
 # Schema node effectivity
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](schema-node-effectivity.en.md)
+
 Mỗi node có review status và validity riêng. Quan hệ sửa đổi là đồ thị có hướng giữa các node đã được duyệt. Resolver chạy đến fixed point, không dừng ở hai hop của context BFS.
 
 Trạng thái đầu ra:

@@ -1,3 +1,5 @@
+**Ngôn ngữ / Language:** Tiếng Việt · [English](P2_Thiet_ke_UX_UI_D.en.md)
+
 ---
 
 ## D. Thiết kế UX/UI chi tiết

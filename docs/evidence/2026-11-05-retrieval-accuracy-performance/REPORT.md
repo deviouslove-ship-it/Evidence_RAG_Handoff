@@ -1,5 +1,7 @@
 # Rà soát độ chính xác, độ đầy đủ và thời gian truy xuất — 05/11/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Phạm vi: backend tìm kiếm văn bản (Search v1), truy xuất căn cứ cho chat, kiểm lại
 căn cứ sau mỗi lượt, nhật ký kiểm toán; đọc lại phía frontend/desktop để tìm nguy cơ
 treo. Mọi số đo dùng dữ liệu **HƯ CẤU** trên PostgreSQL 18.6 dev, cùng máy, schema

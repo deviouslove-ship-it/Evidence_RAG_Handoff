@@ -1,5 +1,7 @@
 # HỒ SƠ BÀN GIAO TRIỂN KHAI — Vietnamese Evidence RAG Agent
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](P1_Mo_ta_tinh_nang_A-C.en.md)
+
 Phiên bản hồ sơ 1.1 · cập nhật ngày 21/10/2026
 Căn cứ: SRS v1.3 + quyết định của owner ngày 17/10 và 21/10/2026; đối chiếu lịch sử project “Agent tra cuu”, đặc biệt yêu cầu tách portal và ứng dụng USER trên Windows.
 

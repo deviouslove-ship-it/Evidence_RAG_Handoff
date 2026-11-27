@@ -1,5 +1,7 @@
 # verify-egress
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 Tool kiểm tra egress chưa được đóng gói trong round hiện tại. Cần chạy trên Windows đích sau khi áp dụng firewall allowlist.
 
 - Phải thử cả DNS và HTTP/HTTPS tới Internet.

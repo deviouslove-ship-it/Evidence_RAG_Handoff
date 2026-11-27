@@ -1,5 +1,7 @@
 # Browser E2E — Search page (HƯ CẤU fixture)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 Script `search.e2e.mjs` mở `frontend/dist` bằng Chrome headless qua CDP và dùng một
 fixture API **cùng origin** (dữ liệu giả, nhãn HƯ CẤU). Không cần Playwright/Puppeteer,
 không gọi mạng ngoài.

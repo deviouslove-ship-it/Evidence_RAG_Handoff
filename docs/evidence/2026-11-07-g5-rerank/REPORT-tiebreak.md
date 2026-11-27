@@ -1,5 +1,7 @@
 # Khóa phá hòa ổn định cho RRF và các kênh của "Tìm toàn diện"
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT-tiebreak.en.md)
+
 Ngày: 08/11/2026. Công thức RRF (k = 60), các kênh, ngưỡng, embedding và dữ liệu hiện có không đổi. Không tái tạo embedding, không xóa gì.
 
 ## 1. Vấn đề

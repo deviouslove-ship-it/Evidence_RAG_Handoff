@@ -1,5 +1,7 @@
 # G5: kiểm thử reranker chuyên dụng (Qwen3-Reranker-0.6B) trên 100 văn bản thử
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 **Cập nhật cùng ngày (`REPORT-50-cau.md`):** theo quyết định của chủ sở hữu, rerank LLM không còn tự chạy; RRF thuần là mặc định của
 "Tìm toàn diện" (`EVIDENCE_RERANK_DEFAULT=false`), hai phương án rerank giữ làm tùy chọn. Dữ liệu 100 tệp đã dựng lại, sao lưu và mở rộng bộ
 kiểm thử lên 50 câu. Các câu về "giao diện tự gọi rerank" dưới đây mô tả trạng thái trước thay đổi đó. Phần "Hồi quy" và nơi đặt dữ liệu: xem

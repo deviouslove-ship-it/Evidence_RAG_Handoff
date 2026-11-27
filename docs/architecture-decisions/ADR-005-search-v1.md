@@ -1,5 +1,7 @@
 # ADR-005 — Tìm kiếm văn bản (Search v1): FTS PostgreSQL, phân tầng khớp và trích dẫn lười
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-005-search-v1.en.md)
+
 - Ngày: 31/10/2026
 - Trạng thái: Đã triển khai một phần (P0 backend + frontend + test; xem mục "Hệ quả")
 - Phạm vi: `GET /api/v1/search` + `/api/v1/search/approximate`, `SearchService`, migration `0006`, trang Tìm kiếm trong User Portal

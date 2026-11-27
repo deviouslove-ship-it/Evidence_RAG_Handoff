@@ -1,5 +1,7 @@
 # Kết quả rà soát kỹ thuật ngày 27/10/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 ## Thay đổi
 
 - Bộ nhớ phiên: xóa từng dữ kiện thực sự ở máy chủ và vô hiệu hóa kết quả phụ thuộc; xử lý

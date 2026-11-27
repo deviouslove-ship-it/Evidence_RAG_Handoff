@@ -1,5 +1,7 @@
 # Bộ hồ sơ bàn giao — Vietnamese Evidence RAG Agent
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](00_README.en.md)
+
 Hồ sơ gốc lập 21/10/2026 · Hồ sơ 1.1 · SRS v1.3. Các tài liệu bàn giao đã được tích hợp
 vào `docs/` (bản duy nhất, không còn bản sao ở thư mục gốc). Trạng thái triển khai hiện
 hành ghi tại `docs/implementation-status.md`; cách chạy và cấu trúc repo ở `README.md`.

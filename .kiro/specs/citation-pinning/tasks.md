@@ -1,5 +1,7 @@
 # Tasks: Citation Pinning
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/citation-pinning.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09 (updated 2026-11-11). Checkboxes reflect what exists in the repository.
 
 - [x] 1. Citation contract and anchor contract documents (`docs/citation-contract.md`, `docs/pdf-anchor-coordinate-contract.md`)

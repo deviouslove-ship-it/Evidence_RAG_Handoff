@@ -1,5 +1,7 @@
 # VIETNAMESE EVIDENCE RAG AGENT
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](SRS_v1.3.en.md)
+
 > **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 ## Đặc tả sản phẩm, kiến trúc, thuật toán và mã nguồn tham khảo — SRS v1.3
 

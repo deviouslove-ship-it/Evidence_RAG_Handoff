@@ -1,5 +1,7 @@
 # ADR-009 — Tìm toàn diện bốn kênh, nhóm nội dung và tổng hợp có kiểm tra (G2, G4, G5)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-009-comprehensive-search-synthesis.en.md)
+
 - Ngày: 07/11/2026
 - Trạng thái: Đã triển khai
 - Căn cứ: thiết kế chốt `docs/thiet-ke-tra-cuu-hieu-luc.md` mục 6, 7, 8, 12; quyết định D3, D4,

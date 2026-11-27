@@ -45,6 +45,8 @@ Role không tự suy ra từ tiền tố `/admin`. Với CURATOR-only, gọi app
 
 ## F. Plan triển khai chi tiết
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](P3_API_va_Plan_trien_khai_E-G.en.md)
+
 ### F.1 Cách đọc plan
 
 - Mỗi sprint có **work package (WP)**: việc · đầu ra · nghiệm thu; kết thúc bằng một **gate**. Chỉ công nhận gate sau khi tiền đề đã đạt; có thể làm trước việc độc lập nhưng phải báo gate còn thiếu, không đổi mock hoặc trạng thái suy giảm thành nghiệm thu đầy đủ.

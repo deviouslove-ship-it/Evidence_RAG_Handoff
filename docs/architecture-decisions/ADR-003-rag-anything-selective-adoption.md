@@ -1,5 +1,7 @@
 # ADR-003 — Đánh giá RAG-Anything cho thuật toán tra cứu
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-003-rag-anything-selective-adoption.en.md)
+
 Ngày: 22/10/2026 · Trạng thái: chấp nhận áp dụng ý tưởng có chọn lọc ở POC, chưa tích hợp framework.
 
 ## Căn cứ và ranh giới

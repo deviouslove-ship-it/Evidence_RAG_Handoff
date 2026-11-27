@@ -1,5 +1,7 @@
 # RRF thuần, 50 câu hỏi
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](rrf-50-stable-summary.en.md)
+
 Số câu: 50; số câu bị xếp hạng lại: 0 (mong đợi 0). Thời gian trả lời (giây): trung vị 2.433, trung bình 2.687, lớn nhất 11.392.
 
 | Bộ | Câu | Cặp | R@10 | R@20 | R@50 | R@toàn bộ | MRR@10 | NDCG@10 | P@10 |

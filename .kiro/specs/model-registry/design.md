@@ -1,5 +1,7 @@
 # Design: Model Registry
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/model-registry.vi.md) · English
+
 > Initially reconstructed from implemented code on 2026-11-09 and updated against the source on 2026-11-17. This is not a historical Kiro-generated spec. Evidence is cited by repository path.
 
 ## Components

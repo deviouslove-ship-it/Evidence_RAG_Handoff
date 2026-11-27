@@ -1,5 +1,7 @@
 # Tasks: Embedding Management
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/embedding.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository.
 
 - [x] 1. Dimension-free vector table and per-model HNSW index (migration `0012`)

@@ -1,5 +1,7 @@
 # Requirements: Document Management (Admin Portal)
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/document-management.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec: no Kiro spec session exists for this project (see `KIRO_WORK_SUMMARY.en.md`). Evidence is cited by repository path.
 
 ## Introduction

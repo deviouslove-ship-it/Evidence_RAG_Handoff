@@ -1,3 +1,5 @@
+**Language / Ngôn ngữ:** [Tiếng Việt](README.vi.md) · English
+
 # Database migrations
 
 Migrations target PostgreSQL with `pgcrypto` and `pgvector`. The backend applies them

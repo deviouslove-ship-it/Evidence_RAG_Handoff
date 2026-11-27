@@ -1,5 +1,7 @@
 # Rà soát và sửa Search v1 — 31/10/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Phạm vi: trang tìm kiếm mới, API `/search` và `/search/approximate`, phân trang,
 kiểm tra đầu vào và tách các tầng kết quả. Search v1 dùng PostgreSQL FTS theo
 ADR-005, không gọi mô hình AI. Không thay đổi Registry/Router hay nội dung chứng cứ.

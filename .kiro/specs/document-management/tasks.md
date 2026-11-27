@@ -1,5 +1,7 @@
 # Tasks: Document Management
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/document-management.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository, not a historical task run. Test results were not re-run when this spec was written.
 
 - [x] 1. Migration `0016_document_management` (management fields, lookup-visibility counter) with down script

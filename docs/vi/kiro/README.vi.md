@@ -1,6 +1,6 @@
 # Bản dịch tiếng Việt của `.kiro/specs` và `.kiro/steering`
 
-**Ngôn ngữ / Language:** Tiếng Việt · bản gốc tiếng Anh nằm trong [`.kiro/`](../../../.kiro/)
+**Ngôn ngữ / Language:** Tiếng Việt · [English](../../en/kiro/README.md) · bản chuẩn spec/steering: [`.kiro/`](../../../.kiro/)
 
 Kiro đọc trực tiếp các tệp tiếng Anh trong `.kiro/specs/` và `.kiro/steering/`. Các tệp ở thư mục này chỉ là **bản dịch để người đọc tiếng Việt tham khảo**; không thay thế tệp chuẩn và Kiro không đọc chúng. Nếu hai bản khác nhau, bản tiếng Anh là chuẩn.
 

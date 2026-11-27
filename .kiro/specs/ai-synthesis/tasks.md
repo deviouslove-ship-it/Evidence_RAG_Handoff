@@ -1,5 +1,7 @@
 # Tasks: AI Interpretation and Verified Synthesis
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/ai-synthesis.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository.
 
 - [x] 1. Content taxonomy, rules, labels (migration `0013`, `synthesis/labels.py`)

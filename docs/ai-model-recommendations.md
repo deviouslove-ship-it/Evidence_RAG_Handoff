@@ -1,5 +1,7 @@
 # Đề xuất mô hình AI theo từng mục cấu hình
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ai-model-recommendations.en.md)
+
 Cập nhật 06/11/2026 (bổ sung ghi chú trạng thái mã nguồn 11/11 và 17/11/2026 bên dưới). Đây là báo cáo tham khảo; bảng gợi ý và phép đo ban đầu là ảnh chụp thời điểm lập báo cáo, không phải cấu hình vận hành hiện tại. Tên mô hình và giá
 đổi nhanh; xác nhận lại trên trang nhà cung cấp trước khi chọn. Tốc độ chạy Local là ước tính, chưa đo trên
 máy đích (cách đo ở mục 5).

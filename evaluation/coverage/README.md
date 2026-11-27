@@ -1,5 +1,7 @@
 # Kiểm thử bao phủ (D15, G5)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 Không phải bộ Gold QA. Mỗi chủ đề có vài cách hỏi và danh sách căn cứ **bắt buộc tìm thấy**
 (số hiệu + Điều), lấy từ `test-data/cau-hoi-kiem-thu-vong-1.md` và bộ `test-data/van-ban`.
 Căn cứ do AI soạn từ chữ của tệp; cần cán bộ chuyên môn xác nhận trước khi dùng làm chuẩn.

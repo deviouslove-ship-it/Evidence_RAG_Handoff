@@ -1,5 +1,7 @@
 # Dữ liệu thử
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 ## `van-ban/`
 
 Văn bản chính thức dùng để thử ứng dụng, sao chép từ thư mục nguồn do owner cung cấp. Mỗi thư mục con là

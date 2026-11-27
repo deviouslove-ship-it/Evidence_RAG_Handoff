@@ -1,5 +1,7 @@
 # ADR-004 — Rà soát toàn diện, Củng cố Bộ nhớ AI & Model Runtime An toàn
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-004-hardening-memory-and-model-runtime.en.md)
+
 ## Đính chính 27/10/2026
 
 Ghi chép bên dưới là mô tả thay đổi của đợt trước, không chứng minh ứng dụng hết treo, hết

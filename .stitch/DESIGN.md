@@ -1,3 +1,5 @@
+**Language / Ngôn ngữ:** [Tiếng Việt](DESIGN.vi.md) · English
+
 # Evidence RAG — Visual Design System
 
 ## 1. Typography & Vietnamese Diacritics Integrity

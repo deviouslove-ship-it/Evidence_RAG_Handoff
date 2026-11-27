@@ -1,5 +1,7 @@
 # ADR-007 — Chính sách gọi model theo giai đoạn, Hybrid Auto và trần chi phí (G1.0)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-007-stage-policy-hybrid-auto.en.md)
+
 - Ngày: 07/11/2026
 - Trạng thái: Đã triển khai
 - Thay thế: bất biến "tối đa 2 lần gọi LLM mỗi lượt" trong hồ sơ bàn giao (B.3/C.9, WP 3.3),

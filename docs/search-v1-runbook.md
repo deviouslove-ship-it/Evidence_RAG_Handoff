@@ -1,5 +1,7 @@
 # Runbook — Tìm kiếm văn bản và truy xuất căn cứ cho chat
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](search-v1-runbook.en.md)
+
 Cập nhật 05/11/2026. Áp dụng cho `GET /api/v1/search`, `GET /api/v1/search/approximate`,
 trang “Tìm kiếm văn bản” và bước truy xuất căn cứ của chat. Quyết định kiến trúc:
 `docs/architecture-decisions/ADR-005-search-v1.md` và

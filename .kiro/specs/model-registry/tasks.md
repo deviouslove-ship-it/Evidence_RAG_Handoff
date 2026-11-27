@@ -1,5 +1,7 @@
 # Tasks: Model Registry
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/model-registry.vi.md) · English
+
 > Initially reconstructed from implemented code on 2026-11-09 and updated against the source on 2026-11-17. Checkboxes reflect source implementation, not runtime deployment or Portable release acceptance.
 
 - [x] 1. Provider-neutral profiles and OpenAI-compatible adapter (`model_registry/`)

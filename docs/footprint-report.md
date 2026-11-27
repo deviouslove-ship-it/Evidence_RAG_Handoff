@@ -1,5 +1,7 @@
 # Footprint report
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](footprint-report.en.md)
+
 Chưa có bản đo trên máy đích. Không công bố ước lượng trước khi đo.
 
 Khi có manifest cài được duyệt, báo riêng:

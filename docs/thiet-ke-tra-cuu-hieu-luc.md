@@ -1,5 +1,7 @@
 # Thiết kế tra cứu toàn diện, hiệu lực và tổng hợp căn cứ (bản chốt)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](thiet-ke-tra-cuu-hieu-luc.en.md)
+
 Cập nhật 06/11/2026. Bản này thay các bản đề xuất v1, v2 trong hội thoại và là căn cứ triển khai
 G0 → G5. Các quyết định của chủ sở hữu được ghi ở mục 1; phần còn lại là thiết kế kỹ thuật
 đã rà soát nhất quán.

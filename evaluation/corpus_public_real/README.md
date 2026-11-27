@@ -1,5 +1,7 @@
 # Bộ PDF công khai để thử kỹ thuật
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 `manifest.json` ghi nguồn chính thức, URL tệp, thời điểm tải, kích thước và SHA-256 của 12 nghị định từ Cổng Thông tin điện tử Chính phủ. Các PDF trong `files/` chỉ dùng để thử trích xuất, phân đoạn và truy xuất; `*.pdf` bị Git bỏ qua và không thuộc gói cài app.
 
 Trạng thái `test_only_unreviewed` nghĩa là chưa có người xác minh tính xác thực, hiệu lực hay tính phù hợp nghiệp vụ. Không đưa các văn bản này vào nguồn đã duyệt hoặc bộ Gold. Tài liệu nghiệp vụ sẽ được nhập riêng khi người dùng cung cấp.

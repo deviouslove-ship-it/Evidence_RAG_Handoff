@@ -1,5 +1,7 @@
 # Độ ổn định thứ tự khi phá hòa (kênh: exact, relation)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](tiebreak-after-exact-relation.en.md)
+
 - Số câu hỏi: 50 (kết quả rỗng ở cả hai: 17)
 - Cùng tập kết quả ở hai CSDL: 50/50
 - Cùng thứ tự đầy đủ: 50/50

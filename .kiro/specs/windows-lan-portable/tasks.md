@@ -1,5 +1,7 @@
 # Tasks: Windows LAN Portable
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/windows-lan-portable.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository.
 
 - [x] 1. Launcher scripts and batch entry points (`deploy/lan-portable/*`)

@@ -1,5 +1,7 @@
 # Diễn giải AI và PDF scan OCR (08/11/2026)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Môi trường: DB thử `evidence_rerank_eval` (100 văn bản đã duyệt + 5 nghị định scan thử nghiệm
 trong danh mục riêng), `ung-dung-test.ps1`, chế độ LOCAL, model theo Model Registry (giai đoạn
 `summarize` đang trỏ `qwen3:1.7b` trên CPU Ryzen 9 6900HX, không GPU). RRF thuần, rerank tắt, ngưỡng

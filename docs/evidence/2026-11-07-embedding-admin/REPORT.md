@@ -1,5 +1,7 @@
 # Quản lý embedding trong Admin Portal — 07/11/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 ## Phạm vi
 
 Quản trị viên đổi, thêm hoặc nâng cấp model embedding hoàn toàn trên giao diện; hệ thống tự

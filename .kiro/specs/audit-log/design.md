@@ -1,5 +1,7 @@
 # Design: Hash-chained Audit Log
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/audit-log.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Evidence is cited by repository path.
 
 ## Components

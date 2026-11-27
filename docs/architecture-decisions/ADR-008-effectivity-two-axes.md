@@ -1,5 +1,7 @@
 # ADR-008 — Hiệu lực hai trục, quan hệ đề xuất, bản xác nhận và snapshot (G1, G3)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-008-effectivity-two-axes.en.md)
+
 - Ngày: 07/11/2026
 - Trạng thái: Đã triển khai
 - Căn cứ: thiết kế chốt `docs/thiet-ke-tra-cuu-hieu-luc.md` mục 3, 4, 5, 9; quyết định D1, D2, D7,

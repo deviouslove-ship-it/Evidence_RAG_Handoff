@@ -1,5 +1,7 @@
 # Tasks: Search and Grounded Q&A
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/search.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository. Figures come from the cited reports and were not re-run.
 
 - [x] 1. Search v1 SQL channels and normalisation (`storage/search.py`, `normalization.py`)

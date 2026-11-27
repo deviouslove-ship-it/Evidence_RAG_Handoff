@@ -1,5 +1,7 @@
 # ADR-010 — Không triển khai bộ câu hỏi Gold
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-010-khong-trien-khai-bo-cau-hoi-gold.en.md)
+
 - Ngày: 09/11/2026
 - Trạng thái: Accepted
 - Người quyết định: chủ dự án

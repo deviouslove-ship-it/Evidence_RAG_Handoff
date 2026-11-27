@@ -1,4 +1,7 @@
 # VIETNAMESE EVIDENCE RAG AGENT
+
+**Ngôn ngữ / Language:** Tiếng Việt · [English](SRS_v1.2.1.en.md)
+
 ## Đặc tả sản phẩm, kiến trúc, thuật toán và mã nguồn tham khảo — SRS v1.2.1
 
 > **Cập nhật:** 16/10/2026  

@@ -1,5 +1,7 @@
 # Requirements: AI Interpretation and Verified Synthesis
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/ai-synthesis.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. This is not a historical Kiro-generated spec. Evidence is cited by repository path. Decisions: ADR-007, ADR-009 section 2.
 
 ## Introduction

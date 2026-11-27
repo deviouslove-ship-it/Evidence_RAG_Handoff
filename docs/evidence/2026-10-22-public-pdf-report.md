@@ -1,5 +1,7 @@
 # Kiểm thử PDF công khai và tiến độ app — 22/10/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](2026-10-22-public-pdf-report.en.md)
+
 Nguồn: [hệ thống văn bản Chính phủ](https://vanban.chinhphu.vn/he-thong-van-ban?classid=1&mode=1&typegroupid=4). [Manifest](../../evaluation/corpus_public_real/manifest.json) ghi 12 URL chi tiết, URL PDF, ngày tải, hash và kích thước. PDF là dữ liệu thử riêng, không nằm trong gói app, không thuộc Gold hoặc nguồn đã duyệt.
 
 | Phép đo | Kết quả |

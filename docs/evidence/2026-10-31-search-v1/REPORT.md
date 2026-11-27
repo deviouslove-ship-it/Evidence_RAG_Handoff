@@ -1,5 +1,7 @@
 # Báo cáo triển khai Search v1 — 31/10/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Kế hoạch nguồn: `KE_HOACH_TRIEN_KHAI_TIM_KIEM_V1_Evidence_RAG.md`
 (bản owner chốt; các điểm chỉnh so với phương án trước ở mục 2 của kế hoạch).
 

@@ -1,5 +1,7 @@
 # KẾ HOẠCH TRIỂN KHAI — Tìm kiếm văn bản (Search v1)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](KE_HOACH_TRIEN_KHAI_TIM_KIEM_V1_Evidence_RAG.en.md)
+
 > **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 
 Hệ thống: Vietnamese Evidence RAG Agent · Phiên bản tài liệu 1.0 · ngày 31/10/2026

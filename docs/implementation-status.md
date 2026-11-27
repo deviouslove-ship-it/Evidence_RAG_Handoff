@@ -1,5 +1,7 @@
 # Trạng thái triển khai
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](implementation-status.en.md)
+
 > **[Không triển khai – xem ADR-010]** Mọi nội dung về bộ câu hỏi Gold, trap set, calibration và held-out trong tài liệu này không được triển khai theo [ADR-010](architecture-decisions/ADR-010-khong-trien-khai-bo-cau-hoi-gold.md). Phần còn lại giữ nguyên.
 
 Cập nhật 11/11/2026. Tài liệu này chỉ ghi trạng thái **hiện hành**; diễn biến từng đợt nằm

@@ -1,5 +1,7 @@
 # Tasks: Hash-chained Audit Log
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/audit-log.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09. Checkboxes reflect what exists in the repository.
 
 - [x] 1. `audit_events` table with `previous_hash`, `event_hash`, `event_order` (core migrations)

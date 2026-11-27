@@ -1,5 +1,7 @@
 # Threat model (P0 baseline)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](threat-model.en.md)
+
 ## Xác thực, Header & CORS
 
 - Xác thực Bearer Token bắt buộc với mọi phiên người dùng và quản trị viên.

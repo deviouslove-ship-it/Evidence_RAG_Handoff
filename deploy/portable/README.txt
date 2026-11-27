@@ -1,5 +1,6 @@
 EVIDENCE RAG - BẢN CHẠY DI ĐỘNG (không cần cài đặt)
 ====================================================
+Ngôn ngữ / Language: Tiếng Việt · English: README.en.txt
 
 Yêu cầu máy chạy
   - Windows 10 / Windows Server 2016 trở lên, 64-bit. Không cần cài Python, PostgreSQL, Node.

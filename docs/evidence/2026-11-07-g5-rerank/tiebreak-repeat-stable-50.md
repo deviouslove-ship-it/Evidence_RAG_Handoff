@@ -1,5 +1,7 @@
 # Đối chiếu kết quả sau khi dựng lại dữ liệu
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](tiebreak-repeat-stable-50.en.md)
+
 50 câu hỏi của bộ gốc, so theo (số hiệu, nhãn khoản) theo thứ tự.
 
 - Kích thước nhóm ứng viên bằng nhau: 38/50

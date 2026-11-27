@@ -1,5 +1,7 @@
 # Evidence RAG — Windows Desktop Shell (Tauri 2)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](README.en.md)
+
 Shell native dành cho USER trên Windows theo mục C.12 và D.5 S14 của hồ sơ bàn giao.
 
 ## Cửa sổ và hành vi

@@ -1,5 +1,7 @@
 # Tasks: PDF Intake, Conversion and OCR
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/ocr.vi.md) · English
+
 > Initially reconstructed from implemented code on 2026-11-09 and updated against the source on 2026-11-17. Checkboxes reflect source implementation, not release-package acceptance.
 
 - [x] 1. Format detection, Word/TXT to PDF conversion (`documents/convert.py`, migration `0008`)

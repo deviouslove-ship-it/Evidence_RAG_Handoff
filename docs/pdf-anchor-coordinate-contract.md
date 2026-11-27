@@ -1,5 +1,7 @@
 # PDF anchor coordinate contract
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](pdf-anchor-coordinate-contract.en.md)
+
 Anchor hợp lệ gồm:
 
 - document version ID và source hash;

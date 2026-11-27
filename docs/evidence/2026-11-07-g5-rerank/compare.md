@@ -1,5 +1,7 @@
 # So sánh ba phương án xếp hạng (G5)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](compare.en.md)
+
 Số câu hỏi: 24, cặp (câu hỏi, căn cứ bắt buộc): 42.
 
 | Chỉ số | RRF thuần | RRF + rerank LLM hiện tại (qwen3:1.7b) | RRF + Qwen3-Reranker-0.6B |

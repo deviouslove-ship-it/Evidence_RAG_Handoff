@@ -1,5 +1,7 @@
 # Citation contract
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](citation-contract.en.md)
+
 Mỗi evidence phải có identity ổn định và truy ngược được tới:
 
 1. `document_version_id` bất biến;

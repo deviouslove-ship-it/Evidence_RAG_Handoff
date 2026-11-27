@@ -4,6 +4,8 @@ inclusion: always
 
 # Technology and Commands
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../docs/vi/kiro/steering/tech.vi.md) · English
+
 > Steering reconstructed from the implemented code and project documents on 2026-11-09. It is not a historical Kiro steering file. Vietnamese translation: `docs/vi/kiro/steering/tech.vi.md`.
 
 ## Stack (from `backend/pyproject.toml`, `frontend/package.json`, `src-tauri/`)

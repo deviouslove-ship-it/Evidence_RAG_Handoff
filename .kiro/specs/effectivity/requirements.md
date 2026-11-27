@@ -1,5 +1,7 @@
 # Requirements: Document and Clause Effectivity
 
+**Language / Ngôn ngữ:** [Tiếng Việt](../../../docs/vi/kiro/specs/effectivity.vi.md) · English
+
 > Spec reconstructed from the implemented code on 2026-11-09 (updated 2026-11-11). This is not a historical Kiro-generated spec. Source of the rules: `docs/architecture-decisions/ADR-008-effectivity-two-axes.md` and `docs/thiet-ke-tra-cuu-hieu-luc.md`.
 
 ## Introduction

@@ -1,5 +1,7 @@
 # ADR-002 — Model Registry theo capability & Runtime Bounded
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-002-model-capabilities.en.md)
+
 **Trạng thái:** Đã cập nhật và củng cố kỹ thuật (26/10/2026).
 
 ## Quyết định

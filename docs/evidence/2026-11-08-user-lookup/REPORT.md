@@ -1,5 +1,7 @@
 # Rà soát và sửa chức năng tra cứu của USER (08/11/2026)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Dữ liệu: DB `evidence_rerank_eval` (100 văn bản đã duyệt, 7.230 vector `qwen3-embedding:0.6b`), chạy
 bằng `ung-dung-test.ps1` (LOCAL, RRF thuần, không rerank). Không nhập lại văn bản, không tạo lại vector,
 không xóa model, DB, chỉ mục hay bản sao lưu. Mã trước khi sửa: `.agents/backup-2026-11-08-user-lookup/`.

@@ -1,5 +1,7 @@
 # Báo cáo Triển khai & Kiểm chứng Thực tế (Full Stack + Desktop Native)
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT.en.md)
+
 Ngày thực hiện: `2026-10-22`
 
 ## 1. Đã làm

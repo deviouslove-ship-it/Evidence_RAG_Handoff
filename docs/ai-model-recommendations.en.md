@@ -4,13 +4,15 @@ English counterpart of `docs/ai-model-recommendations.md`. The Vietnamese file i
 
 # Recommended AI models, by configuration item
 
-Updated 2026-11-06 (a note on the state of the source code, dated 2026-11-11, was added below). This is a reference report. **No model had been configured** in the app when the report was written. Model names and prices change quickly; confirm them again on the provider’s site before choosing. Local running speed is an estimate and has not been measured on the target machine (how to measure it is in section 5).
+Updated 2026-11-06 (notes on the state of the source code, dated 2026-11-11 and 2026-11-17, were added below). This is a reference report; the suggestion tables and the initial measurements are a snapshot from when the report was written, not the current operational configuration. Model names and prices change quickly; confirm them again on the provider’s site before choosing. Local running speed is an estimate and has not been measured on the target machine (how to measure it is in section 5).
 
 > **Current state of the source code (updated after the G1.0–G5 round of 2026-11-07 to 2026-11-09; see [implementation-status.md](implementation-status.md), [ADR-007](architecture-decisions/ADR-007-stage-policy-hybrid-auto.md), and [ADR-009](architecture-decisions/ADR-009-comprehensive-search-synthesis.md)):**
-> - **The stages in the Model Registry are fully wired in code (`ACTIVE_STAGES` in `backend/app/model_registry/stages.py`):** `answer`, `summarize` (“Diễn giải AI” (AI interpretation), checked by code), `expand` (concept expansion), `relation` (a proposal for an effectivity (hiệu lực) relation), `label` (a proposal for a content label), `embedding` (building a vector through `storage/embeddings.py` and `storage/embedding_jobs.py`), and `rerank` (optional re-ranking through an LLM or `scripts/local_reranker_server.py`, off by default with `EVIDENCE_RERANK_DEFAULT=false`).
+> - **The stages in the Model Registry are fully wired in code (`ACTIVE_STAGES` in `backend/app/model_registry/stages.py`):** `answer`, `summarize` (“Diễn giải AI” (AI interpretation), checked by code), `expand` (concept expansion), `relation` (a proposal for an effectivity (hiệu lực) relation), `label` (a proposal for a content label), `embedding` (building a vector through `storage/embeddings.py` and `storage/embedding_jobs.py`), `rerank` (optional re-ranking through an LLM or `scripts/local_reranker_server.py`, off by default with `EVIDENCE_RERANK_DEFAULT=false`), and `ocr` (read a page image with a local Ollama vision profile, with no API fallback).
 > - **The API-key store (`secret_store.py`):** besides the `env:TEN_BIEN` syntax (`env:` plus the variable name), the Admin Portal already accepts an API key typed in directly and stores it encrypted with Windows DPAPI (`secret:<tên>` (`secret:<name>`) under `EVIDENCE_SECRET_STORE_DIR`).
 > - **Vector dimensions (`0012_comprehensive_search.sql`):** the `node_embeddings` table no longer fixes 768 dimensions. It supports a separate HNSW index per model and per dimension count in `embedding_indices` (a reference configuration that was tried used `qwen3-embedding:0.6b` at 1,024 dimensions through Ollama).
 > - The hardware and model estimate tables in sections 1 through 7 below are kept as they were, as a reference for the state on 2026-11-06.
+>
+> **OCR AI update (2026-11-17):** the source has an `ocr` stage that reads one page image with a local Ollama vision profile, plus the USER page-reading flow and ADMIN correction proposals. The worker is off by default (`EVIDENCE_OCR_AI_ENABLED=false`); no model has been configured or enabled in the operational database. `qwen3.5:4b` was checked for text/vision on one fictional image PDF, which is not an acceptance score for Vietnamese OCR. This source round kept the reference embedding model `qwen3-embedding:0.6b` at 1,024 dimensions and did not recreate vectors. The Portable r4 package has not been rebuilt from this source.
 
 ## 1. Which configuration items the app has
 
@@ -20,9 +22,10 @@ Updated 2026-11-06 (a note on the state of the source code, dated 2026-11-11, wa
 | 2 | Admin Portal → “Mô hình AI” (AI models) → mode **API**, stage `answer` | Yes | Usable |
 | 3 | OCR of a scanned page (`EVIDENCE_OCR_EXECUTABLE`, `EVIDENCE_OCR_LANGUAGES`) | Yes (Tesseract) | Usable; it has to be installed separately |
 | 4 | Question analysis, search, the evidence (căn cứ) check, and effectivity (hiệu lực) | No | Handled by the app’s own code (rules + PostgreSQL) |
-| 5 | An LLM stage `analyze`, plus `embedding`, `rerank`, and `verify` | Present in the design | **Not wired in code**; the Admin Portal does not offer a choice yet |
+| 5 | LLM stages `analyze` / `verify` | Present in the design | **Not wired in code**; `embedding` and `rerank` already have their own routes, as noted in the source-status block above |
+| 6 | On-demand page-image reading through stage `ocr` | Yes | Wired to local Ollama vision; the worker is off by default and needs a profile assignment and the setting turned on |
 
-The `answer` stage currently does only one thing: it receives at most 8 evidence items (each evidence item is cut to 1,200 characters, about 3,000 to 4,000 tokens) and returns JSON `{"evidence_ids":[...]}` choosing at most 3 evidence items. The model does not write the answer and does not write a citation. A large model is therefore unnecessary. What is needed is an understanding of legal Vietnamese, compliance with the JSON format, and a response within 15 seconds (the setting `EVIDENCE_AI_TIMEOUT_SECONDS`, maximum 30).
+The `answer` stage currently does only one thing: it receives at most 8 evidence items (each evidence item is cut to 1,200 characters, about 3,000 to 4,000 tokens) and returns JSON `{"evidence_ids":[...]}` choosing at most 3 evidence items. The model does not write the answer and does not write a citation. A large model is therefore unnecessary. What is needed is an understanding of the Vietnamese used in administrative and operational documents, compliance with the JSON format, and a response within 15 seconds (the setting `EVIDENCE_AI_TIMEOUT_SECONDS`, maximum 30).
 
 ## 2. Item 1: LOCAL, stage `answer`
 
@@ -73,10 +76,10 @@ A sample Gemini profile: provider `openai_compatible`; zone `public`; key `env:G
 | Tool | Status | Machine configuration | Notes |
 |---|---|---|---|
 | **Tesseract 5 with `vie` + `eng`** | Wired in code | A CPU, 4 GB of RAM, no GPU required | A trial measurement of 1.3 to 1.7 seconds per A4 page (200 dpi) on a Ryzen 9 6900HX. It reads seals and document numbers poorly; the document number has to be taken from the file name |
-| PaddleOCR (a Vietnamese model) | Not wired in code | A 4-core CPU, 8 GB of RAM; a GPU is optional | Usually more accurate than Tesseract on a skewed page or a page with many columns |
-| A vision model (Gemma 4, Qwen3.6) | Not wired in code | As in section 2 | Gemma 4 has OmniDocBench results on the [Ollama page](https://ollama.com/library/gemma4) (31B: 0.131; E4B: 0.181; lower is better) |
+| **Ollama vision through stage `ocr`** | Wired in the source; off by default | Depends on the model, RAM/GPU and the Local server; no minimum has been fixed | Reads the requested page; local-only, does not send the image to an API; the result is an unverified proposal. `qwen3.5:4b` was tried only on fictional image data, which is not enough to conclude general accuracy |
+| PaddleOCR (a Vietnamese model) | Not wired in code | Not fixed | Not the current OCR backend |
 
-OCR runs only while a document is being loaded, not while a user is asking a question, so a weak machine is still enough if a slow load is acceptable.
+Tesseract is still used in the document intake and extraction flow. OCR AI is the on-demand flow that reads one page image in chat or creates an administration proposal; it does not replace Tesseract, does not run in the background over the whole store, and does not update already approved text by itself. Speed, quality and RAM/GPU on each target machine have to be measured separately; do not use the Tesseract OCR figures as an estimate for Qwen.
 
 ## 5. How to measure whether a Local model is fast enough
 

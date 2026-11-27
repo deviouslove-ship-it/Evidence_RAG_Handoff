@@ -1,5 +1,7 @@
 # G5: mở rộng lên 50 câu hỏi, RRF thuần mặc định, dựng lại và sao lưu dữ liệu 100 văn bản
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REPORT-50-cau.en.md)
+
 Ngày chạy: 07/11/2026. Bổ sung cho `REPORT.md` (so sánh ba phương án xếp hạng trên 24 câu). Số liệu gốc cùng thư mục.
 Không nghiệm thu nghiệp vụ: danh sách căn cứ bắt buộc do tác tử soạn từ chữ của văn bản, chưa được cán bộ chuyên môn xác nhận.
 

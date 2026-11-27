@@ -1,5 +1,7 @@
 # ADR-001 — Runtime Windows và PostgreSQL duy nhất
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ADR-001-windows-runtime.en.md)
+
 **Trạng thái:** Đề xuất kỹ thuật, chưa được kiểm chứng trên máy đích.
 
 ## Quyết định
