@@ -8,7 +8,46 @@ FastAPI, một PostgreSQL và một kho tài liệu bất biến theo SHA-256 ph
 **Admin Portal** và **ứng dụng Windows USER (Tauri 2)**. Trạng thái hiện hành:
 [`docs/implementation-status.md`](docs/implementation-status.md).
 
+## Demo trực tuyến cho giám khảo
+
+Bản demo công khai tại **https://108-61-161-195.sslip.io/**
+
+1. Mở đường dẫn và bấm **"Đăng nhập"** (Log in) góc trên bên phải.
+2. Đăng nhập bằng tài khoản thử trong form nộp bài trên Devpost.
+
+Thông tin đăng nhập tài khoản thử được cung cấp trong form nộp bài trên Devpost.
+
+**Vui lòng kiểm thử bằng tiếng Việt.** Giao diện và kho tài liệu (105 văn bản pháp luật của Bộ Công an) đều bằng tiếng Việt. Dùng các câu hỏi mẫu tiếng Việt dưới đây; bản dịch tiếng Anh chỉ để hiểu nội dung câu hỏi. Hệ thống không hỗ trợ truy vấn tiếng Anh.
+
+### Cách thử Hỏi đáp
+
+Vào **"Hỏi đáp"** (Q&A), dán một câu hỏi tiếng Việt và bấm **"Tra cứu"** (Search). Trong khoảng 10 giây sẽ có các điều khoản khớp, kèm số hiệu văn bản, điều, trích dẫn nguyên văn và nút mở tệp gốc.
+
+### Câu hỏi mẫu
+
+1. *Thủ tục cấp lại thẻ Căn cước công dân gồm những bước nào?*  
+   (What are the steps to reissue a citizen ID card?) — 60/2021/TT-BCA
+2. *Ảnh chân dung khi làm thẻ Căn cước công dân phải đáp ứng yêu cầu gì?*  
+   (Requirements for the ID-card portrait photo?) — 60/2021/TT-BCA Art. 5
+3. *Cảnh sát giao thông được dừng phương tiện để kiểm soát trong những trường hợp nào?*  
+   (When may traffic police stop a vehicle for inspection?) — 32/2023/TT-BCA
+4. *Những đồ vật nào bị cấm đưa vào khu vực giam giữ?*  
+   (Which items are prohibited in detention facilities?) — 58/2026/TT-BCA
+5. *Người nước ngoài được nhận thị thực tại cửa khẩu sân bay quốc tế trong trường hợp nào?*  
+   (When can foreigners get a visa on arrival at international airports?) — 07/VBHN-BCA
+
+### Tìm kiếm văn bản và Diễn giải AI
+
+**"Tìm kiếm văn bản"** (Document search) có **"Diễn giải AI"** (AI explanation), viết câu trả lời từ các điều khoản đã trích. Chạy bằng AI cục bộ chỉ dùng CPU, cần khoảng 1 phút.
+
+### Quy trình duyệt và quản trị
+
+- Quy trình duyệt: nạp bằng `curator`, phê duyệt bằng `reviewer`.
+- Chức năng quản trị: đăng nhập bằng `admin`.
+
 ## Tải ứng dụng (cho giám khảo)
+
+Nếu chỉ cần thử bản demo công khai, dùng phần **Demo trực tuyến cho giám khảo** ở trên. Gói Windows dưới đây là tùy chọn nếu muốn chạy ứng dụng trên máy cục bộ.
 
 - **Gói:** `Evidence-RAG-Portable-20261111-r4.zip` (~3,52 GiB, 3.777.436.554 byte; gồm tài liệu và model AI cục bộ). Giải nén bằng 7-Zip hoặc trình giải nén của Windows.
 - **Tải về:** https://drive.google.com/file/d/1C9bSKqt_7Rwuqe5NqtTZNzhABVqd7dj6/view?usp=sharing

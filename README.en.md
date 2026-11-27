@@ -2,11 +2,50 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](README.md) · English
 
-Grounded lookup of Vietnamese agency administrative and operational documents. One FastAPI backend, one PostgreSQL database and a SHA-256-immutable document store serve the **User Portal** (Q&A, document search, document comparison, conflict and overlap review), the **Admin Portal** and the **Windows USER app (Tauri 2)**. Current state: [`docs/implementation-status.md`](docs/implementation-status.md) (Vietnamese).
+Grounded lookup of Vietnamese agency administrative and operational documents. One FastAPI backend, one PostgreSQL database and a SHA-256-immutable document store serve the **User Portal** (Q&A, document search, document comparison, conflict and overlap review), the **Admin Portal** and the **Windows USER app (Tauri 2)**. Current state: [`docs/implementation-status.en.md`](docs/implementation-status.en.md) (Vietnamese: [`docs/implementation-status.md`](docs/implementation-status.md)).
 
 This is the English counterpart of `README.md`. The Vietnamese file is the original.
 
+## Live demo for judges
+
+A public demo is online at **https://108-61-161-195.sslip.io/**
+
+1. Open the URL and click **"Đăng nhập"** (Log in) at the top right.
+2. Sign in with the tester account from the Devpost form.
+
+Login credentials for the test accounts are provided in the Devpost submission form.
+
+**Please test in Vietnamese.** The interface and the corpus (105 Vietnamese Ministry of Public Security legal documents) are Vietnamese. Use the Vietnamese sample questions below; English translations are provided only so you can understand what you are asking. English queries are not supported.
+
+### How to test Q&A
+
+On **"Hỏi đáp"** (Q&A), paste a Vietnamese question and click **"Tra cứu"** (Search). Within about 10 seconds you get matching clauses, each with the document number, article, an exact quote, and a button to open the original file.
+
+### Sample questions
+
+1. *Thủ tục cấp lại thẻ Căn cước công dân gồm những bước nào?*  
+   (What are the steps to reissue a citizen ID card?) — 60/2021/TT-BCA
+2. *Ảnh chân dung khi làm thẻ Căn cước công dân phải đáp ứng yêu cầu gì?*  
+   (Requirements for the ID-card portrait photo?) — 60/2021/TT-BCA Art. 5
+3. *Cảnh sát giao thông được dừng phương tiện để kiểm soát trong những trường hợp nào?*  
+   (When may traffic police stop a vehicle for inspection?) — 32/2023/TT-BCA
+4. *Những đồ vật nào bị cấm đưa vào khu vực giam giữ?*  
+   (Which items are prohibited in detention facilities?) — 58/2026/TT-BCA
+5. *Người nước ngoài được nhận thị thực tại cửa khẩu sân bay quốc tế trong trường hợp nào?*  
+   (When can foreigners get a visa on arrival at international airports?) — 07/VBHN-BCA
+
+### Document search and AI explanation
+
+**"Tìm kiếm văn bản"** (Document search) includes **"Diễn giải AI"** (AI explanation), which writes an answer from the cited clauses. It runs on CPU-only local AI, so allow about 1 minute.
+
+### Review and admin workflows
+
+- Review workflow: upload as `curator`, approve as `reviewer`.
+- Admin features: log in as `admin`.
+
 ## Download the app (for judges)
+
+If you only need to try the public demo, use the **Live demo for judges** section above. The Windows package below is optional if you want to run the app locally.
 
 - **Package:** `Evidence-RAG-Portable-20261111-r4.zip` (~3.52 GiB, 3,777,436,554 bytes; includes documents and local AI models). Extract with 7-Zip or Windows' built-in extractor.
 - **Download:** https://drive.google.com/file/d/1C9bSKqt_7Rwuqe5NqtTZNzhABVqd7dj6/view?usp=sharing
@@ -91,7 +130,7 @@ The seed does not approve any document and creates no model profile. Re-running 
 - **Conflict, overlap & authority hierarchy review**: scans 2–20 selected documents or one authorized category; detects potential contradictions, overlaps, exceptions/elaborations and recorded amendment relations; computes advisory authority hierarchy from `legal_authority_rules` (23 seeded VBQPPL rules plus internal agency rules) with *lex superior / posterior / specialis* explanations; optional background AI screening (`ConflictScanWorker`) only sends pairs externally when all source categories permit remote processing. Findings are advisory only and require human review. (Comparison and conflict review are new on source; the downloadable `r4` package has not been rebuilt and does not include them.)
 - **Admin Portal**: [Document management](docs/en/USER_ADMIN_AND_AI_GUIDE.md#document-management) supports search/filter, detail, version history, OCR edits, suspension and soft delete by permission. The portal also has source intake and review, categories, RBAC/ABAC accounts, **Conflict review** (CURATOR/REVIEWER confirm/dismiss findings and optionally create `draft` amendment proposals requiring separate **Hiệu lực** approval), **Authority rules** (SYS_ADMIN manages `legal_authority_rules`), AI models (profiles, stage routing for evidence selection, connection tests) and a hash-chained audit log.
 - **Document intake**: PDF, Word (`.docx`, `.doc`) and TXT. Word/TXT are rendered into a text-layer PDF (same content, same result each time) so one citation path serves all formats; the original file is kept with its own hash (`document_versions.source_format`, `source_file_sha256`). Scanned PDFs need OCR (Tesseract). Bulk import by folder tree: `scripts/import_official_corpus.py` (see [`test-data/README.md`](test-data/README.md)).
-- **AI**: `API` or `LOCAL` mode (Ollama/vLLM/llama.cpp or OpenAI-compatible services: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`) routed per stage (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`, `ocr`). Stage `ocr` uses a local Ollama vision profile only and its worker is disabled by default. The source was tested with `qwen3.5:4b` for text and vision; the active model remains selected by the Registry and is not hard-coded. The upgrade retained the reference embedding profile `qwen3-embedding:0.6b` (1,024 dimensions) and did not recreate vectors. In Q&A, the model picks at most 3 evidence items from already verified evidence; in optional "AI interpretation" (`summarize`), each statement is checked by code against attached evidence; the model never writes verbatim quotes or citations. If the model fails or is slow, a chat turn still returns the original evidence. Recommended models and machine settings: [`docs/ai-model-recommendations.md`](docs/ai-model-recommendations.md) (Vietnamese).
+- **AI**: `API` or `LOCAL` mode (Ollama/vLLM/llama.cpp or OpenAI-compatible services: `/v1`, Google Gemini `/v1beta/openai`, `/openai/v1`, `/api/v1`) routed per stage (`answer`, `summarize`, `expand`, `relation`, `label`, `embedding`, `rerank`, `ocr`). Stage `ocr` uses a local Ollama vision profile only and its worker is disabled by default. The source was tested with `qwen3.5:4b` for text and vision; the active model remains selected by the Registry and is not hard-coded. The upgrade retained the reference embedding profile `qwen3-embedding:0.6b` (1,024 dimensions) and did not recreate vectors. In Q&A, the model picks at most 3 evidence items from already verified evidence; in optional "AI interpretation" (`summarize`), each statement is checked by code against attached evidence; the model never writes verbatim quotes or citations. If the model fails or is slow, a chat turn still returns the original evidence. Recommended models and machine settings: [`docs/ai-model-recommendations.en.md`](docs/ai-model-recommendations.en.md).
 - **Article/Clause/Point effectivity relations**: supports proposed replacements, amendments, additions and repeals. An authorized reviewer confirms each relation and its item-level effective date. A replacement may carry an earlier effective date; as-of lookup applies that date. Yellow warning notes appear when node-level effectivity is unverified or the query date is later than the store's data date.
 - **Windows desktop**: floating Orb, drag-and-drop across multi-monitor/DPI work areas, system tray.
 
@@ -111,19 +150,20 @@ Original files are Vietnamese unless stated; English counterparts are listed.
 
 | Document | Content | English |
 |---|---|---|
-| `00_README.md` | Handoff index and specification priority | – |
-| `docs/HOSO_BAN_GIAO.md`, `docs/SRS_v1.3.md` | Main handoff file and current technical specification | Not translated (large specification) |
-| `docs/architecture-decisions/ADR-000…010` | Architecture decisions | Not translated |
+| `00_README.md` | Handoff index and specification priority | [`00_README.en.md`](00_README.en.md) |
+| `docs/HOSO_BAN_GIAO.md`, `docs/SRS_v1.3.md` | Main handoff file and current technical specification | [`HOSO_BAN_GIAO.en.md`](docs/HOSO_BAN_GIAO.en.md), [`SRS_v1.3.en.md`](docs/SRS_v1.3.en.md). Historical SRS: [`docs/history/SRS_v1.2.1.en.md`](docs/history/SRS_v1.2.1.en.md). Extracts: `parts/*.en.md` |
+| `docs/architecture-decisions/ADR-000…010` | Architecture decisions | Sibling `ADR-*.en.md` in the same directory |
 | `docs/TAI_LIEU_MO_TA_HE_THONG.md` | System description and document lifecycle | [`docs/en/SYSTEM_DESCRIPTION.md`](docs/en/SYSTEM_DESCRIPTION.md) |
 | `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` | User and administrator guide, including Document management | [`docs/en/USER_ADMIN_AND_AI_GUIDE.md`](docs/en/USER_ADMIN_AND_AI_GUIDE.md) |
 | `deploy/lan-portable/README.txt` | Windows LAN Portable operator guide | [`README.en.txt`](deploy/lan-portable/README.en.txt) |
+| `deploy/portable/README.txt` | Portable package operator guide | [`README.en.txt`](deploy/portable/README.en.txt) |
 | `deploy/windows/README.md` | Windows deployment notes | [`README.en.md`](deploy/windows/README.en.md) |
 | `docs/vi/ARCHITECTURE_OVERVIEW.md` | Architecture overview (Vietnamese) | [`docs/en/ARCHITECTURE_OVERVIEW.md`](docs/en/ARCHITECTURE_OVERVIEW.md) |
 | `KIRO_WORK_SUMMARY.vi.md`, `PROJECT_TIMELINE.vi.md` | Kiro work record and timeline | [`KIRO_WORK_SUMMARY.en.md`](KIRO_WORK_SUMMARY.en.md), [`PROJECT_TIMELINE.md`](PROJECT_TIMELINE.md), per-file statistics appendix [`KIRO_STATS_APPENDIX.en.md`](KIRO_STATS_APPENDIX.en.md) |
-| `docs/implementation-status.md` | State, verification, remaining limits | Not translated |
-| `docs/search-v1-runbook.md` | Search and chat retrieval operations | Not translated |
-| `docs/threat-model.md` | Threat model | Not translated |
-| `docs/evidence/` | Reports and evidence per round | Not translated |
+| `docs/implementation-status.md` | State, verification, remaining limits | [`implementation-status.en.md`](docs/implementation-status.en.md) |
+| `docs/search-v1-runbook.md` | Search and chat retrieval operations | [`search-v1-runbook.en.md`](docs/search-v1-runbook.en.md) |
+| `docs/threat-model.md` | Threat model | [`threat-model.en.md`](docs/threat-model.en.md) |
+| `docs/evidence/` | Reports and evidence per round | Sibling `REPORT.en.md` (and other `*.en.md`) beside each Vietnamese report. Benchmark tables that were already English are unchanged |
 | `configs/` | AI, deployment, policy templates | – |
 
 ## Layout
