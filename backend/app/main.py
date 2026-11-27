@@ -35,6 +35,7 @@ from .api.v1.user import require_user
 from .api.v1.user import router as user_router
 from .auth_acl.policy import Principal
 from .config import Settings
+from .conflicts.worker import ConflictScanWorker
 from .documents.ocr_ai_jobs import OcrAiWorker
 from .documents.provenance import (
     read_immutable_pdf,
@@ -146,10 +147,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         store_root = Path(settings.document_store_root) if settings.document_store_root else None
         app.state.ocr_ai_worker = OcrAiWorker(pool, app.state.ai_runtime, store_root=store_root)
         app.state.ocr_ai_worker.start()
+    app.state.conflict_scan_worker = None
+    if pool is not None and settings.conflict_scan_worker_enabled:
+        app.state.conflict_scan_worker = ConflictScanWorker(
+            pool, app.state.ai_runtime, settings=settings
+        )
+        app.state.conflict_scan_worker.start()
     cleanup = asyncio.create_task(_expire_sessions(app.state.memory, settings.session_ttl_seconds))
     try:
         yield
     finally:
+        if app.state.conflict_scan_worker is not None:
+            await app.state.conflict_scan_worker.stop()
         if app.state.ocr_ai_worker is not None:
             await app.state.ocr_ai_worker.stop()
         if app.state.embedding_worker is not None:

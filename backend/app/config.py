@@ -56,6 +56,14 @@ class Settings:
     # queued from the Admin Portal.  Turn off only on extra API processes.
     embedding_worker_enabled: bool = True
     ocr_ai_enabled: bool = False
+    # Phase 2 conflict scan worker and bounded screening limits.
+    conflict_scan_max_documents: int = 20
+    conflict_scan_max_pairs: int = 120
+    conflict_scan_max_ai_pairs: int = 25
+    conflict_scan_max_queued: int = 10
+    conflict_scan_ttl_hours: int = 168
+    conflict_scan_ai_timeout_seconds: float = 25.0
+    conflict_scan_worker_enabled: bool = True
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -113,6 +121,20 @@ class Settings:
             .strip().lower() not in {"0", "false", "no"},
             ocr_ai_enabled=os.getenv("EVIDENCE_OCR_AI_ENABLED", "false")
             .strip().lower() not in {"0", "false", "no"},
+            conflict_scan_max_documents=int(
+                os.getenv("EVIDENCE_CONFLICT_SCAN_MAX_DOCUMENTS", "20")
+            ),
+            conflict_scan_max_pairs=int(os.getenv("EVIDENCE_CONFLICT_SCAN_MAX_PAIRS", "120")),
+            conflict_scan_max_ai_pairs=int(
+                os.getenv("EVIDENCE_CONFLICT_SCAN_MAX_AI_PAIRS", "25")
+            ),
+            conflict_scan_max_queued=int(os.getenv("EVIDENCE_CONFLICT_SCAN_MAX_QUEUED", "10")),
+            conflict_scan_ttl_hours=int(os.getenv("EVIDENCE_CONFLICT_SCAN_TTL_HOURS", "168")),
+            conflict_scan_ai_timeout_seconds=float(
+                os.getenv("EVIDENCE_CONFLICT_SCAN_AI_TIMEOUT_SECONDS", "25.0")
+            ),
+            conflict_scan_worker_enabled=os.getenv("EVIDENCE_CONFLICT_SCAN_WORKER", "true")
+            .strip().lower() not in {"0", "false", "no"},
         )
 
     def validate_runtime(self) -> None:
@@ -153,6 +175,18 @@ class Settings:
             raise ValueError("result set or concept limits are invalid")
         if not 0 < self.query_timeout_seconds <= 300 or not 0 < self.pdf_timeout_seconds <= 600:
             raise ValueError("Operation timeouts must be positive and bounded")
+        if not 2 <= self.conflict_scan_max_documents <= 200:
+            raise ValueError("conflict_scan_max_documents must be between 2 and 200")
+        if not 1 <= self.conflict_scan_max_pairs <= 1000:
+            raise ValueError("conflict_scan_max_pairs must be between 1 and 1000")
+        if not 0 <= self.conflict_scan_max_ai_pairs <= 200:
+            raise ValueError("conflict_scan_max_ai_pairs must be between 0 and 200")
+        if not 1 <= self.conflict_scan_max_queued <= 100:
+            raise ValueError("conflict_scan_max_queued must be between 1 and 100")
+        if not 1 <= self.conflict_scan_ttl_hours <= 24 * 365:
+            raise ValueError("conflict_scan_ttl_hours must be between 1 and 8760")
+        if not 0 < self.conflict_scan_ai_timeout_seconds <= 30.0:
+            raise ValueError("conflict_scan_ai_timeout_seconds must be between 0 and 30")
         if self.document_store_root:
             store = Path(self.document_store_root)
             if not store.is_absolute():
