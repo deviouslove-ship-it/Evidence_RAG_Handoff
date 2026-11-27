@@ -866,4 +866,225 @@ describe("ConflictReviewPage & Phase 2 UI", () => {
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });
+
+  it("keeps refreshRecentScans alive after polling transitions to completed so Lượt quét gần đây updates to Hoàn tất", async () => {
+    let pollCalls = 0;
+    let listCalls = 0;
+    let resolveSecondList!: (response: Response) => void;
+    const listSignals: AbortSignal[] = [];
+
+    const fetcher = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      const signal = init?.signal;
+      if (url.endsWith("/api/v1/categories")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([
+              { id: "cat-1", code: "THUE", name: "Thuế", remote_processing_allowed: false },
+            ]),
+            { status: 200 },
+          ),
+        );
+      }
+      if (url.includes("/api/v1/conflicts/scans?") && (!init?.method || init.method === "GET")) {
+        listCalls += 1;
+        if (signal) listSignals.push(signal);
+        if (listCalls === 1) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                total: 1,
+                items: [
+                  makeScanDetail({
+                    id: "run-refresh",
+                    run_id: "run-refresh",
+                    status: "running",
+                    progress_done: 1,
+                  }),
+                ],
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        return new Promise<Response>((resolve, reject) => {
+          const rejectIfAborted = () =>
+            reject(new DOMException("Aborted", "AbortError"));
+          if (signal?.aborted) {
+            rejectIfAborted();
+            return;
+          }
+          signal?.addEventListener("abort", rejectIfAborted, { once: true });
+          resolveSecondList = (resp) => {
+            if (signal?.aborted) {
+              rejectIfAborted();
+              return;
+            }
+            resolve(resp);
+          };
+        });
+      }
+      if (url.endsWith("/api/v1/conflicts/scans") && init?.method === "POST") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              run_id: "run-refresh",
+              status: "queued",
+              scope_document_count: 2,
+              created_at: "2026-01-15T08:00:00Z",
+              deduplicated: false,
+            }),
+            { status: 202 },
+          ),
+        );
+      }
+      if (url.endsWith("/api/v1/conflicts/scans/run-refresh")) {
+        pollCalls += 1;
+        return Promise.resolve(
+          new Response(
+            JSON.stringify(
+              makeScanDetail({
+                id: "run-refresh",
+                run_id: "run-refresh",
+                status: pollCalls === 1 ? "running" : "completed",
+                progress_done: pollCalls === 1 ? 1 : 4,
+              }),
+            ),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetcher);
+
+    render(<ConflictReviewPage accessToken="tok-refresh" />);
+    fireEvent.click(screen.getByLabelText("Quét theo 1 danh mục"));
+    await waitFor(() => expect(screen.getByRole("option", { name: /Thuế/ })).toBeInTheDocument());
+
+    const recentRegion = await screen.findByRole("region", { name: "Lượt quét gần đây" });
+    expect(within(recentRegion).getByText("Đang xử lý")).toBeInTheDocument();
+
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Bắt đầu rà soát mâu thuẫn" }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Advance 2000ms -> poll returns completed -> triggers refreshRecentScans & polling useEffect cleanup
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    // Now resolve the in-flight listConflictScans call after React committed the completed state & ran cleanup
+    await act(async () => {
+      resolveSecondList(
+        new Response(
+          JSON.stringify({
+            total: 1,
+            items: [
+              makeScanDetail({
+                id: "run-refresh",
+                run_id: "run-refresh",
+                status: "completed",
+                progress_done: 4,
+              }),
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const latestRefreshSignal = listSignals[listSignals.length - 1];
+    expect(latestRefreshSignal?.aborted).toBe(false);
+    expect(within(recentRegion).getByText("Hoàn tất")).toBeInTheDocument();
+  });
+
+  it("resets submitting state cleanly when handleSelectScan interrupts an in-flight handleStartScan", async () => {
+    let resolveCreate!: (response: Response) => void;
+    const pendingCreate = new Promise<Response>((resolve) => {
+      resolveCreate = resolve;
+    });
+
+    const fetcher = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.endsWith("/api/v1/categories")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([
+              { id: "cat-1", code: "THUE", name: "Thuế", remote_processing_allowed: false },
+            ]),
+            { status: 200 },
+          ),
+        );
+      }
+      if (url.includes("/api/v1/conflicts/scans?") && (!init?.method || init.method === "GET")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              total: 1,
+              items: [makeScanDetail({ id: "run-existing", run_id: "run-existing", status: "completed" })],
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (url.endsWith("/api/v1/conflicts/scans") && init?.method === "POST") {
+        const signal = init.signal;
+        return new Promise<Response>((resolve, reject) => {
+          signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+          void pendingCreate.then(resolve, reject);
+        });
+      }
+      if (url.endsWith("/api/v1/conflicts/scans/run-existing")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify(makeScanDetail({ id: "run-existing", run_id: "run-existing", status: "completed" })),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetcher);
+
+    render(<ConflictReviewPage accessToken="tok-interrupt" />);
+    fireEvent.click(screen.getByLabelText("Quét theo 1 danh mục"));
+    await waitFor(() => expect(screen.getByRole("option", { name: /Thuế/ })).toBeInTheDocument());
+    await screen.findByRole("button", { name: "Xem kết quả" });
+
+    // Start scan (remains in flight)
+    fireEvent.click(screen.getByRole("button", { name: "Bắt đầu rà soát mâu thuẫn" }));
+    const busyButton = await screen.findByRole("button", { name: "Đang khởi tạo lượt quét…" });
+    expect(busyButton).toBeDisabled();
+
+    // Interrupt by clicking "Xem kết quả"
+    fireEvent.click(screen.getByRole("button", { name: "Xem kết quả" }));
+
+    const startButton = await screen.findByRole("button", { name: "Bắt đầu rà soát mâu thuẫn" });
+    expect(startButton).not.toBeDisabled();
+
+    // Resolve the orphaned create promise just to confirm no late state error occurs
+    resolveCreate(
+      new Response(
+        JSON.stringify({
+          run_id: "run-late",
+          status: "queued",
+          scope_document_count: 2,
+          created_at: "2026-01-15T08:00:00Z",
+          deduplicated: false,
+        }),
+        { status: 202 },
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Bắt đầu rà soát mâu thuẫn" })).not.toBeDisabled(),
+    );
+  });
 });

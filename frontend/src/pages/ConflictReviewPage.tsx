@@ -105,8 +105,10 @@ export function ConflictReviewPage({
 
   const actionControllerRef = useRef<AbortController | null>(null);
   const pollControllerRef = useRef<AbortController | null>(null);
+  const recentControllerRef = useRef<AbortController | null>(null);
   const pollTimerRef = useRef<number | null>(null);
   const lifecycleEpochRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const abortAllInFlight = useCallback(() => {
     lifecycleEpochRef.current += 1;
@@ -118,10 +120,18 @@ export function ConflictReviewPage({
     actionControllerRef.current = null;
     pollControllerRef.current?.abort();
     pollControllerRef.current = null;
+    recentControllerRef.current?.abort();
+    recentControllerRef.current = null;
+    if (mountedRef.current) {
+      setSubmitting(false);
+      setCancelling(false);
+    }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       abortAllInFlight();
     };
   }, [abortAllInFlight]);
@@ -162,18 +172,27 @@ export function ConflictReviewPage({
     };
   }, [accessToken, abortAllInFlight, loadInitialData]);
 
-  const refreshRecentScans = useCallback(
-    async (token: string, signal?: AbortSignal) => {
-      try {
-        const list = await listConflictScans(token, { limit: 15, offset: 0, signal });
-        if (signal?.aborted) return;
-        setRecentScans(list.items);
-      } catch {
-        // Keep current list on transient refresh failures.
+  const refreshRecentScans = useCallback(async (token: string) => {
+    recentControllerRef.current?.abort();
+    const controller = new AbortController();
+    recentControllerRef.current = controller;
+    const epoch = lifecycleEpochRef.current;
+    try {
+      const list = await listConflictScans(token, {
+        limit: 15,
+        offset: 0,
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted || lifecycleEpochRef.current !== epoch) return;
+      setRecentScans(list.items);
+    } catch {
+      // Keep current list on transient refresh failures or aborts.
+    } finally {
+      if (recentControllerRef.current === controller) {
+        recentControllerRef.current = null;
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
   useEffect(() => {
     if (!accessToken || !activeScan || !isActiveScanStatus(activeScan.status)) {
@@ -193,7 +212,7 @@ export function ConflictReviewPage({
           if (isActiveScanStatus(detail.status)) {
             setPollTick((prev) => prev + 1);
           } else {
-            void refreshRecentScans(accessToken, controller.signal);
+            void refreshRecentScans(accessToken);
           }
         })
         .catch((caught) => {
@@ -321,7 +340,7 @@ export function ConflictReviewPage({
       if (isActiveScanStatus(detail.status)) {
         setPollTick((prev) => prev + 1);
       }
-      void refreshRecentScans(accessToken, controller.signal);
+      void refreshRecentScans(accessToken);
     } catch (caught) {
       if (controller.signal.aborted || isAbortError(caught) || lifecycleEpochRef.current !== epoch) {
         return;
@@ -389,7 +408,7 @@ export function ConflictReviewPage({
               disclaimer: "Gợi ý tự động — cần chuyên viên thẩm định trước khi áp dụng.",
             },
       );
-      void refreshRecentScans(accessToken, controller.signal);
+      void refreshRecentScans(accessToken);
     } catch (caught) {
       if (controller.signal.aborted || isAbortError(caught) || lifecycleEpochRef.current !== epoch) {
         return;
