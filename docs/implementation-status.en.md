@@ -386,3 +386,37 @@ syllable clusters; a dictionary of legal abbreviations; an embedding channel onc
 
 Figures in the older reports reflect that point in time; when they differ from this document, this
 document is the current version.
+
+## Update after Qwen3.5 and OCR AI upgrade (2026-11-17)
+
+The source now implements both a USER flow for requesting the text of a single PDF page in Q&A and an ADMIN flow for creating/applying OCR AI edit proposals. Page reading prefers stored extracted or reviewed text; when reading from an image is required, only the requested page is rendered and sent to a local Ollama vision profile on stage `ocr`. Outputs are labelled as unverified, carry warnings, expire after one hour, and never mutate sources, citations, or vectors automatically.
+
+The ADMIN flow uses a separate proposal: a CURATOR compares the page image, current stored text, and AI proposal, can edit it, and then applies it into a new draft; the previously approved version stays untouched until a different REVIEWER inspects and approves it. The OCR AI worker is disabled by default (`EVIDENCE_OCR_AI_ENABLED=false`); operators must test/assign a suitable local profile, enable the flag, and restart. `qwen3.5:4b` was used for real-model testing, while the Model Registry still selects active models from configuration.
+
+### Verification and limits (2026-11-17)
+
+- Source review on 2026-11-17: backend tests with a temporary PostgreSQL cluster passed **341 cases, 0 skipped**; frontend passed **110 cases**; Ruff, mypy, ESLint, TypeScript, and Vite build all succeeded. Ollama `qwen3.5:4b` accurately read page 17/20 of a fictional image-only PDF in a functional test; that timing and result are not a production benchmark or domain acceptance.
+- Details of fixed issues, ACL scoping, expiry, cancellation, and verification results: [2026-11-17 OCR AI review report](evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md). PostgreSQL tests used a temporary cluster, not the operational DB.
+- Portable `r4` remains the older package using `qwen3:1.7b`; no new Portable ZIP was built/extracted/deployed in this round. Do not assume source OCR AI features are present in `r4`.
+- Behavior has not yet been confirmed on another physical Windows host, different GPU/RAM hardware, LAN workstations, an isolated offline ZIP environment, concurrent load/soak testing, or operational scanned PDFs.
+
+## Update: Document Comparison & Conflict/Overlap Review (2026-11-27)
+
+The source now includes both **Document & Version Comparison** (Phase 1) and **Conflict, Overlap & Authority Hierarchy Review** (Phase 2), merged onto `main`:
+
+- **Phase 1 — Document & Version Comparison**:
+  - Backend: deterministic normative signal extraction (`backend/app/analysis/signals.py` — quantities, currency, percentages, deadlines, obligations/prohibitions, authorities), clause alignment and diff engine (`backend/app/comparison/`), and 5 API endpoints (`GET /api/v1/documents/{document_id}/versions` including retired approved historical versions, `POST /api/v1/compare/documents` supporting `versions`, `amendment_pair`, and `cross_document`, `GET /api/v1/nodes/{node_id}/diff`, `POST /api/v1/compare/summarize` verifying quotes and rejecting unsupported claims, and `GET /api/v1/compare/nodes/{node_id}/original` checking ACL and SHA-256 provenance before serving original pages/files).
+  - Frontend: `DocumentComparePage.tsx`, `CompareDiffView.tsx` (side-by-side and inline diff views, change-only & impact-level filters, Markdown export, AI summary flagging unverified claims as `Cần thẩm định`), **So sánh** (Compare) shortcuts on `SearchPage` / `DocumentCard`, and cross-links from conflict finding cards.
+- **Phase 2 — Conflict, Overlap & Authority Hierarchy Review**:
+  - Migration `0018_legal_hierarchy_and_conflict_reviews.sql` (+ `.down.sql`, bringing the total to **18** forward/rollback migration pairs): adds `legal_authority_rules` (seeded with 23 default VBQPPL rules plus internal agency rule support via `ON CONFLICT DO NOTHING`), `conflict_review_runs`, and `conflict_findings`, strictly preserving all existing data.
+  - Backend: deterministic legal authority precedence evaluator (`backend/app/conflicts/precedence.py` implementing *lex superior*, *lex posterior*, *lex specialis* and `undetermined_requires_review` caveats), candidate pairer and deterministic signal detector (`detector.py`), optional AI screening gated by every source category's `allow_remote_processing` flag (`ai_screen.py`), background queue worker (`ConflictScanWorker`, capped at 1 active running scan per user), and 9 USER / CURATOR / REVIEWER / SYS_ADMIN API routes (`backend/app/api/v1/conflicts.py`).
+  - Frontend & Smoke: `ConflictReviewPage.tsx`, `ConflictFindingCard.tsx` (always rendering the human-review disclaimer and advisory authority block), Admin Portal tabs `ConflictTriagePanel.tsx` (CURATOR/REVIEWER confirm/dismiss and optional `draft`-only `node_amendments` creation requiring separate **Hiệu lực** approval), `AuthorityRulesPanel.tsx` (SYS_ADMIN rule management), and `scripts/smoke_compare_and_conflicts.py`.
+
+### Verification and limits (2026-11-27)
+
+- **Merged verification on `main`**: `scripts/verify.ps1` passed **12/12 steps**; backend pytest **459 passed, 0 skipped** on PostgreSQL 18.6; frontend Vitest **24 files / 129 passed**; `mypy` (119 files), `ruff`, `eslint --max-warnings=0`, `tsc` / `vite build`, 18 migration pairs, `export_openapi.py --check`, and `validate_no_literal_runtime_paths.py` all passed.
+- **Data preservation**: the existing evaluation database (`evidence_rerank_eval`) was verified untouched with **105 documents / 7,447 nodes / 7,447 vectors**.
+- **Operational limits & boundaries**:
+  - All conflict findings, classifications, and authority hierarchy assessments are **advisory suggestions only** and do not establish legal authority; CURATOR/REVIEWER confirmation only creates `node_amendments` in `draft` status.
+  - Portable `r4` (`Evidence-RAG-Portable-20261111-r4.zip`) has not been rebuilt from this source and **does not** contain OCR AI, Document Comparison, or Conflict Review.
+  - `scripts/smoke_compare_and_conflicts.py` targets a separately running live server for end-to-end HTTP smoke verification.
