@@ -111,7 +111,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
             (path === "/api/v1/admin/embeddings/jobs" && init.method === "POST") ? 95000
           // Deterministic comparison / A5 node diff run under a 60 s server statement timeout.
           : path === "/api/v1/compare/documents" ||
-              /^\/api\/v1\/nodes\/[^/]+\/diff$/.test(path) ? 65000
+              /^\/api\/v1\/nodes\/[^/]+\/diff(?:\?|$)/.test(path) ? 65000
           // AI summarize: 60 s server outer timeout around the model plus the recomparison.
           : path === "/api/v1/compare/summarize" ? 90000
             : 20000;

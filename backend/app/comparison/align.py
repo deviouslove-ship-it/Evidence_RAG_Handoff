@@ -35,10 +35,13 @@ HEADING_BONUS = 0.15
 
 @dataclass(frozen=True)
 class AmendmentLink:
-    """One approved ``node_amendments`` row connecting a left node to a right node.
+    """One approved ``node_amendments`` row connecting two aligned nodes.
 
     ``source_node_id`` may be any member of a stitched logical node (including a
-    ``tiep:N`` segment).  The right side resolves by ``target_node_id`` first, then by
+    ``tiep:N`` segment).  When ``direction == "left_to_right"`` (default), the
+    source is resolved in ``left`` and the target in ``right``; when
+    ``direction == "right_to_left"``, the source is resolved in ``right`` and the
+    target in ``left``.  Targets resolve by ``target_node_id`` first, then by
     normalized ``target_path``.  ``action`` is the stored amendment action
     (modify/replace/add/repeal/repeal_partial/suspend/commence).
     """
@@ -49,6 +52,7 @@ class AmendmentLink:
     action: str = "modify"
     valid_from: date | None = None
     source_quote: str | None = None
+    direction: Literal["left_to_right", "right_to_left"] = "left_to_right"
 
 
 @dataclass(frozen=True)
@@ -141,27 +145,52 @@ def align_nodes(
     pairs: list[AlignedPair] = []
 
     # Tier 1: explicit amendment links.
-    for link in amendment_links:
-        a = left_members.get(link.source_node_id)
-        if a is None or a.primary_node_id in used_left:
-            continue
-        b = right_members.get(link.target_node_id) if link.target_node_id is not None else None
-        if b is None and link.target_path:
+    def resolve_target(
+        link: AmendmentLink,
+        target_members: dict[UUID, LogicalNode],
+        target_nodes: list[LogicalNode],
+        used_target: set[UUID],
+    ) -> LogicalNode | None:
+        target = (
+            target_members.get(link.target_node_id)
+            if link.target_node_id is not None
+            else None
+        )
+        if target is None and link.target_path:
             key = normalize_structural_key(link.target_path)
-            b = next(
-                (node for node in right
-                 if node.primary_node_id not in used_right and node.structural_key == key),
+            target = next(
+                (
+                    node
+                    for node in target_nodes
+                    if node.primary_node_id not in used_target and node.structural_key == key
+                ),
                 None,
             )
-        if b is None or b.primary_node_id in used_right:
+        if target is None or target.primary_node_id in used_target:
+            return None
+        return target
+
+    for link in amendment_links:
+        if link.direction == "right_to_left":
+            src_members, used_src = right_members, used_right
+            tgt_members, tgt_nodes, used_tgt = left_members, left, used_left
+        else:
+            src_members, used_src = left_members, used_left
+            tgt_members, tgt_nodes, used_tgt = right_members, right, used_right
+        src = src_members.get(link.source_node_id)
+        if src is None or src.primary_node_id in used_src:
             continue
+        tgt = resolve_target(link, tgt_members, tgt_nodes, used_tgt)
+        if tgt is None:
+            continue
+        pair_left, pair_right = (tgt, src) if link.direction == "right_to_left" else (src, tgt)
         pairs.append(AlignedPair(
-            left=a, right=b, alignment_method="explicit_amendment",
+            left=pair_left, right=pair_right, alignment_method="explicit_amendment",
             amendment_action=link.action, valid_from=link.valid_from,
             source_quote=link.source_quote,
         ))
-        used_left.add(a.primary_node_id)
-        used_right.add(b.primary_node_id)
+        used_left.add(pair_left.primary_node_id)
+        used_right.add(pair_right.primary_node_id)
 
     # Tier 2: equal dieu structural keys, with the renumber guard.
     for a in left:

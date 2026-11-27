@@ -20,6 +20,7 @@ from uuid import UUID, uuid4
 from ..analysis.signals import (
     LogicalNode,
     NodeRecord,
+    normalize_structural_key,
     stitch_logical_nodes,
 )
 from ..audit import append_audit
@@ -207,25 +208,36 @@ async def _existing_embeddings(
 
 
 async def _amendment_links(
-    connection: Any, left_ids: Sequence[UUID], right_ids: Sequence[UUID],
+    connection: Any,
+    left_ids: Sequence[UUID],
+    right_ids: Sequence[UUID],
+    left_document_id: UUID,
     right_document_id: UUID,
 ) -> list[AmendmentLink]:
-    """Approved links whose source is a loaded left node and whose target resolves
-    to a loaded right node (by id) or to the right document (by stored path)."""
+    """Approved links in either direction between the two loaded sides."""
 
     if not left_ids or not right_ids:
         return []
     rows = await connection.fetch(
         """SELECT a.source_node_id, a.target_node_id, a.target_path, a.action,
-                  a.valid_from, a.source_quote
+                  a.valid_from, a.source_quote,
+                  CASE WHEN a.source_node_id = ANY($1::uuid[])
+                       THEN 'left_to_right' ELSE 'right_to_left' END AS direction
            FROM node_amendments a
            WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
-             AND a.source_node_id = ANY($1::uuid[])
-             AND (a.target_node_id = ANY($2::uuid[])
-                  OR (a.target_node_id IS NULL AND a.target_path IS NOT NULL
-                      AND a.target_document_id = $3))
+             AND (
+               (a.source_node_id = ANY($1::uuid[])
+                AND (a.target_node_id = ANY($2::uuid[])
+                     OR (a.target_node_id IS NULL AND a.target_path IS NOT NULL
+                         AND a.target_document_id = $4)))
+               OR
+               (a.source_node_id = ANY($2::uuid[])
+                AND (a.target_node_id = ANY($1::uuid[])
+                     OR (a.target_node_id IS NULL AND a.target_path IS NOT NULL
+                         AND a.target_document_id = $3)))
+             )
            ORDER BY a.id""",
-        list(left_ids), list(right_ids), right_document_id,
+        list(left_ids), list(right_ids), left_document_id, right_document_id,
     )
     return [
         AmendmentLink(
@@ -235,6 +247,7 @@ async def _amendment_links(
             action=row["action"],
             valid_from=row["valid_from"],
             source_quote=row["source_quote"],
+            direction=row["direction"],
         )
         for row in rows
     ]
@@ -379,6 +392,7 @@ async def compare_documents(
             connection,
             [node_id for node in left_nodes for node_id in node.member_node_ids],
             [node_id for node in right_nodes for node_id in node.member_node_ids],
+            selection.left_document_id,
             selection.right_document_id,
         )
         pairs = align_nodes(left_nodes, right_nodes, links, selection.mode)
@@ -580,7 +594,12 @@ async def node_timeline_diff(
                 else:
                     message = "Không tìm thấy Điều/Khoản tương ứng trong phiên bản trước."
         node_diff = diff_pair(pair) if pair is not None else None
-        amendments = await _node_amendments(connection, node_id, document_id)
+        amendments = await _node_amendments(
+            connection,
+            list(current.member_node_ids),
+            current.structural_key,
+            document_id,
+        )
         doc_views, node_views, _ = await load_effectivity(
             connection, document_ids=[document_id], node_ids=[node_id], as_of=as_of
         )
@@ -615,14 +634,19 @@ async def node_timeline_diff(
 
 
 async def _node_amendments(
-    connection: Any, node_id: UUID, document_id: UUID
+    connection: Any,
+    member_node_ids: Sequence[UUID],
+    structural_key: str,
+    document_id: UUID,
 ) -> list[dict[str, Any]]:
-    """Approved relations acting on this node (or its whole document) from other
-    ALLOWED documents whose source node is itself approved and source-valid."""
+    """Approved relations acting on this logical node (including tiep:N members and
+    path-only node targets, or its whole document) from other ALLOWED documents whose
+    source node is itself approved and source-valid."""
 
     rows = await connection.fetch(
         """SELECT a.id, a.action, a.scope, a.valid_from, a.source_quote, a.evidence_source,
-                  a.source_node_id, sn.document_id AS source_document_id,
+                  a.source_node_id, a.target_node_id, a.target_path,
+                  sn.document_id AS source_document_id,
                   sn.citation_label AS source_label,
                   sd.title AS source_title, sd.document_number AS source_number,
                   sd.doc_type AS source_doc_type, sd.issuing_body AS source_issuing_body
@@ -632,15 +656,23 @@ async def _node_amendments(
            JOIN source_provenance sp ON sp.document_version_id = sv.id
            JOIN documents sd ON sd.id = sn.document_id
            WHERE a.review_status = 'approved' AND a.superseded_by IS NULL
-             AND (a.target_node_id = $1
-                  OR (a.scope = 'document' AND a.target_document_id = $2))
+             AND (a.target_node_id = ANY($1::uuid[])
+                  OR (a.scope = 'document' AND a.target_document_id = $2)
+                  OR (a.target_node_id IS NULL AND a.scope = 'node'
+                      AND a.target_document_id = $2 AND a.target_path IS NOT NULL))
              AND sn.document_id <> $2
              AND sn.review_status = 'approved' AND node_source_text_valid(sn.id)
              AND sv.review_status = 'approved' AND sp.verified_at IS NOT NULL
            ORDER BY a.valid_from NULLS LAST, a.id""",
-        node_id, document_id,
+        list(member_node_ids), document_id,
     )
-    allowed = await _allowed(connection, list({row["source_document_id"] for row in rows}))
+    matched = [
+        row for row in rows
+        if not (row["target_node_id"] is None and row["scope"] == "node")
+        or (bool(structural_key)
+            and normalize_structural_key(row["target_path"]) == structural_key)
+    ]
+    allowed = await _allowed(connection, list({row["source_document_id"] for row in matched}))
     return [
         {
             "id": row["id"], "action": row["action"], "scope": row["scope"],
@@ -654,5 +686,5 @@ async def _node_amendments(
                 "issuing_body": row["source_issuing_body"],
             },
         }
-        for row in rows if row["source_document_id"] in allowed
+        for row in matched if row["source_document_id"] in allowed
     ]

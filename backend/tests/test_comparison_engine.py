@@ -449,6 +449,45 @@ def test_align_explicit_link_by_target_node_id_and_member_id() -> None:
     assert pairs[0].amendment_action == "modify"
 
 
+def test_align_explicit_link_right_to_left_by_target_node_id_and_target_path() -> None:
+    left_id, left_part_id, right_id = uuid4(), uuid4(), uuid4()
+    left = stitch_logical_nodes([
+        _record("000005:dieu:5/khoan:2", "Quy định gốc.", node_id=left_id),
+        _record("000006:dieu:5/khoan:2/tiep:2", "Phần tiếp theo.", node_type="paragraph",
+                node_id=left_part_id),
+    ])
+    right = [_node("dieu:1/khoan:1", "Sửa đổi khoản 2 Điều 5.", ordinal=0, node_id=right_id)]
+
+    by_id = AmendmentLink(
+        source_node_id=right_id,
+        target_node_id=left_part_id,
+        action="modify",
+        valid_from=date(2030, 5, 1),
+        source_quote="Sửa đổi khoản 2 Điều 5:",
+        direction="right_to_left",
+    )
+    pairs_id = align_nodes(left, right, [by_id], mode="amendment_pair")
+    assert len(pairs_id) == 1
+    assert pairs_id[0].alignment_method == "explicit_amendment"
+    assert pairs_id[0].left is left[0]
+    assert pairs_id[0].right is right[0]
+    assert pairs_id[0].amendment_action == "modify"
+    assert pairs_id[0].valid_from == date(2030, 5, 1)
+
+    by_path = AmendmentLink(
+        source_node_id=right_id,
+        target_path="000005:dieu:05/khoan:02",
+        action="replace",
+        direction="right_to_left",
+    )
+    pairs_path = align_nodes(left, right, [by_path], mode="amendment_pair")
+    assert len(pairs_path) == 1
+    assert pairs_path[0].alignment_method == "explicit_amendment"
+    assert pairs_path[0].left is left[0]
+    assert pairs_path[0].right is right[0]
+    assert pairs_path[0].amendment_action == "replace"
+
+
 def test_align_empty_inputs() -> None:
     assert align_nodes([], [], mode="versions") == []
     node = _node("dieu:1", "Điều 1. Nội dung.", ordinal=0, node_type="article")
