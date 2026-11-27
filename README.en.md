@@ -6,7 +6,55 @@ Grounded lookup of Vietnamese agency administrative and operational documents. O
 
 This is the English counterpart of `README.md`. The Vietnamese file is the original.
 
+## Live demo for judges
+
+A public demo is online at **https://108-61-161-195.sslip.io/**
+
+1. Open the URL and click **"Đăng nhập"** (Log in) at the top right.
+2. Sign in with the main tester account: `chuyenvien` / `Demo-2Y4J-AmreN-DmEt4` (Q&A and search).
+
+Other demo accounts:
+
+| Account | Password | Access |
+|---|---|---|
+| `chuyenvien` | `Demo-2Y4J-AmreN-DmEt4` | Q&A and document search (main tester account) |
+| `curator` | `Demo-wKCT-xxAxU-EvTs2` | Add documents and search |
+| `reviewer` | `Demo-sQ9U-JKNfT-bUH2y` | Approve documents and search |
+| `admin` | `Demo-tfEq-ov8tA-68VNi` | Admin portal and audit log (cannot search documents) |
+
+These are public demo credentials from the judge package.
+
+**Please test in Vietnamese.** The interface and the corpus (105 Vietnamese Ministry of Public Security legal documents) are Vietnamese. Use the Vietnamese sample questions below; English translations are provided only so you can understand what you are asking. English queries are not supported.
+
+### How to test Q&A
+
+On **"Hỏi đáp"** (Q&A), paste a Vietnamese question and click **"Tra cứu"** (Search). Within about 10 seconds you get matching clauses, each with the document number, article, an exact quote, and a button to open the original file.
+
+### Sample questions
+
+1. *Thủ tục cấp lại thẻ Căn cước công dân gồm những bước nào?*  
+   (What are the steps to reissue a citizen ID card?) — 60/2021/TT-BCA
+2. *Ảnh chân dung khi làm thẻ Căn cước công dân phải đáp ứng yêu cầu gì?*  
+   (Requirements for the ID-card portrait photo?) — 60/2021/TT-BCA Art. 5
+3. *Cảnh sát giao thông được dừng phương tiện để kiểm soát trong những trường hợp nào?*  
+   (When may traffic police stop a vehicle for inspection?) — 32/2023/TT-BCA
+4. *Những đồ vật nào bị cấm đưa vào khu vực giam giữ?*  
+   (Which items are prohibited in detention facilities?) — 58/2026/TT-BCA
+5. *Người nước ngoài được nhận thị thực tại cửa khẩu sân bay quốc tế trong trường hợp nào?*  
+   (When can foreigners get a visa on arrival at international airports?) — 07/VBHN-BCA
+
+### Document search and AI explanation
+
+**"Tìm kiếm văn bản"** (Document search) includes **"Diễn giải AI"** (AI explanation), which writes an answer from the cited clauses. It runs on CPU-only local AI, so allow about 1 minute.
+
+### Review and admin workflows
+
+- Review workflow: upload as `curator`, approve as `reviewer`.
+- Admin features: log in as `admin`.
+
 ## Download the app (for judges)
+
+If you only need to try the public demo, use the **Live demo for judges** section above. The Windows package below is optional if you want to run the app locally.
 
 - **Package:** `Evidence-RAG-Portable-20261111-r4.zip` (~3.52 GiB, 3,777,436,554 bytes; includes documents and local AI models). Extract with 7-Zip or Windows' built-in extractor.
 - **Download:** https://drive.google.com/file/d/1C9bSKqt_7Rwuqe5NqtTZNzhABVqd7dj6/view?usp=sharing
