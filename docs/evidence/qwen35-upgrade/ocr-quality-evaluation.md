@@ -1,5 +1,7 @@
 # Đánh giá OCR AI cục bộ (Tesseract vs `qwen3.5:4b`) trên 12 trang giả lập
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](ocr-quality-evaluation.en.md)
+
 - Model đánh giá: `qwen3.5:4b` (Ollama loopback `http://127.0.0.1:11434/v1`, `think=false`, `num_ctx=8192`)
 - Tesseract so sánh: `Có`
 - Process RSS script sau chạy: `58.4 MB`

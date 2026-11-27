@@ -1,5 +1,7 @@
 # Kế hoạch triển khai: So sánh 2 văn bản & Rà soát mâu thuẫn, chồng chéo
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](2026-11-26-so-sanh-van-ban-va-ra-soat-mau-thuan.en.md)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Bổ sung hai năng lực phân tích đối chiếu pháp lý/hành chính an toàn theo nguyên tắc *chứng cứ trước (evidence-first)* vào Evidence RAG:

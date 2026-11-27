@@ -1,5 +1,7 @@
 # Phương án nâng cấp qwen3.5:4b và OCR AI — Implementation Plan
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](2026-11-16-nang-cap-qwen35-4b-va-ocr-ai.en.md)
+
 > **Implementation status (2026-11-17):** Source work for the local vision stage, one-page USER reading, Admin OCR proposals, and related model/runtime checks has been implemented and reviewed; see [review report](../../evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md). The checklists below remain the original plan-time acceptance criteria, not a claim that every item is complete. A new Portable ZIP, isolated offline relocation and another Windows machine remain unverified; existing r4 was not rebuilt. Do not run migrations against the operational database based on this plan.
 
 **Goal:** Dùng `qwen3.5:4b` cho các tác vụ AI văn bản; cho USER yêu cầu trực tiếp trong chat nội dung text của một trang PDF scan cụ thể; bổ sung quy trình quản trị đối chiếu và duyệt khi muốn sửa nội dung trong kho.

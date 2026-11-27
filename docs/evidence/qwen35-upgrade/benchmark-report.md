@@ -1,5 +1,7 @@
 # Báo cáo kiểm chứng Gate A1: `qwen3.5:4b` trên Ollama 0.40.15
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](benchmark-report.en.md)
+
 Ngày kiểm chứng: 16/11/2026
 
 ## 1. Môi trường kiểm chứng và baseline

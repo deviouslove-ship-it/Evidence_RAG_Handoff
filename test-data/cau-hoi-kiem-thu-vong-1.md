@@ -1,5 +1,7 @@
 # Bộ 15 câu hỏi kiểm thử vòng 1
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](cau-hoi-kiem-thu-vong-1.en.md)
+
 Dựng từ nội dung 30 tệp của vòng 1 (20 tệp có chữ, 10 tệp scan). Đáp án chuẩn do AI soạn từ chữ trích tự động của chính các tệp, không dùng kiến thức ngoài. **Cần cán bộ chuyên môn xác nhận trước khi dùng làm chuẩn.**
 
 Quy ước:
@@ -52,6 +54,8 @@ Tệp bị loại: Thông tư 86/2025 (có chữ nhưng lớp chữ sai dấu: "
 | 30 | Thong_tu | [03_VBHN-BCA]_Van_ban_hop_nhat_so_03.2021.pdf | 9 | Nhiễu |
 
 Các bản scan 94/2026, 58/2026 có bản Word cùng số hiệu trong bộ dữ liệu thử, dùng để đo lỗi OCR. Bản Word đó không nạp vào vòng 1 để tránh trùng.
+
+Lưu ý: Bản dịch tiếng Anh chỉ để giám khảo hiểu nội dung câu hỏi. Ứng dụng chưa hỗ trợ hỏi bằng tiếng Anh; vui lòng thử bằng tiếng Việt.
 
 ## 2. Bảng câu hỏi
 

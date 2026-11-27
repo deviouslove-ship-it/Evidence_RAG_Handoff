@@ -1,5 +1,7 @@
 # Rà soát và sửa lỗi nâng cấp Qwen3.5 / OCR AI — 17/11/2026
 
+**Ngôn ngữ / Language:** Tiếng Việt · [English](REVIEW_FIXES_2026-11-17.en.md)
+
 ## Phạm vi và cách kiểm chứng
 
 Rà soát đợt nâng cấp đang sửa trong checkout `Evidence_RAG_Handoff`, trên nền commit `e985408fcfb0d425bd219e6539a6b868905a0014`. Các thay đổi của AI trước được giữ lại; đây là phần sửa lỗi bổ sung, chưa commit/push. Công việc bắt đầu ngày 16/11 và hoàn tất kiểm chứng ngày 17/11/2026.
