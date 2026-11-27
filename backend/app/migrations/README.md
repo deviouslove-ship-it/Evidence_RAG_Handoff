@@ -25,9 +25,10 @@ PostgreSQL.
 | `0014_embedding_jobs.sql` | `0014_embedding_jobs.down.sql` | Background embedding rebuild jobs, index states `paused`/`failed` |
 | `0015_ocr_page_review.sql` | `0015_ocr_page_review.down.sql` | OCR page diagnostics and the reviewer who confirmed a page against the scan |
 | `0016_document_management.sql` | `0016_document_management.down.sql` | Versioned metadata, OCR edits, lookup availability and cache revision |
+| `0017_ocr_ai_proposals.sql` | `0017_ocr_ai_proposals.down.sql` | On-demand OCR AI page jobs and curator edit proposals (`ocr_ai_jobs`, `ocr_ai_proposals`) |
+| `0018_legal_hierarchy_and_conflict_reviews.sql` | `0018_legal_hierarchy_and_conflict_reviews.down.sql` | Legal authority hierarchy rules (23 seeded VBQPPL rules), background conflict review runs and findings (`legal_authority_rules`, `conflict_review_runs`, `conflict_findings`) |
 
-Migration `0016` preserves all existing versions, hashes and vectors. The intake hash
-remains unique for each original. Corrections can refer to that same immutable original.
+Currently there are **18** forward/rollback migration pairs (`0001`–`0018`). Migrations `0016`, `0017`, and `0018` are strictly additive and preserve all existing documents, versions, hashes, nodes, and pgvector embeddings (`0018` seeds default authority rules with `ON CONFLICT DO NOTHING`).
 The down migration works on an unused schema and refuses to drop the new fields once they
 contain management data. Preserve an encrypted pre-upgrade backup for a binary rollback.
 

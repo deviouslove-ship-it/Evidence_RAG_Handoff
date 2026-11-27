@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](../en/ARCHITECTURE_OVERVIEW.md)
 
-Tóm tắt kiến trúc lập ngày 09/11/2026 từ mã nguồn và tài liệu trong repository; mốc sử dụng Kiro và lịch sử cập nhật spec được bổ sung ngày 11/11/2026; luồng đọc một trang/OCR AI được cập nhật 17/11/2026. Chi tiết: [Mô tả hệ thống](../TAI_LIEU_MO_TA_HE_THONG.md), các ADR trong `docs/architecture-decisions/` và các spec trong `.kiro/specs/` (tiếng Anh; bản dịch ở [`docs/vi/kiro/`](kiro/README.vi.md)).
+Tóm tắt kiến trúc lập ngày 09/11/2026 từ mã nguồn và tài liệu trong repository; mốc sử dụng Kiro và lịch sử cập nhật spec được bổ sung ngày 11/11/2026; luồng đọc một trang/OCR AI được cập nhật 17/11/2026; phân hệ So sánh 2 văn bản và Rà soát mâu thuẫn & thứ bậc hiệu lực được cập nhật 27/11/2026. Chi tiết: [Mô tả hệ thống](../TAI_LIEU_MO_TA_HE_THONG.md), các ADR trong `docs/architecture-decisions/` và các spec trong `.kiro/specs/` (tiếng Anh; bản dịch ở [`docs/vi/kiro/`](kiro/README.vi.md)).
 
 ## Thành phần
 
@@ -19,6 +19,8 @@ flowchart TB
     SRCH[storage: tìm kiếm, toàn diện, trích dẫn]
     EFF[effectivity]
     SYN[synthesis]
+    CMP[comparison: so sánh văn bản, phiên bản]
+    CNF[conflicts: rà soát mâu thuẫn, thứ bậc]
     REG[model_registry: hồ sơ, giai đoạn, egress]
     AUD[audit: chuỗi băm]
   end
@@ -29,9 +31,15 @@ flowchart TB
   API --> SRCH
   API --> EFF
   API --> SYN
+  API --> CMP
+  API --> CNF
   SYN --> REG
+  CMP --> REG
+  CNF --> REG
   SRCH --> REG
   DOC --> AUD
+  CMP --> AUD
+  CNF --> AUD
   DB[(PostgreSQL + pgvector)]
   FS[(Tệp gốc theo SHA-256)]
   AUTH --> DB
@@ -39,6 +47,8 @@ flowchart TB
   DOC --> FS
   SRCH --> DB
   EFF --> DB
+  CMP --> DB
+  CNF --> DB
   AUD --> DB
   REG --> LM[Model local: Ollama và tương thích]
   REG --> OCRAI[Ollama vision local, stage ocr]
@@ -58,6 +68,8 @@ flowchart TB
 4. **Diễn giải AI** (tùy chọn): căn cứ được phép → model giai đoạn `summarize` → kiểm tra bằng mã → câu trả lời kèm căn cứ hỗ trợ.
 5. **Đọc chữ một trang scan trong chat**: USER chọn tài liệu/trang → API kiểm ACL và revision → ưu tiên chữ đã lưu; nếu cần đọc ảnh thì render đúng trang → hồ sơ Ollama vision local → kết quả tạm chưa xác minh, không sửa nguồn/vector. Worker mặc định tắt.
 6. **Hiệu chỉnh OCR trong Admin**: CURATOR chọn trang → AI tạo đề xuất → người dùng đối chiếu/chỉnh → áp dụng thành bản nháp mới → REVIEWER khác kiểm tra và duyệt.
+7. **So sánh văn bản**: USER chọn 1 trong 3 chế độ (phiên bản, gốc – sửa đổi/bổ sung, 2 văn bản cùng chủ đề) → API lọc ACL → ghép điều khoản & trích tín hiệu quy phạm xác định → mở tệp gốc theo trang hoặc tóm tắt AI tùy chọn có kiểm tra trích dẫn.
+8. **Rà soát mâu thuẫn & thứ bậc hiệu lực**: USER chọn 2–20 văn bản hoặc 1 danh mục → API/worker đối chiếu điều khoản & tín hiệu xác định, đánh giá thứ bậc từ `legal_authority_rules` → tùy chọn phân tích AI khi mọi danh mục cho phép xử lý từ xa → CURATOR/REVIEWER thẩm định trong Admin và chỉ tạo đề xuất sửa đổi dạng `draft`.
 
 ## Nguyên tắc và nơi thực hiện
 
@@ -71,6 +83,8 @@ flowchart TB
 | Egress chặn mặc định; embedding và rerank chỉ local | `model_registry/stages.py`, ADR-004, ADR-007 |
 | Nhật ký kiểm toán chống sửa | `audit.py` |
 | Chỉ đọc ảnh trang được yêu cầu qua hồ sơ Local; kết quả không tự thành căn cứ | `documents/page_text.py`, `documents/ocr_ai_jobs.py`, `model_registry/runtime.py` |
+| Đối chiếu xác định kèm kiểm chứng trích dẫn; mở bản gốc kiểm ACL/SHA-256 | `analysis/signals.py`, `comparison/`, `api/v1/compare.py` |
+| Phát hiện mâu thuẫn & thứ bậc chỉ mang tính gợi ý; triage chỉ tạo `draft` | `conflicts/precedence.py`, `conflicts/detector.py`, `conflicts/worker.py`, `api/v1/conflicts.py` |
 
 ## Dạng triển khai
 
@@ -78,7 +92,7 @@ flowchart TB
 - Gói portable sạch: `deploy/portable/`.
 - Gói LAN offline kèm model local: `deploy/lan-portable/`.
 
-Source hiện có luồng OCR AI từng trang và được kiểm thử với model `qwen3.5:4b`; cấu hình thực tế do Model Registry quyết định. Gói Portable r4 chưa được đóng gói lại từ source này. Xem [báo cáo rà soát 17/11](../evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md).
+Source hiện có luồng OCR AI từng trang (đã kiểm thử với model `qwen3.5:4b`), phân hệ So sánh 2 văn bản và Rà soát mâu thuẫn & thứ bậc hiệu lực (cập nhật 27/11/2026); cấu hình model thực tế vẫn do Model Registry quyết định. Gói Portable r4 chưa được đóng gói lại từ source này. Xem [báo cáo rà soát 17/11](../evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md) và [trạng thái triển khai](../implementation-status.md).
 
 ## Vị trí của Kiro
 

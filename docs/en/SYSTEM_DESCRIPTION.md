@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](../TAI_LIEU_MO_TA_HE_THONG.md) · English
 
-English counterpart of `docs/TAI_LIEU_MO_TA_HE_THONG.md` (the Vietnamese original). Checked against the source on 2026-11-11. This document describes the code in the repository; configuration, data and versions of an actual deployment package may differ. Step-by-step operation is in [USER_ADMIN_AND_AI_GUIDE.md](USER_ADMIN_AND_AI_GUIDE.md).
+English counterpart of `docs/TAI_LIEU_MO_TA_HE_THONG.md` (the Vietnamese original). Checked against the source on 2026-11-11, with OCR AI updates on 2026-11-17 and Document Comparison & Conflict Review updates on 2026-11-27. This document describes the code in the repository; configuration, data and versions of an actual deployment package may differ. Step-by-step operation is in [USER_ADMIN_AND_AI_GUIDE.md](USER_ADMIN_AND_AI_GUIDE.md).
 
 ## Contents
 
@@ -42,16 +42,16 @@ flowchart LR
  R --> V[Local Ollama vision profile, ocr stage]
 ```
 
-React/TypeScript in `frontend/` provides Q&A, Search and the Admin Portal; Tauri in `src-tauri/` is the USER desktop shell. `backend/app/` holds the FastAPI API, authentication, documents, workflow, search, effectivity and the registry. PostgreSQL stores business state, permissions, extracts, indexes, vectors and audit; the file store keeps PDFs and provenance. The backend calls OCR or models through configuration; client machines never connect to the database directly. `backend/app/migrations/` holds forward and rollback migrations; `deploy/` and `scripts/` hold deployment and operation sources.
+React/TypeScript in `frontend/` provides Q&A, Search, Document Comparison, Conflict Review and the Admin Portal; Tauri in `src-tauri/` is the USER desktop shell. `backend/app/` holds the FastAPI API, authentication, documents, workflow, search, effectivity, analysis/comparison/conflicts (`analysis/`, `comparison/`, `conflicts/`) and the registry. PostgreSQL stores business state, permissions, extracts, indexes, vectors, authority hierarchy rules, conflict scan runs/findings and audit; the file store keeps PDFs and provenance. The backend calls OCR or models through configuration; client machines never connect to the database directly. `backend/app/migrations/` holds forward and rollback migrations; `deploy/` and `scripts/` hold deployment and operation sources.
 
 ## 3. Users, administration and permissions
 
 | Role | Functions and limits |
 |---|---|
-| USER | Log in, ask, search, view evidence and open permitted files; read access is filtered by ACL, not by role alone. |
-| CURATOR | Ingest files, create drafts, verify/re-extract, submit for review. The creator does not approve their own draft. |
-| REVIEWER | Review source tasks and OCR pages, choose categories, add notes, approve or reject; handle effectivity proposals and labels. |
-| SYS_ADMIN | Manage categories, accounts, roles and per-category permissions; manage the registry, AI assignment and embedding. SYS_ADMIN does not by default read all content or use Q&A. |
+| USER | Log in, ask, search, compare documents, run conflict reviews, view evidence and open permitted files; read access is filtered by ACL, not by role alone. |
+| CURATOR | Ingest files, create drafts, verify/re-extract, submit for review; triage conflict findings and propose `draft` amendments within granted categories. The creator does not approve their own draft. |
+| REVIEWER | Review source tasks and OCR pages, choose categories, add notes, approve or reject; handle effectivity proposals, labels and conflict finding triage within granted review categories. |
+| SYS_ADMIN | Manage categories, accounts, roles and per-category permissions; manage authority hierarchy rules (`legal_authority_rules`), the registry, AI assignment and embedding. SYS_ADMIN does not by default read all content or use Q&A. |
 | AUDITOR | View audit functions as granted; no implied right to change AI configuration or read all documents. |
 
 The backend checks the session, RBAC action permission and ABAC/ACL scope on the server, before retrieval and before opening a citation. A category has a flag allowing remote processing; account permission, operating policy and model configuration remain independent conditions. Administrators can create/edit categories, soft-delete and revoke ACLs; manage accounts, roles, status and scope; the interface changes with the actual permissions. Category permissions are granted by the admin per account in two boxes, **Danh mục được phép tra cứu (ABAC)** (look-up) and **Danh mục được xác nhận hiệu lực (người duyệt)** (effectivity confirmation by reviewers), in **Tài khoản & Phân quyền**. On initialisation `chuyenvien` already holds look-up rights on the test categories; `curator` and `reviewer` see an empty list until the admin grants categories.
@@ -134,6 +134,14 @@ sequenceDiagram
 
 The page-reading flow uses the same API/backend and ACL checks; only the requested page image is sent to the local `ocr` profile. That profile must be an approved, tested Ollama vision profile assigned to the stage; the worker is disabled by default. `qwen3.5:4b` was used in a real-model test, but the Model Registry selects the runtime model from configuration; the application does not hard-code it.
 
+### Document and version comparison
+
+Within the user's ACL scope, the comparison module supports three modes: (1) **Version comparison** between two approved versions of the same document (including versions withdrawn into history after a correction approval), (2) **Base vs. amending/supplementing** bidirectional lookup backed by `node_amendments` and node-level diff (`GET /api/v1/nodes/{node_id}/diff`), and (3) **Cross-document comparison** of two documents on the same topic. Deterministic analysis (`analysis/signals.py`, `comparison/`) aligns clauses and extracts normative signals (quantities, currency, percentages, deadlines, obligations/prohibitions, authorities), enforces ACL/SHA-256 on per-page original links (`GET /api/v1/compare/nodes/{node_id}/original`) and exports Markdown reports. Optional **AI summary** verifies each statement against stored quotes and flags unverified claims as `Cần thẩm định` (Needs review).
+
+### Conflict, overlap & authority hierarchy review
+
+A USER selects 2–20 specific documents or one authorized category to scan clauses across content groups or matching topics. Deterministic pair generation and signal analysis (`conflicts/detector.py`) flag *potential contradictions*, *overlaps*, *exceptions/elaborations* and *existing amendment relations*, while `conflicts/precedence.py` evaluates advisory hierarchy from `legal_authority_rules` (23 seeded VBQPPL rules plus SYS_ADMIN-managed internal rules) using *lex superior / lex posterior / lex specialis* heuristics. Optional **Add AI analysis** (`ConflictScanWorker`) defaults to off and sends pairs to remote AI only when every source category permits remote processing. All findings carry an advisory disclaimer; Admin triage creates `node_amendments` strictly in `draft` status and never modifies approved effectivity automatically.
+
 ## 6. Retrieval, effectivity and indexes
 
 The backend combines lexical channels such as phrases, accented/unaccented keywords, titles and document numbers with a semantic channel when embeddings exist. RRF fuses the channel rankings; reranking by LLM or cross-encoder is optional, and it should not be assumed enabled everywhere. The most recently reported configuration used RRF, a relative semantic threshold of 0.8 and rerank off; the actual configuration must be checked on the running machine. Candidate, time and concurrency limits keep the system responsive; they also limit the completeness of each query.
@@ -158,6 +166,7 @@ Stage `ocr` for PDF page images is local-only: the Registry accepts only an Olla
 | Document store | Document/version, metadata, hash and provenance, originals, drafts, review tasks, structure nodes and source spans. |
 | Search | Normalised fields, keyword indexes, vector/model/dimension, index state and embedding jobs. |
 | Effectivity | State, dates, relations and review/proposal history. |
+| Comparison & Conflicts | Authority hierarchy rules (`legal_authority_rules`), background scan queue (`conflict_review_runs`, `ConflictScanWorker`), findings and triage notes (`conflict_findings`); never mutates approved documents automatically. |
 | Administration | Model profiles, routes, test state, hash-linked audit. |
 
 The API uses Bearer tokens; permission is checked on the server and again where a source is opened. API keys entered through the Admin Portal are encrypted with Windows DPAPI bound to the server's account when the key store is available, and are never returned through the API; changing the Windows account may require re-entering them. LAN Portable mode uses HTTP: credentials and keys sent from the browser are not protected by TLS in transit, so use it only in a trusted network or add suitable transport protection. By design Q&A session data lives in RAM; do not treat it as a backup mechanism.
@@ -173,7 +182,8 @@ Backup creates a snapshot of the database and file store with hashes; restore ve
 - There is no basis to conclude that the application passed domain acceptance. No Gold question set is used to score the AI (ADR-010): the AI only assists and the domain staff decide. Coverage and quality depend on the store, permissions, metadata, effectivity and questions.
 - The 11-08 source reports state that scanned-PDF OCR, local Ollama models, the Chrome UI and the test suites were tried; this is historical evidence, not re-testing in this documentation pass. The Model Registry report states that real OpenAI/Gemini were not tried and the Tauri shell was not checked.
 - The source reviewed on 2026-11-17 adds one-page chat reading and an Admin OCR AI proposal workflow. PostgreSQL integration tests passed 341 cases and frontend tests passed 110; a real model read page 17/20 from a fictional image-only PDF. This is technical evidence, not business OCR acceptance or validation on another Windows/LAN machine. See the [2026-11-17 review report](../evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md).
-- The existing Portable r4 release remains an older package with `qwen3:1.7b`; it has not been rebuilt from the upgraded source. Do not assume the new OCR AI flow is present in r4.
+- The 2026-11-27 update adds **Document & version comparison**, **Conflict, overlap & authority hierarchy review** and migration `0018`. After merging into `main`, `scripts/verify.ps1` passed 12/12 steps: backend pytest **459 passed, 0 skipped** on PostgreSQL 18.6, frontend **24 files / 129 passed**, `mypy`, `ruff`, `eslint`, `vite build`, 18 migration pairs and `export_openapi.py --check`; the `evidence_rerank_eval` corpus retained 105 documents / 7,447 vectors untouched. Conflict findings and authority hierarchy assessments are advisory suggestions only; Admin triage only creates `draft` `node_amendments`.
+- The existing Portable r4 release (`Evidence-RAG-Portable-20261111-r4.zip`) remains an older package with `qwen3:1.7b`; it has not been rebuilt from the upgraded source. Do not assume OCR AI, Document Comparison or Conflict Review are present in r4.
 - The Portable report states that moving to another folder/drive on the development machine was tried; moving to another physical Windows machine is not confirmed. Availability of models, runtime and data must be checked in the actual package.
 - OCR can be wrong, especially document numbers and conditions; the reviewer must compare. Automatic interpretation checks do not replace legal review. Retrieval limits, timeouts, concurrency and missing indexes can affect results.
 - Detailed sources: [implementation status](../implementation-status.md), [AI/OCR report](../evidence/2026-11-08-ai-ocr/REPORT.md), [Model Registry](../evidence/2026-11-08-model-registry-ui/REPORT.md), [Embedding](../evidence/2026-11-07-embedding-admin/REPORT.md), [threat model](../threat-model.md) and the corresponding source. The reports have different dates; when they differ, prefer the code and configuration actually deployed.

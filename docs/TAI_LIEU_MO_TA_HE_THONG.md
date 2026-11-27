@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](en/SYSTEM_DESCRIPTION.md)
 
-Đối chiếu source ngày 11/11/2026. Tài liệu mô tả mã trong repository; cấu hình, dữ liệu và phiên bản thực tế của từng gói triển khai có thể khác. Hướng dẫn thao tác ở [HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md](HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md).
+Đối chiếu source ngày 11/11/2026; cập nhật luồng OCR AI (17/11/2026) và phân hệ So sánh văn bản, Rà soát mâu thuẫn & thứ bậc hiệu lực (27/11/2026). Tài liệu mô tả mã trong repository; cấu hình, dữ liệu và phiên bản thực tế của từng gói triển khai có thể khác. Hướng dẫn thao tác ở [HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md](HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md).
 
 ## Mục lục
 
@@ -42,16 +42,16 @@ flowchart LR
  R --> V[Hồ sơ Ollama vision local, stage ocr]
 ```
 
-React/TypeScript trong `frontend/` cung cấp Hỏi đáp, Tìm kiếm và Admin Portal; Tauri trong `src-tauri/` là vỏ desktop USER. `backend/app/` chứa API FastAPI, xác thực, tài liệu, workflow, tìm kiếm, hiệu lực và registry. PostgreSQL lưu trạng thái nghiệp vụ, quyền, trích đoạn, chỉ mục, vector và audit; kho tệp lưu bản PDF và nguồn gốc. Backend gọi OCR hoặc model qua cấu hình; máy trạm không kết nối trực tiếp cơ sở dữ liệu. `backend/app/migrations/` chứa migration tiến và lùi, `deploy/` và `scripts/` chứa nguồn triển khai/vận hành.
+React/TypeScript trong `frontend/` cung cấp Hỏi đáp, Tìm kiếm, So sánh văn bản, Rà soát mâu thuẫn và Admin Portal; Tauri trong `src-tauri/` là vỏ desktop USER. `backend/app/` chứa API FastAPI, xác thực, tài liệu, workflow, tìm kiếm, hiệu lực, phân tích/đối chiếu (`analysis/`, `comparison/`, `conflicts/`) và registry. PostgreSQL lưu trạng thái nghiệp vụ, quyền, trích đoạn, chỉ mục, vector, quy tắc thứ bậc, phiên quét mâu thuẫn và audit; kho tệp lưu bản PDF và nguồn gốc. Backend gọi OCR hoặc model qua cấu hình; máy trạm không kết nối trực tiếp cơ sở dữ liệu. `backend/app/migrations/` chứa migration tiến và lùi, `deploy/` và `scripts/` chứa nguồn triển khai/vận hành.
 
 ## 3. Người dùng, quản trị và phân quyền
 
 | Vai trò | Chức năng và giới hạn |
 |---|---|
-| USER | Đăng nhập, hỏi đáp, tìm kiếm, xem căn cứ và mở tệp được phép; quyền đọc được lọc theo ACL, không theo vai trò một cách đơn thuần. |
-| CURATOR | Nhập tệp, tạo nháp, kiểm tra/trích xuất lại, gửi duyệt. Người tạo không tự phê duyệt nháp của mình. |
-| REVIEWER | Rà soát tác vụ nguồn và trang OCR, chọn danh mục, ghi chú, duyệt hoặc từ chối; xử lý đề xuất hiệu lực và nhãn. |
-| SYS_ADMIN | Quản lý danh mục, tài khoản, vai trò và quyền theo danh mục; quản lý registry, phân công AI và embedding. SYS_ADMIN không mặc nhiên có quyền đọc mọi nội dung hoặc hỏi đáp. |
+| USER | Đăng nhập, hỏi đáp, tìm kiếm, so sánh văn bản, chạy rà soát mâu thuẫn, xem căn cứ và mở tệp được phép; quyền đọc được lọc theo ACL, không theo vai trò một cách đơn thuần. |
+| CURATOR | Nhập tệp, tạo nháp, kiểm tra/trích xuất lại, gửi duyệt; thẩm định phát hiện mâu thuẫn và đề xuất sửa đổi dạng `draft` theo danh mục được cấp. Người tạo không tự phê duyệt nháp của mình. |
+| REVIEWER | Rà soát tác vụ nguồn và trang OCR, chọn danh mục, ghi chú, duyệt hoặc từ chối; xử lý đề xuất hiệu lực, nhãn và thẩm định phát hiện mâu thuẫn trong danh mục được giao quyền. |
+| SYS_ADMIN | Quản lý danh mục, tài khoản, vai trò và quyền theo danh mục; quản lý quy tắc thứ bậc hiệu lực (`legal_authority_rules`), registry, phân công AI và embedding. SYS_ADMIN không mặc nhiên có quyền đọc mọi nội dung hoặc hỏi đáp. |
 | AUDITOR | Xem chức năng kiểm toán theo quyền được cấp; không suy ra quyền sửa cấu hình AI hay đọc mọi tài liệu. |
 
 Backend kiểm tra phiên, quyền thao tác RBAC và phạm vi ABAC/ACL ở phía server, trước truy xuất và trước khi mở trích dẫn. Danh mục có cờ cho phép xử lý từ xa: quyền tài khoản, chính sách vận hành và cấu hình model vẫn là các điều kiện độc lập. Quản trị có thể tạo/sửa danh mục, xóa mềm và thu hồi ACL; quản lý tài khoản, vai trò, trạng thái và phạm vi; giao diện thay đổi theo quyền thực tế. Quyền danh mục do admin cấp cho từng tài khoản ở hai ô **Danh mục được phép tra cứu (ABAC)** và **Danh mục được xác nhận hiệu lực (người duyệt)** trong **Tài khoản & Phân quyền**. Khi khởi tạo, `chuyenvien` đã được sẵn quyền tra cứu các danh mục thử; `curator` và `reviewer` thấy danh sách trống cho đến khi admin cấp.
@@ -157,6 +157,14 @@ sequenceDiagram
 
 Luồng đọc trang dùng cùng API/backend và ACL; chỉ ảnh của trang được yêu cầu mới được gửi cho hồ sơ Local stage `ocr`. Hồ sơ phải là Ollama có vision, đã được kiểm tra và phân công; worker tắt mặc định. Dù model được kiểm tra là `qwen3.5:4b`, Model Registry quyết định model thực tế theo cấu hình, không hard-code trong ứng dụng.
 
+### So sánh 2 văn bản và phiên bản
+
+Phân hệ hỗ trợ 3 chế độ trong phạm vi ACL của người dùng: (1) **So sánh phiên bản** giữa hai phiên bản đã duyệt của cùng văn bản (bao gồm phiên bản lịch sử đã rút khi duyệt bản hiệu chỉnh), (2) **So sánh gốc – sửa đổi/bổ sung** hai chiều dựa trên quan hệ `node_amendments` và chi tiết theo nút (`GET /api/v1/nodes/{node_id}/diff`), và (3) **So sánh 2 văn bản cùng chủ đề**. Bộ phân tích (`analysis/signals.py`, `comparison/`) chạy xác định để ghép điều khoản và trích xuất tín hiệu quy phạm (số liệu, tiền tệ, thời hạn, nghĩa vụ/cấm đoán, thẩm quyền), mở tệp gốc qua `GET /api/v1/compare/nodes/{node_id}/original` có kiểm ACL/SHA-256 và xuất báo cáo Markdown. Thao tác **Tóm tắt bằng AI** là tùy chọn, đối chiếu lại từng ý với căn cứ gốc và gắn nhãn `Cần thẩm định` cho ý chưa đủ xác minh.
+
+### Rà soát mâu thuẫn, chồng chéo và thứ bậc hiệu lực
+
+USER chọn 2–20 văn bản cụ thể hoặc 1 danh mục được cấp quyền để đối chiếu các khoản thuộc nhóm nội dung hoặc chủ đề liên quan. Hệ thống áp dụng dò cặp và trích xuất tín hiệu xác định (`conflicts/detector.py`) để chỉ ra *trái ngược tiềm ẩn*, *chồng chéo*, *ngoại lệ / chi tiết hóa* và *đã có quan hệ sửa đổi*, đồng thời tính thứ bậc hiệu lực tham khảo (`conflicts/precedence.py`) từ bảng `legal_authority_rules` (23 quy tắc VBQPPL mặc định + quy tắc nội bộ do SYS_ADMIN cấu hình) theo nguyên tắc *lex superior / lex posterior / lex specialis*. Tùy chọn **Bổ sung phân tích AI** (`ConflictScanWorker`) mặc định tắt và chỉ gửi cặp văn bản ra model ngoài khi toàn bộ danh mục nguồn bật cờ cho phép xử lý từ xa. Mọi phát hiện đều mang nhãn gợi ý tham khảo; việc xác nhận trong Admin Portal chỉ tạo đề xuất `node_amendments` trạng thái `draft`, không tự động sửa hiệu lực.
+
 ## 6. Truy xuất, hiệu lực và chỉ mục
 
 Backend kết hợp các kênh lexical như cụm từ, từ khóa có/không dấu, tiêu đề, số hiệu và kênh ngữ nghĩa khi có embedding. RRF hợp nhất thứ hạng các kênh; rerank bằng LLM hoặc cross-encoder là tùy chọn, không nên mặc định rằng mọi bản đang bật. Cấu hình được báo cáo gần nhất dùng RRF, ngưỡng ngữ nghĩa tương đối 0,8 và tắt rerank; cấu hình thực tế phải kiểm tra tại máy chạy. Các giới hạn ứng viên, thời gian và đồng thời nhằm giữ hệ thống đáp ứng; chúng cũng giới hạn độ đầy đủ của từng truy vấn.
@@ -181,6 +189,7 @@ Stage `ocr` dành cho ảnh trang PDF là local-only: Registry chỉ chấp nh�
 | Kho văn bản | Document/version, metadata, hash và provenance, bản gốc, nháp, tác vụ duyệt, nút cấu trúc và span nguồn. |
 | Tìm kiếm | Trường chuẩn hóa, chỉ mục từ khóa, vector/model/số chiều, trạng thái chỉ mục và tác vụ embedding. |
 | Hiệu lực | Trạng thái, ngày, quan hệ và lịch sử rà soát/đề xuất. |
+| Đối chiếu & Mâu thuẫn | Quy tắc thứ bậc hiệu lực (`legal_authority_rules`), phiên quét nền (`conflict_review_runs`, `ConflictScanWorker`), phát hiện và ghi chú thẩm định (`conflict_findings`); không tự ghi đè văn bản đã duyệt. |
 | Quản trị | Hồ sơ model, route, trạng thái kiểm tra, audit có liên kết hash. |
 
 API dùng Bearer token; kiểm quyền phía server và kiểm lại tại điểm mở nguồn. Khóa API nhập qua Admin Portal được mã hóa bằng Windows DPAPI gắn tài khoản chạy server khi kho khóa khả dụng, không trả lại khóa qua API; chuyển tài khoản Windows có thể cần nhập lại. Chế độ LAN Portable dùng HTTP: thông tin đăng nhập và khóa gửi từ trình duyệt không được TLS bảo vệ trên đường truyền, chỉ sử dụng trong mạng tin cậy hoặc triển khai bảo vệ truyền tải phù hợp. Dữ liệu phiên hỏi đáp theo thiết kế ở RAM; không coi đây là cơ chế sao lưu.
@@ -196,7 +205,8 @@ Backup tạo bản chụp DB và kho tệp kèm hash; restore kiểm bản sao, 
 - Chưa có cơ sở kết luận ứng dụng đã nghiệm thu nghiệp vụ. Dự án không dùng bộ câu hỏi Gold để chấm AI (ADR-010): AI chỉ hỗ trợ, cán bộ chuyên môn quyết định. Mức bao phủ và chất lượng phụ thuộc kho, quyền, metadata, hiệu lực và câu hỏi.
 - Báo cáo source ngày 08/11 ghi đã thử OCR scan, model Ollama local, UI Chrome và bộ kiểm thử; đây là bằng chứng lịch sử, không phải kiểm thử lại trong lần biên soạn này. Báo cáo Model Registry ghi chưa thử OpenAI/Gemini thật và chưa kiểm trong Tauri.
 - Bản source được rà soát ngày 17/11/2026 đã bổ sung đọc chữ một trang trong chat và đề xuất OCR AI cho Admin. Kiểm thử tích hợp dùng PostgreSQL tạm đạt 341 passed; frontend 110 passed; model thật đọc đúng trang 17/20 của PDF ảnh hư cấu. Đây là bằng chứng kỹ thuật, không phải nghiệm thu OCR nghiệp vụ hoặc xác nhận trên máy Windows/LAN khác. Xem [báo cáo rà soát 17/11](evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md).
-- Gói Portable r4 là bản phát hành cũ, vẫn giữ `qwen3:1.7b` và chưa được build lại từ source nâng cấp; không suy ra OCR AI mới có trong gói r4.
+- Bản cập nhật ngày 27/11/2026 bổ sung phân hệ **So sánh 2 văn bản & phiên bản**, **Rà soát mâu thuẫn, chồng chéo & thứ bậc hiệu lực** và migration `0018`. Sau khi hợp nhất lên `main`, toàn bộ `scripts/verify.ps1` đạt 12/12 bước: backend **459 passed, 0 skipped** trên PostgreSQL 18.6, frontend **24 tệp / 129 passed**, `mypy`, `ruff`, `eslint`, `vite build`, 18 cặp migration và `export_openapi.py --check` đều đạt; kho `evidence_rerank_eval` giữ nguyên 105 văn bản / 7.447 vector. Phát hiện mâu thuẫn và đánh giá thứ bậc chỉ mang tính gợi ý tham khảo; triage chỉ tạo `node_amendments` trạng thái `draft`.
+- Gói Portable r4 là bản phát hành cũ (`Evidence-RAG-Portable-20261111-r4.zip`), vẫn giữ `qwen3:1.7b` và chưa được build lại từ source nâng cấp; không suy ra OCR AI, So sánh văn bản hay Rà soát mâu thuẫn đã có trong gói r4.
 - Báo cáo Portable ghi đã thử đổi thư mục/ổ trên máy phát triển, chưa xác nhận chuyển sang máy Windows vật lý khác; tính sẵn có của model, runtime và dữ liệu cần kiểm tra gói thực tế.
 - OCR có thể sai, đặc biệt số hiệu và điều kiện; reviewer phải đối chiếu. Kiểm tra diễn giải tự động không thay thế thẩm định pháp lý. Có giới hạn truy xuất, timeout, đồng thời và thiếu chỉ mục có thể ảnh hưởng kết quả.
 - Nguồn chi tiết: [trạng thái triển khai](implementation-status.md), [báo cáo AI/OCR](evidence/2026-11-08-ai-ocr/REPORT.md), [Model Registry](evidence/2026-11-08-model-registry-ui/REPORT.md), [Embedding](evidence/2026-11-07-embedding-admin/REPORT.md), [threat model](threat-model.md) và source tương ứng. Các báo cáo có ngày khác nhau; ưu tiên mã và cấu hình đang triển khai khi có khác biệt.

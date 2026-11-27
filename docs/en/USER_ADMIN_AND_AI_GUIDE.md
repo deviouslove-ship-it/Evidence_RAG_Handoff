@@ -2,7 +2,7 @@
 
 **Language / Ngôn ngữ:** [Tiếng Việt](../HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md) · English
 
-English counterpart of `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (the Vietnamese original). Checked against the interface and source on 2026-11-17. Button names below follow the Vietnamese interface in the current source, given in English with the Vietnamese label in quotes where it helps; a running package may be a different build. See the [system description](SYSTEM_DESCRIPTION.md) for architecture and limits. Perform administration, model changes, restore or configuration changes only with the right permission and after understanding their effect on the system.
+English counterpart of `docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md` (the Vietnamese original). Checked against the interface and source on 2026-11-27. Button names below follow the Vietnamese interface in the current source, given in English with the Vietnamese label in quotes where it helps; a running package may be a different build. See the [system description](SYSTEM_DESCRIPTION.md) for architecture and limits. Perform administration, model changes, restore or configuration changes only with the right permission and after understanding their effect on the system.
 
 ## Contents
 

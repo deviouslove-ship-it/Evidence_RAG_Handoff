@@ -402,3 +402,24 @@ Luồng ADMIN dùng proposal riêng: CURATOR so sánh ảnh, chữ hiện có v�
 - Chi tiết lỗi đã sửa, phạm vi ACL, hết hạn, cancellation và kết quả kiểm chứng: [báo cáo rà soát OCR AI 17/11](evidence/qwen35-upgrade/REVIEW_FIXES_2026-11-17.md). Các phép thử PostgreSQL dùng cluster tạm, không dùng DB vận hành.
 - Portable r4 vẫn là bản cũ dùng `qwen3:1.7b`; chưa build/giải nén/di chuyển ZIP mới. Không khẳng định OCR AI của source đã có trong gói r4.
 - Chưa xác nhận trên máy Windows vật lý khác, GPU/RAM khác, máy trạm LAN, môi trường ZIP offline cô lập, tải đồng thời/soak hoặc độ chính xác trên PDF scan nghiệp vụ. Launcher `ung-dung-test.ps1` mới qua kiểm tra cú pháp; hành vi dừng động chưa được xác nhận.
+
+## Cập nhật So sánh 2 văn bản & Rà soát mâu thuẫn, chồng chéo (27/11/2026)
+
+Source đã bổ sung đầy đủ hai phân hệ **So sánh 2 văn bản & phiên bản** (Pha 1) và **Rà soát mâu thuẫn, chồng chéo & thứ bậc hiệu lực** (Pha 2) và đã hợp nhất lên nhánh `main`:
+
+- **Pha 1 — So sánh 2 văn bản & phiên bản**:
+  - Backend: trích xuất tín hiệu quy phạm xác định (`backend/app/analysis/signals.py` — số liệu, tiền tệ, phần trăm, thời hạn, nghĩa vụ/cấm đoán, thẩm quyền), động cơ ghép điều khoản và diff (`backend/app/comparison/`), cùng 5 API endpoint (`GET /api/v1/documents/{document_id}/versions` hỗ trợ cả bản đã rút về lịch sử, `POST /api/v1/compare/documents` với 3 chế độ `versions` / `amendment_pair` / `cross_document`, `GET /api/v1/nodes/{node_id}/diff`, `POST /api/v1/compare/summarize` đối chiếu trích dẫn từ chối câu bịa đặt, và `GET /api/v1/compare/nodes/{node_id}/original` kiểm ACL + kiểm tra SHA-256 trước khi trả trang/tệp gốc).
+  - Frontend: trang `DocumentComparePage.tsx`, bảng đối chiếu `CompareDiffView.tsx` (xem song song 2 cột / gộp dòng, lọc điểm thay đổi & mức tác động, xuất Markdown, tóm tắt AI gắn nhãn `Cần thẩm định`), nút tắt **So sánh** trên `SearchPage` / `DocumentCard` và liên kết chéo từ thẻ phát hiện mâu thuẫn.
+- **Pha 2 — Rà soát mâu thuẫn, chồng chéo & thứ bậc hiệu lực**:
+  - Migration `0018_legal_hierarchy_and_conflict_reviews.sql` (+ `.down.sql`, tổng cộng **18** cặp migration tiến/lùi): tạo bảng `legal_authority_rules` (seed 23 quy tắc VBQPPL mặc định + cơ quan nội bộ bằng `ON CONFLICT DO NOTHING`), `conflict_review_runs` và `conflict_findings`, bảo toàn toàn bộ dữ liệu sẵn có.
+  - Backend: động cơ phân định thứ bậc hiệu lực (`backend/app/conflicts/precedence.py` theo *lex superior*, *lex posterior*, *lex specialis* và cờ cảnh báo `undetermined_requires_review`), dò cặp & phát hiện xác định (`detector.py`), sàng lọc AI tùy chọn tôn trọng cờ `allow_remote_processing` của từng danh mục (`ai_screen.py`), hàng đợi nền (`ConflictScanWorker`, giới hạn 1 lượt quét đang chạy mỗi người dùng), 9 endpoint USER / CURATOR / REVIEWER / SYS_ADMIN (`backend/app/api/v1/conflicts.py`).
+  - Frontend & Smoke: trang `ConflictReviewPage.tsx`, thẻ phát hiện `ConflictFindingCard.tsx` (luôn hiển thị khuyến cáo thẩm định chuyên viên và khối thứ bậc hiệu lực tham khảo), tab quản trị `ConflictTriagePanel.tsx` (CURATOR/REVIEWER xác nhận/bỏ qua và tạo đề xuất sửa đổi luôn ở trạng thái `draft` trong `node_amendments` để duyệt riêng ở tab **Hiệu lực**), `AuthorityRulesPanel.tsx` (SYS_ADMIN quản lý quy tắc thứ bậc), và `scripts/smoke_compare_and_conflicts.py`.
+
+### Kiểm chứng và giới hạn (27/11/2026)
+
+- **Kiểm tra hợp nhất trên `main`**: `scripts/verify.ps1 -ProgramsRoot E:\Programs` đạt **12/12 bước**; backend pytest **459 passed, 0 skipped** với PostgreSQL 18.6; frontend Vitest **24 tệp / 129 passed**; `mypy` (119 tệp), `ruff`, `eslint --max-warnings=0`, `tsc` / `vite build`, kiểm tra 18 cặp migration, `export_openapi.py --check`, và `validate_no_literal_runtime_paths.py` đều đạt.
+- **Bảo toàn dữ liệu**: cơ sở dữ liệu đánh giá hiện có (`evidence_rerank_eval`) được xác minh còn nguyên vẹn **105 văn bản / 7.447 nút / 7.447 vector** (không sửa đổi hay xóa vector/tệp gốc).
+- **Giới hạn & ranh giới vận hành**:
+  - Mọi phát hiện mâu thuẫn, phân loại và thứ bậc hiệu lực chỉ là **gợi ý tham khảo**, không tạo kết luận pháp lý; thao tác xác nhận của CURATOR/REVIEWER chỉ tạo đề xuất sửa đổi ở trạng thái `draft`.
+  - Gói Portable `r4` (`Evidence-RAG-Portable-20261111-r4.zip`) chưa được đóng gói lại từ source mới nên **không** chứa OCR AI, So sánh văn bản hay Rà soát mâu thuẫn.
+  - `scripts/smoke_compare_and_conflicts.py` là kịch bản smoke cho live server và cần phiên dịch vụ đang chạy riêng để thực thi end-to-end HTTP.

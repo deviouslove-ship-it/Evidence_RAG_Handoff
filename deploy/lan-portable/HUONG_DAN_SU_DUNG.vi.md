@@ -4,7 +4,7 @@
 
 Tài liệu này đi kèm bản **Evidence RAG - Windows Web LAN Portable** và mô tả đúng bộ đóng gói này: khởi động, đăng nhập, sử dụng USER và ADMIN, quản lý tài liệu, OCR, cấu hình AI Local và AI API, sao lưu/phục hồi và xử lý lỗi. Tên nút theo giao diện tiếng Việt của bản đóng gói. Chỉ thực hiện thao tác quản trị, thay model, phục hồi hoặc đổi cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống. Hệ thống chỉ hỗ trợ tra cứu: kết quả AI luôn cần chuyên viên kiểm tra, không thay thế văn bản gốc đã duyệt.
 
-> Đây là mẫu hướng dẫn cho lần đóng gói từ source nâng cấp, đối chiếu ngày 17/11/2026. Đợt rà soát này chưa build/kiểm thử ZIP Portable mới; r4 hiện có vẫn giữ nguyên. Thành phần và số liệu gói thực nhận phải đối chiếu `MANIFEST.json`, không suy từ mẫu hướng dẫn.
+> Đây là mẫu hướng dẫn cho lần đóng gói từ source nâng cấp, đối chiếu ngày 27/11/2026. Đợt rà soát này chưa build/kiểm thử ZIP Portable mới; r4 hiện có vẫn giữ nguyên và chưa bao gồm OCR AI, So sánh văn bản hay Rà soát mâu thuẫn. Thành phần và số liệu gói thực nhận phải đối chiếu `MANIFEST.json`, không suy từ mẫu hướng dẫn.
 
 ## Mục lục
 
@@ -63,6 +63,18 @@ Sau khi tra cứu và chọn một lượt có văn bản nguồn, nhập “Cho
 
 Hệ thống trả nguyên chữ đã trích xuất/duyệt của đúng trang khi có, không cần gọi model. Khi thiếu chữ hoặc khi yêu cầu “Đọc lại từ ảnh trang 17 của văn bản này”, chỉ ảnh trang được chọn được gửi tới OCR AI cục bộ. Khung kết quả ghi rõ **AI đọc từ ảnh — chưa đối chiếu thủ công**, giữ cảnh báo và phần không đọc rõ. Dùng **Sao chép nội dung trang**, **Mở trang gốc** để đối chiếu hoặc **Hủy đọc trang** khi đang chờ; **Dừng**, xóa dữ liệu tạm và đăng xuất cũng hủy tác vụ đang theo dõi. Kết quả AI có TTL một giờ, không sửa bản nguồn, không tự tạo vector và không trở thành trích dẫn đã xác minh. Thao tác chỉnh kho phải đi qua đề xuất quản trị và quy trình duyệt riêng.
 
+### So sánh văn bản (trên source mới)
+
+1. Mở tab **So sánh văn bản** hoặc bấm **So sánh** trên thẻ kết quả tìm kiếm / **So sánh chi tiết 2 văn bản này** từ kết quả rà soát mâu thuẫn.
+2. Chọn chế độ **So sánh phiên bản**, **So sánh gốc – sửa đổi/bổ sung**, hoặc **So sánh 2 văn bản cùng chủ đề**; đặt **Hiệu lực tại ngày** nếu cần rồi bấm **So sánh**.
+3. Lọc theo **Chỉ xem điểm thay đổi** / **Mức tác động**, chuyển chế độ xem **Song song (2 cột)** hoặc **Gộp dòng (Inline)**, bấm **Mở gốc vế A** / **Mở gốc vế B** để đối chiếu tệp gốc, hoặc xuất báo cáo Markdown. Nút **Tóm tắt bằng AI** là tùy chọn tham khảo; ý thiếu căn cứ được gắn nhãn **Cần thẩm định**.
+
+### Rà soát mâu thuẫn (trên source mới)
+
+1. Mở tab **Rà soát mâu thuẫn**, chọn phạm vi **Chọn trực tiếp 2–20 văn bản** hoặc **Quét theo 1 danh mục** được cấp quyền; có thể lọc theo loại văn bản, nhóm nội dung, **Hiệu lực tại ngày**, hoặc bật bao gồm văn bản hết hiệu lực.
+2. Tùy chọn **Bổ sung phân tích AI** mặc định tắt; khi bật, lượt quét chạy nền và chỉ gửi ra AI ngoài khi mọi danh mục nguồn cho phép xử lý từ xa.
+3. Theo dõi hoặc **Hủy lượt quét**, lọc phát hiện (*Trái ngược tiềm ẩn*, *Chồng chéo*, *Ngoại lệ / chi tiết hóa*, *Đã có quan hệ sửa đổi*), xem trích dẫn gốc và **Đánh giá thứ bậc hiệu lực tham khảo** (luôn là gợi ý tham khảo, cần chuyên viên thẩm định).
+
 ## 2. Nhập, OCR và duyệt nguồn
 
 Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
@@ -72,6 +84,8 @@ Các mục hiện theo quyền CURATOR/REVIEWER được cấp.
 3. Với PDF scan, reviewer mở từng trang trong màn hình rà soát, so chữ OCR và các cảnh báo với ảnh trang rồi xác nhận. Không xác nhận trang không đọc được hoặc sai; cấu hình OCR và trích xuất lại, hoặc từ chối nháp theo tình huống. Chữ OCR đã duyệt vẫn cần đối chiếu ảnh khi dùng.
 4. Biên tập viên chọn **Gửi duyệt**. Reviewer khác mở nháp đang chờ, xử lý tác vụ còn mở, chọn danh mục áp dụng và nhập ghi chú thẩm định. Bấm **Phê duyệt & Phát hành** khi đủ điều kiện, hoặc **Từ chối**. Trùng byte bị chặn; cảnh báo nội dung trùng cần được xem xét.
 5. Vào **Hiệu lực** để rà soát đề xuất hiệu lực, quan hệ và nhãn khi có quyền. Một đề xuất chưa được xác minh không phải kết luận về hiệu lực pháp lý.
+6. Vào **Rà soát mâu thuẫn** (CURATOR/REVIEWER có quyền duyệt trên danh mục nguồn) để **Xác nhận** hoặc **Bỏ qua** phát hiện và có thể đánh dấu **Tạo đề xuất sửa đổi (bản nháp)**; bản ghi sinh ra luôn ở trạng thái **draft** và phải duyệt lại trong **Hiệu lực**.
+7. Với **SYS_ADMIN**, vào **Thứ bậc văn bản** để xem, thêm mới hoặc **Sửa** quy tắc thứ bậc hiệu lực theo loại văn bản và mẫu regex cơ quan ban hành (`authority_rank` nhỏ hơn có thẩm quyền cao hơn).
 
 ### Quản lý văn bản
 

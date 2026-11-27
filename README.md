@@ -4,7 +4,7 @@
 
 Tra cứu văn bản hành chính, nghiệp vụ của cơ quan bằng tiếng Việt, có căn cứ nguồn. Một backend
 FastAPI, một PostgreSQL và một kho tài liệu bất biến theo SHA-256 phục vụ **User Portal** (hỏi
-đáp, tìm kiếm văn bản),
+đáp, tìm kiếm văn bản, so sánh văn bản, rà soát mâu thuẫn, chồng chéo),
 **Admin Portal** và **ứng dụng Windows USER (Tauri 2)**. Trạng thái hiện hành:
 [`docs/implementation-status.md`](docs/implementation-status.md).
 
@@ -104,12 +104,28 @@ quyền hay trạng thái duyệt.
   nên không bao gồm tính năng này.
 - **Tìm kiếm văn bản** (một trang, trên tìm toàn diện G2): theo nghĩa, đủ các từ, chính xác
   cụm từ; lọc danh mục, loại văn bản, hiệu lực, thời gian; gộp theo văn bản, phân trang; kết
-  quả chỉ khớp một phần ở nhóm riêng.
+  quả chỉ khớp một phần ở nhóm riêng. Hỗ trợ mở nhanh đối chiếu từ thẻ kết quả (**So sánh**).
+- **So sánh 2 văn bản & phiên bản**: 3 chế độ — so sánh hai phiên bản đã duyệt của cùng văn
+  bản (gồm cả bản đã rút về lịch sử), so sánh văn bản gốc – sửa đổi/bổ sung hai chiều qua
+  `node_amendments` (`GET /api/v1/nodes/{node_id}/diff`), và so sánh 2 văn bản cùng chủ đề;
+  cung cấp diff xác định và tín hiệu quy phạm (số liệu, thời hạn, mức phạt, nghĩa vụ/cấm đoán),
+  xem song song hoặc gộp dòng, mở tệp gốc theo trang (`GET /api/v1/compare/nodes/{node_id}/original`),
+  xuất báo cáo Markdown và tóm tắt AI tùy chọn có kiểm tra căn cứ (`POST /api/v1/compare/summarize`).
+- **Rà soát mâu thuẫn, chồng chéo & thứ bậc hiệu lực**: quét trực tiếp 2–20 văn bản hoặc 1 danh mục
+  được cấp quyền; phát hiện trái ngược tiềm ẩn, chồng chéo, ngoại lệ/chi tiết hóa và quan hệ sửa
+  đổi đã ghi nhận; đánh giá thứ bậc hiệu lực tham khảo từ bảng quy tắc `legal_authority_rules`
+  (23 quy tắc VBQPPL mặc định và quy tắc cơ quan nội bộ) kèm giải thích *lex superior / posterior /
+  specialis*; tùy chọn phân tích AI chạy nền theo hàng đợi (`ConflictScanWorker`), chỉ gửi ra ngoài
+  khi toàn bộ danh mục nguồn cho phép xử lý từ xa. Mọi phát hiện đều mang tính gợi ý tham khảo và
+  cần chuyên viên thẩm định. (So sánh và rà soát mâu thuẫn là tính năng mới trên source; gói tải
+  `r4` chưa được đóng gói lại nên chưa bao gồm.)
 - **Admin Portal**: [Quản lý văn bản](docs/HUONG_DAN_SU_DUNG_VA_CAU_HINH_AI.md#quản-lý-văn-bản)
   hỗ trợ tìm/lọc, chi tiết, lịch sử phiên bản, sửa OCR, tạm ngừng và xóa mềm theo quyền.
   Cổng quản trị còn có tài liệu & duyệt nguồn, danh mục,
-  tài khoản RBAC/ABAC, mô hình AI (hồ sơ, định tuyến giai đoạn chọn căn cứ, kiểm tra kết
-  nối), nhật ký kiểm toán chuỗi băm.
+  tài khoản RBAC/ABAC, **Rà soát mâu thuẫn** (CURATOR/REVIEWER xác nhận/bỏ qua và tạo đề xuất
+  sửa đổi luôn ở trạng thái `draft` trước khi qua quy trình **Hiệu lực**), **Thứ bậc văn bản**
+  (SYS_ADMIN quản lý `legal_authority_rules`), mô hình AI (hồ sơ, định tuyến giai đoạn chọn căn cứ,
+  kiểm tra kết nối), nhật ký kiểm toán chuỗi băm.
 - **Nạp tài liệu**: PDF, Word (`.docx`, `.doc`) và TXT. Word/TXT được vẽ thành một PDF có
   lớp chữ (cùng nội dung, cùng kết quả mỗi lần) để dùng chung một đường trích dẫn; tệp gốc
   được lưu cùng mã băm riêng (`document_versions.source_format`, `source_file_sha256`). PDF
@@ -144,7 +160,8 @@ $env:EVIDENCE_TEST_DATABASE_URL = "postgresql://evidence_dev_admin:$pw@127.0.0.1
 (không đường dẫn cứng), cặp migration, OpenAPI, fixture phân cực và thời điểm, lint/test/
 build frontend. Test PostgreSQL dùng schema tạm và xóa sau khi chạy; CI không được
 skip chúng. Đo hiệu năng: `scripts/benchmark_search.py`; smoke HTTP:
-`scripts/smoke_app_runtime.py`.
+`scripts/smoke_app_runtime.py`; smoke luồng so sánh và rà soát mâu thuẫn trên live server:
+`scripts/smoke_compare_and_conflicts.py`.
 
 ## Tài liệu
 

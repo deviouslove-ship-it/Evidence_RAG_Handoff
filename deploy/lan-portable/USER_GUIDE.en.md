@@ -4,7 +4,7 @@
 
 This guide ships with **Evidence RAG - Windows Web LAN Portable** and describes this exact package: start-up, login, USER and ADMIN use, document management, OCR, AI Local and AI API configuration, backup/restore and troubleshooting. Button names follow the Vietnamese interface of the packaged build, given in English with the Vietnamese label in quotes where it helps. Perform administration, model changes, restore or configuration changes only with the right permission and after understanding their effect. The system supports lookup only: AI output always needs expert review and does not replace the approved original administrative and operational documents.
 
-> This is a packaging template checked against the upgraded source on 2026-11-17. This review has not built/tested a new Portable ZIP; the existing r4 is unchanged. Check `MANIFEST.json` for the actual delivered components and counts instead of inferring them from this template.
+> This is a packaging template checked against the upgraded source on 2026-11-27. This review has not built/tested a new Portable ZIP; the existing r4 is unchanged and does not yet include OCR AI, Document Comparison, or Conflict Review. Check `MANIFEST.json` for the actual delivered components and counts instead of inferring them from this template.
 
 ## Contents
 
@@ -63,6 +63,18 @@ After a lookup, select a turn containing the source document and enter “Cho t�
 
 The system returns the approved extracted text of that page when available, without calling a model. If text is missing, or the request explicitly says “Đọc lại từ ảnh trang 17 của văn bản này”, only the selected page image is sent to local OCR AI. The results pane labels it **AI read from image — not manually verified** and preserves warnings/unreadable regions. Use **Sao chép nội dung trang** (Copy page text), **Mở trang gốc** (Open original page), or **Hủy đọc trang** (Cancel page read) while waiting. **Dừng** (Stop), clearing temporary data and logout also cancel the tracked task. AI results expire after one hour; they do not change sources, create vectors or become verified citations. Corpus corrections require the separate admin proposal and review workflow.
 
+### Document comparison (upgraded source)
+
+1. Open the **So sánh văn bản** (Document comparison) tab, click **So sánh** (Compare) on a search result card, or click **So sánh chi tiết 2 văn bản này** from a conflict finding card.
+2. Pick a mode (**So sánh phiên bản**, **So sánh gốc – sửa đổi/bổ sung**, or **So sánh 2 văn bản cùng chủ đề**), optionally set **Hiệu lực tại ngày** (As-of date), and click **So sánh**.
+3. Filter by changed items or impact level, switch between **Song song (2 cột)** and **Gộp dòng (Inline)**, open original files via **Mở gốc vế A** / **Mở gốc vế B**, or copy Markdown. **Tóm tắt bằng AI** is optional and flags unverified claims as **Cần thẩm định**.
+
+### Conflict review (upgraded source)
+
+1. Open **Rà soát mâu thuẫn** (Conflict review), choose **Chọn trực tiếp 2–20 văn bản** or **Quét theo 1 danh mục**, and apply optional filters (document type, content group, as-of date, include expired/replaced).
+2. **Bổ sung phân tích AI** is off by default; when enabled, scans run in the background queue and only send pairs externally when all source categories allow remote processing.
+3. Monitor or cancel running scans, filter findings, inspect verbatim quotes and original links, and review the advisory **Đánh giá thứ bậc hiệu lực tham khảo** block (human verification is always required).
+
 ## 2. Ingest, OCR and review sources
 
 These sections appear according to the CURATOR/REVIEWER permissions granted.
@@ -72,6 +84,8 @@ These sections appear according to the CURATOR/REVIEWER permissions granted.
 3. For scanned PDFs, the reviewer opens each page in the review screen, compares OCR text and warnings with the page image, then confirms. Do not confirm a page that is unreadable or wrong; configure OCR and re-extract, or reject the draft as appropriate. Even approved OCR text must be compared with the image when used.
 4. The editor chooses **Gửi duyệt** (Submit for review). A different reviewer opens the pending draft, resolves open tasks, chooses the applicable categories and enters review notes. Press **Phê duyệt & Phát hành** (Approve & Publish) when conditions are met, or **Từ chối** (Reject). Byte-identical files are blocked; content-duplicate warnings need to be considered.
 5. Go to **Hiệu lực** (Effectivity) to review effectivity proposals, relations and labels where permitted. An unverified proposal is not a conclusion about legal effectivity.
+6. Go to **Rà soát mâu thuẫn** (Conflict review, CURATOR/REVIEWER with review permission on source categories) to **Xác nhận** or **Bỏ qua** findings and optionally check **Tạo đề xuất sửa đổi (bản nháp)**; generated records stay in **draft** status until approved in **Hiệu lực**.
+7. As **SYS_ADMIN**, open **Thứ bậc văn bản** (Authority hierarchy rules) to inspect, add, or **Sửa** rules by document type and issuing-body regex pattern (lower `authority_rank` means higher authority).
 
 ### Document management
 

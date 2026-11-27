@@ -2,7 +2,7 @@
 
 **Ngôn ngữ / Language:** Tiếng Việt · [English](en/USER_ADMIN_AND_AI_GUIDE.md)
 
-Đối chiếu giao diện và source ngày 17/11/2026. Tên nút dưới đây thuộc source hiện tại; gói đang chạy có thể là bản khác. Xem [mô tả hệ thống](TAI_LIEU_MO_TA_HE_THONG.md) để hiểu kiến trúc và giới hạn. Chỉ thực hiện các thao tác quản trị, thay model, phục hồi hoặc thay cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống.
+Đối chiếu giao diện và source ngày 27/11/2026. Tên nút dưới đây thuộc source hiện tại; gói đang chạy có thể là bản khác. Xem [mô tả hệ thống](TAI_LIEU_MO_TA_HE_THONG.md) để hiểu kiến trúc và giới hạn. Chỉ thực hiện các thao tác quản trị, thay model, phục hồi hoặc thay cấu hình khi có quyền và sau khi hiểu ảnh hưởng tới hệ thống.
 
 ## Mục lục
 
