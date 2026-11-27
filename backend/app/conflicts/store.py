@@ -242,6 +242,7 @@ async def create_conflict_run(
     }
 
     async with pool.acquire() as conn, conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock($1)", CONFLICT_CLAIM_LOCK_KEY)
         await expire_conflict_runs(conn)
         existing = await conn.fetchrow(
             """SELECT * FROM conflict_review_runs
@@ -262,7 +263,6 @@ async def create_conflict_run(
                 raise ConflictStoreError("CONFLICT_SCAN_IDEMPOTENCY_CONFLICT", 409)
             return _serialize_run(existing, deduplicated=True)
 
-        await conn.execute("SELECT pg_advisory_xact_lock($1)", CONFLICT_CLAIM_LOCK_KEY)
         active_count = await conn.fetchval(
             "SELECT count(*) FROM conflict_review_runs WHERE status IN ('queued', 'running')"
         )
@@ -491,22 +491,51 @@ async def list_conflict_findings(
             raise ConflictStoreError("CONFLICT_RUN_NOT_FOUND", 404)
 
         await conn.execute("SELECT set_config('app.user_id', $1, true)", principal.id)
-        acl_where = f"""
+        base_filter = """
             cf.run_id = $1
             AND ($2::text IS NULL OR cf.severity = $2)
             AND ($3::text IS NULL OR cf.finding_type = $3)
             AND ($4::text IS NULL OR cf.review_status = $4)
-            AND EXISTS (
-                SELECT 1 FROM ({ALLOWED_DOCUMENTS_SQL}) a1
-                WHERE a1.document_id = cf.document_a_id
-            )
-            AND EXISTS (
-                SELECT 1 FROM ({ALLOWED_DOCUMENTS_SQL}) a2
-                WHERE a2.document_id = cf.document_b_id
-            )
+        """
+        total_unfiltered = await conn.fetchval(
+            f"SELECT count(*) FROM conflict_findings cf WHERE {base_filter}",
+            run_id,
+            severity,
+            finding_type,
+            review_status,
+        )
+        findings_from_where = f"""
+            FROM conflict_findings cf
+            JOIN documents da ON da.id = cf.document_a_id
+            JOIN documents db ON db.id = cf.document_b_id
+            JOIN document_nodes na ON na.id = cf.node_a_id
+            JOIN document_nodes nb ON nb.id = cf.node_b_id
+            JOIN document_versions dva ON dva.id = na.document_version_id
+            JOIN document_versions dvb ON dvb.id = nb.document_version_id
+            JOIN source_provenance spa ON spa.document_version_id = dva.id
+            JOIN source_provenance spb ON spb.document_version_id = dvb.id
+            WHERE {base_filter}
+              AND da.deleted_at IS NULL AND da.suspended_at IS NULL
+              AND db.deleted_at IS NULL AND db.suspended_at IS NULL
+              AND dva.review_status = 'approved'
+              AND dvb.review_status = 'approved'
+              AND spa.verified_at IS NOT NULL
+              AND spb.verified_at IS NOT NULL
+              AND na.review_status = 'approved'
+              AND nb.review_status = 'approved'
+              AND node_source_text_valid(na.id)
+              AND node_source_text_valid(nb.id)
+              AND EXISTS (
+                  SELECT 1 FROM ({ALLOWED_DOCUMENTS_SQL}) a1
+                  WHERE a1.document_id = cf.document_a_id
+              )
+              AND EXISTS (
+                  SELECT 1 FROM ({ALLOWED_DOCUMENTS_SQL}) a2
+                  WHERE a2.document_id = cf.document_b_id
+              )
         """
         total = await conn.fetchval(
-            f"SELECT count(*) FROM conflict_findings cf WHERE {acl_where}",
+            f"SELECT count(*) {findings_from_where}",
             run_id,
             severity,
             finding_type,
@@ -520,12 +549,7 @@ async def list_conflict_findings(
                        na.text_original AS node_a_text, na.page_start AS node_a_page_start,
                        nb.citation_label AS node_b_label, nb.path AS node_b_path,
                        nb.text_original AS node_b_text, nb.page_start AS node_b_page_start
-                FROM conflict_findings cf
-                JOIN documents da ON da.id = cf.document_a_id
-                JOIN documents db ON db.id = cf.document_b_id
-                JOIN document_nodes na ON na.id = cf.node_a_id
-                JOIN document_nodes nb ON nb.id = cf.node_b_id
-                WHERE {acl_where}
+                {findings_from_where}
                 ORDER BY CASE cf.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,
                          cf.similarity_score DESC NULLS LAST,
                          cf.created_at ASC,
@@ -539,9 +563,12 @@ async def list_conflict_findings(
             max(0, offset),
         )
 
+    visible_total = int(total or 0)
+    unfiltered_total = int(total_unfiltered or 0)
     return {
         "run_id": str(run_id),
-        "total": int(total or 0),
+        "total": visible_total,
+        "hidden_due_to_acl": max(0, unfiltered_total - visible_total),
         "items": [_serialize_finding(dict(row)) for row in rows],
         "reference_notice": REFERENCE_NOTICE,
     }
@@ -599,6 +626,28 @@ async def review_conflict_finding(
     return _serialize_finding(dict(updated))
 
 
+async def _load_verified_approved_node(
+    conn: Any, node_id: UUID, document_id: UUID
+) -> Any:
+    """Load an approved, provenance-verified, source-text-valid node."""
+    return await conn.fetchrow(
+        """SELECT n.id, n.document_id, n.text_original, n.page_start,
+                  n.path, n.citation_label, d.document_number, d.doc_type
+           FROM document_nodes n
+           JOIN document_versions dv ON dv.id = n.document_version_id
+           JOIN source_provenance sp ON sp.document_version_id = dv.id
+           JOIN documents d ON d.id = n.document_id
+           WHERE n.id = $1 AND n.document_id = $2
+             AND n.review_status = 'approved'
+             AND dv.review_status = 'approved'
+             AND sp.verified_at IS NOT NULL
+             AND node_source_text_valid(n.id)
+             AND d.deleted_at IS NULL AND d.suspended_at IS NULL""",
+        node_id,
+        document_id,
+    )
+
+
 async def create_amendment_draft_from_finding(
     pool: Any,
     *,
@@ -646,35 +695,17 @@ async def create_amendment_draft_from_finding(
             target_doc_id = finding["document_a_id"]
             target_node_id = finding["node_a_id"]
 
-        source_node = await conn.fetchrow(
-            """SELECT n.id, n.document_id, n.text_original, n.page_start
-               FROM document_nodes n
-               JOIN document_versions dv ON dv.id = n.document_version_id
-               JOIN documents d ON d.id = n.document_id
-               WHERE n.id = $1 AND n.document_id = $2
-                 AND n.review_status = 'approved'
-                 AND dv.review_status = 'approved'
-                 AND d.deleted_at IS NULL AND d.suspended_at IS NULL""",
-            source_node_id,
-            source_doc_id,
+        source_node = await _load_verified_approved_node(
+            conn, source_node_id, source_doc_id
         )
         if source_node is None:
             raise ConflictStoreError("SOURCE_NODE_NOT_FOUND", 404)
 
-        target_node = await conn.fetchrow(
-            """SELECT n.id, n.path, n.citation_label, d.document_number, d.doc_type
-               FROM document_nodes n
-               JOIN document_versions dv ON dv.id = n.document_version_id
-               JOIN documents d ON d.id = n.document_id
-               WHERE n.id = $1 AND n.document_id = $2
-                 AND n.review_status = 'approved'
-                 AND dv.review_status = 'approved'
-                 AND d.deleted_at IS NULL AND d.suspended_at IS NULL""",
-            target_node_id,
-            target_doc_id,
+        target_node = await _load_verified_approved_node(
+            conn, target_node_id, target_doc_id
         )
         if target_node is None:
-            raise ConflictStoreError("TARGET_NODE_NOT_FOUND", 404)
+            raise ConflictStoreError("DOCUMENT_NOT_FOUND", 404)
 
         target_path = target_node["citation_label"] or target_node["path"]
         target_number = target_node["document_number"]

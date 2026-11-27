@@ -1109,3 +1109,307 @@ async def test_store_queue_cap_enforces_limit(
     assert exc.value.code == "CONFLICT_SCAN_QUEUE_FULL"
     assert exc.value.status_code == 429
 
+
+async def test_list_findings_hides_invalid_source_unapproved_and_revoked_acl(
+    conflict_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(
+        conflict_pg_pool, actor_id=uuid4(), name="Danh mục Nguồn", code="cat_src_guard"
+    )
+    cat_id = UUID(cat["id"])
+    curator_id, _ = await _create_user(conflict_pg_pool, "cur-sg", ["CURATOR"], [cat_id])
+    reviewer_id, rev_principal = await _create_user(
+        conflict_pg_pool, "rev-sg", ["REVIEWER", "USER"], [cat_id]
+    )
+    doc_a, ver_a, node_a_id = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Nghị định SG A",
+        doc_number="51/2024/NĐ-CP",
+        doc_type="decree",
+        issuing_body="Chính phủ",
+        article_text="Điều 1. Thời hạn giải quyết hồ sơ là 05 ngày làm việc.",
+        publication_date=date(2024, 1, 10),
+        effective_from=date(2024, 2, 1),
+    )
+    doc_b, ver_b, node_b_id = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Thông tư SG B",
+        doc_number="52/2024/TT-BTC",
+        doc_type="circular",
+        issuing_body="Bộ Tài chính",
+        article_text="Điều 1. Thời hạn giải quyết hồ sơ là 15 ngày làm việc.",
+        publication_date=date(2024, 3, 10),
+        effective_from=date(2024, 4, 1),
+    )
+
+    run = await create_conflict_run(
+        conflict_pg_pool,
+        rev_principal,
+        request_id="req-src-guard",
+        document_ids=[doc_a, doc_b],
+        as_of_date=date(2025, 1, 1),
+    )
+    run_id = UUID(run["id"])
+    worker = ConflictScanWorker(conflict_pg_pool, runtime=None)
+    assert await worker.run_once() is True
+
+    initial = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    assert initial["total"] >= 1
+    assert initial["hidden_due_to_acl"] == 0
+    unfiltered_count = initial["total"]
+
+    # 1) Demote node_a review_status -> hidden
+    async with conflict_pg_pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE document_nodes SET review_status = 'draft' WHERE id = $1", node_a_id
+        )
+    demoted = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    assert demoted["total"] == 0
+    assert demoted["hidden_due_to_acl"] == unfiltered_count
+
+    # Restore node_a, clear source_provenance.verified_at on ver_b -> hidden
+    async with conflict_pg_pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE document_nodes SET review_status = 'approved' WHERE id = $1", node_a_id
+        )
+        await conn.execute(
+            "UPDATE source_provenance SET verified_at = NULL WHERE document_version_id = $1",
+            ver_b,
+        )
+    unverified = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    assert unverified["total"] == 0
+    assert unverified["hidden_due_to_acl"] == unfiltered_count
+
+    # Restore ver_b provenance, break source_spans text_original for node_a
+    # (fails node_source_text_valid) -> hidden
+    async with conflict_pg_pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE source_provenance SET verified_at = now() WHERE document_version_id = $1",
+            ver_b,
+        )
+        span_id = await conn.fetchval(
+            "SELECT source_span_id FROM document_nodes WHERE id = $1", node_a_id
+        )
+        assert span_id is not None
+        await conn.execute(
+            "UPDATE source_spans SET text_original = 'tampered' WHERE id = $1", span_id
+        )
+    invalid_span = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    assert invalid_span["total"] == 0
+    assert invalid_span["hidden_due_to_acl"] == unfiltered_count
+
+    # Restore node_a span text, revoke category ACL -> hidden
+    async with conflict_pg_pool.acquire() as conn:
+        orig_text = await conn.fetchval(
+            "SELECT text_original FROM document_nodes WHERE id = $1", node_a_id
+        )
+        await conn.execute(
+            "UPDATE source_spans SET text_original = $2 WHERE id = $1", span_id, orig_text
+        )
+        await conn.execute(
+            "DELETE FROM category_acl WHERE category_id = $1 AND user_id = $2",
+            cat_id,
+            reviewer_id,
+        )
+    acl_revoked = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    assert acl_revoked["total"] == 0
+    assert acl_revoked["hidden_due_to_acl"] == unfiltered_count
+
+
+async def test_create_amendment_draft_rejects_unverified_or_invalid_source_nodes(
+    conflict_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(
+        conflict_pg_pool, actor_id=uuid4(), name="Danh mục Draft Guard", code="cat_draft_guard"
+    )
+    cat_id = UUID(cat["id"])
+    curator_id, _ = await _create_user(conflict_pg_pool, "cur-dg", ["CURATOR"], [cat_id])
+    reviewer_id, rev_principal = await _create_user(
+        conflict_pg_pool, "rev-dg", ["REVIEWER", "USER"], [cat_id]
+    )
+    async with conflict_pg_pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE category_acl SET can_review = TRUE WHERE category_id = $1 AND user_id = $2",
+            cat_id,
+            reviewer_id,
+        )
+
+    doc_a, ver_a, node_a_id = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Nghị định DG A",
+        doc_number="61/2024/NĐ-CP",
+        doc_type="decree",
+        issuing_body="Chính phủ",
+        article_text="Điều 1. Thời hạn giải quyết hồ sơ là 05 ngày làm việc.",
+        publication_date=date(2024, 1, 10),
+        effective_from=date(2024, 2, 1),
+    )
+    doc_b, ver_b, node_b_id = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Thông tư DG B",
+        doc_number="62/2024/TT-BTC",
+        doc_type="circular",
+        issuing_body="Bộ Tài chính",
+        article_text="Điều 1. Thời hạn giải quyết hồ sơ là 15 ngày làm việc.",
+        publication_date=date(2024, 3, 10),
+        effective_from=date(2024, 4, 1),
+    )
+
+    run = await create_conflict_run(
+        conflict_pg_pool,
+        rev_principal,
+        request_id="req-draft-guard",
+        document_ids=[doc_a, doc_b],
+        as_of_date=date(2025, 1, 1),
+    )
+    run_id = UUID(run["id"])
+    worker = ConflictScanWorker(conflict_pg_pool, runtime=None)
+    assert await worker.run_once() is True
+
+    findings = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    assert findings["total"] >= 1
+    finding_id = UUID(findings["items"][0]["id"])
+
+    # Invalidate source span of node_a -> fails node_source_text_valid -> 404
+    async with conflict_pg_pool.acquire() as conn:
+        span_a = await conn.fetchval(
+            "SELECT source_span_id FROM document_nodes WHERE id = $1", node_a_id
+        )
+        orig_a = await conn.fetchval(
+            "SELECT text_original FROM document_nodes WHERE id = $1", node_a_id
+        )
+        await conn.execute(
+            "UPDATE source_spans SET text_original = 'tampered' WHERE id = $1", span_a
+        )
+
+    with pytest.raises(ConflictStoreError) as exc_src:
+        await create_amendment_draft_from_finding(
+            conflict_pg_pool,
+            reviewer_id=reviewer_id,
+            finding_id=finding_id,
+            amendment_action="modify",
+            source_side="a",
+        )
+    assert exc_src.value.status_code == 404
+
+    # Restore node_a span, unverify provenance on target ver_b -> 404
+    async with conflict_pg_pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE source_spans SET text_original = $2 WHERE id = $1", span_a, orig_a
+        )
+        await conn.execute(
+            "UPDATE source_provenance SET verified_at = NULL WHERE document_version_id = $1",
+            ver_b,
+        )
+
+    with pytest.raises(ConflictStoreError) as exc_tgt:
+        await create_amendment_draft_from_finding(
+            conflict_pg_pool,
+            reviewer_id=reviewer_id,
+            finding_id=finding_id,
+            amendment_action="modify",
+            source_side="a",
+        )
+    assert exc_tgt.value.status_code == 404
+
+
+async def test_create_conflict_run_concurrent_idempotency_has_no_unique_violation(
+    conflict_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(
+        conflict_pg_pool, actor_id=uuid4(), name="Danh mục Concurrent", code="cat_concurrent"
+    )
+    cat_id = UUID(cat["id"])
+    curator_id, _ = await _create_user(conflict_pg_pool, "cur-conc", ["CURATOR"], [cat_id])
+    reviewer_id, rev_principal = await _create_user(
+        conflict_pg_pool, "rev-conc", ["REVIEWER", "USER"], [cat_id]
+    )
+    doc_a, _, _ = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Nghị định Conc A",
+        doc_number="71/2024/NĐ-CP",
+        doc_type="decree",
+        issuing_body="Chính phủ",
+        article_text="Điều 1. Thời hạn giải quyết hồ sơ là 05 ngày làm việc.",
+        publication_date=date(2024, 1, 10),
+        effective_from=date(2024, 2, 1),
+    )
+    doc_b, _, _ = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Thông tư Conc B",
+        doc_number="72/2024/TT-BTC",
+        doc_type="circular",
+        issuing_body="Bộ Tài chính",
+        article_text="Điều 1. Thời hạn giải quyết hồ sơ là 15 ngày làm việc.",
+        publication_date=date(2024, 3, 10),
+        effective_from=date(2024, 4, 1),
+    )
+
+    same_results = await asyncio.gather(
+        create_conflict_run(
+            conflict_pg_pool,
+            rev_principal,
+            request_id="req-conc-same",
+            document_ids=[doc_a, doc_b],
+            as_of_date=date(2025, 1, 1),
+        ),
+        create_conflict_run(
+            conflict_pg_pool,
+            rev_principal,
+            request_id="req-conc-same",
+            document_ids=[doc_a, doc_b],
+            as_of_date=date(2025, 1, 1),
+        ),
+    )
+    assert same_results[0]["id"] == same_results[1]["id"]
+    assert {r["deduplicated"] for r in same_results} == {False, True}
+
+    mismatch_results = await asyncio.gather(
+        create_conflict_run(
+            conflict_pg_pool,
+            rev_principal,
+            request_id="req-conc-diff",
+            document_ids=[doc_a, doc_b],
+            as_of_date=date(2025, 1, 1),
+        ),
+        create_conflict_run(
+            conflict_pg_pool,
+            rev_principal,
+            request_id="req-conc-diff",
+            document_ids=[doc_a, doc_b],
+            as_of_date=date(2025, 2, 1),
+        ),
+        return_exceptions=True,
+    )
+    successes = [item for item in mismatch_results if isinstance(item, dict)]
+    errors = [item for item in mismatch_results if isinstance(item, ConflictStoreError)]
+    assert len(successes) == 1
+    assert len(errors) == 1
+    assert errors[0].code == "CONFLICT_SCAN_IDEMPOTENCY_CONFLICT"
+    assert errors[0].status_code == 409
+
+
