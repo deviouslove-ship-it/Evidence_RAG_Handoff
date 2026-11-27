@@ -169,14 +169,18 @@ def _tier_to_dict(tier: AuthorityRule | None) -> dict[str, Any] | None:
     }
 
 
-def normalize_issuing_authority(issuing_body: str | None) -> str:
-    """Fold accents, punctuation, whitespace, and unambiguous agency prefixes."""
-
+def _fold_collapse_issuer(issuing_body: str | None) -> str:
     if not issuing_body:
         return ""
     value = fold_text(issuing_body)
     value = _PUNCTUATION_RE.sub(" ", value)
-    value = _WHITESPACE_RE.sub(" ", value).strip()
+    return _WHITESPACE_RE.sub(" ", value).strip()
+
+
+def normalize_issuing_authority(issuing_body: str | None) -> str:
+    """Fold accents, punctuation, whitespace, and unambiguous agency prefixes."""
+
+    value = _fold_collapse_issuer(issuing_body)
     if not value:
         return ""
     for pattern, replacement in _AGENCY_PREFIX_REPLACEMENTS:
@@ -198,14 +202,19 @@ def _fold_pattern_non_ascii(pattern: str) -> str:
     return "".join(fold_text(ch) if ord(ch) > 127 else ch for ch in pattern)
 
 
-def _pattern_matches(pattern: str, normalized_issuer: str) -> bool:
-    if not normalized_issuer:
+def _pattern_matches(
+    pattern: str, normalized_issuer: str, raw_folded_issuer: str = ""
+) -> bool:
+    candidates = tuple(c for c in (normalized_issuer, raw_folded_issuer) if c)
+    if not candidates:
         return False
     folded_pattern = _fold_pattern_non_ascii(pattern)
     try:
-        return re.search(folded_pattern, normalized_issuer, re.IGNORECASE) is not None
+        compiled = re.compile(folded_pattern, re.IGNORECASE)
+        return any(compiled.search(candidate) is not None for candidate in candidates)
     except re.error:
-        return fold_text(pattern) in normalized_issuer
+        folded_literal = fold_text(pattern)
+        return any(folded_literal in candidate for candidate in candidates)
 
 
 def resolve_authority_tier(
@@ -230,11 +239,12 @@ def resolve_authority_tier(
             reason="Không có quy tắc thứ bậc phù hợp cho loại văn bản này",
         )
 
+    raw_folded_issuer = _fold_collapse_issuer(issuing_body)
     normalized_issuer = normalize_issuing_authority(issuing_body)
     fallback_rules: list[AuthorityRule] = []
     for rule in matching_rules:
         if rule.issuing_body_pattern:
-            if _pattern_matches(rule.issuing_body_pattern, normalized_issuer):
+            if _pattern_matches(rule.issuing_body_pattern, normalized_issuer, raw_folded_issuer):
                 return ResolvedAuthorityTier(tier=rule)
         else:
             fallback_rules.append(rule)

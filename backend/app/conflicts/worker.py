@@ -547,17 +547,21 @@ class ConflictScanWorker:
         vector_sims = await fetch_pgvector_candidate_similarities(conn, scoped_node_ids)
 
         amend_rows = await conn.fetch(
-            """SELECT a.id, a.source_document_id, a.target_document_id, a.source_node_id,
+            """SELECT a.id,
+                      COALESCE(a.source_document_id, sn.document_id) AS source_document_id,
+                      COALESCE(a.target_document_id, tn.document_id) AS target_document_id,
+                      a.source_node_id,
                       a.target_node_id, a.target_path, a.action, a.valid_from, a.source_quote
                FROM node_amendments a
                JOIN document_nodes sn ON sn.id = a.source_node_id
                JOIN document_versions sv ON sv.id = sn.document_version_id
+               LEFT JOIN document_nodes tn ON tn.id = a.target_node_id
                WHERE a.review_status = 'approved'
                  AND a.superseded_by IS NULL
                  AND sv.review_status = 'approved'
                  AND sv.retired_at IS NULL
-                 AND a.source_document_id = ANY($1::uuid[])
-                 AND a.target_document_id = ANY($1::uuid[])""",
+                 AND COALESCE(a.source_document_id, sn.document_id) = ANY($1::uuid[])
+                 AND COALESCE(a.target_document_id, tn.document_id) = ANY($1::uuid[])""",
             valid_doc_ids,
         )
         approved_amendments: list[ApprovedNodeAmendment] = []
@@ -697,6 +701,7 @@ class ConflictScanWorker:
                 pair,
                 approved_amendments=inputs["approved_amendments"],
                 approved_references=inputs["approved_refs"],
+                as_of_date=as_of_date,
             )
             if candidate is not None:
                 pair_doc_key = (
@@ -717,7 +722,11 @@ class ConflictScanWorker:
                 ai_verified: bool | None = None
                 dropped = False
 
-                if ai_active and ai_calls_used < max_ai_pairs:
+                if (
+                    ai_active
+                    and candidate.finding_type != "superseded_already"
+                    and ai_calls_used < max_ai_pairs
+                ):
                     ai_calls_used += 1
                     screen = await screen_conflict_finding(
                         candidate,

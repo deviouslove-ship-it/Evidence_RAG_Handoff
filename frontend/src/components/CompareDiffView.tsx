@@ -21,7 +21,7 @@ import { OpenOriginalButton } from "./OpenOriginalButton";
  * text node — never dangerouslySetInnerHTML. Each item card carries the change-kind
  * and alignment badges, signal chips, the approved amendment link (if any) and, per
  * side, the page citation, EffectivityBadges and an OpenOriginalButton pointing at
- * `/api/v1/citations/ev_<primary node_id>/original` (controller ruling R4).
+ * `/api/v1/compare/nodes/<primary node_id>/original`.
  */
 
 export interface CompareDiffViewProps {
@@ -155,7 +155,7 @@ function SideHeader({ side, doc, sourceFormat, accessToken, sideName }: {
         page={side.page_start}
         showHint={false}
         sourceFormat={sourceFormat}
-        url={`/api/v1/citations/ev_${side.node_id}/original`}
+        url={`/api/v1/compare/nodes/${side.node_id}/original`}
       />
     </div>
   );

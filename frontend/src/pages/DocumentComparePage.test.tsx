@@ -331,6 +331,112 @@ describe("DocumentComparePage", () => {
     expect(await within(region).findByText("Đã sao chép báo cáo Markdown")).toBeInTheDocument();
   });
 
+  it("opens comparison original files via /api/v1/compare/nodes/<id>/original", async () => {
+    const leftNodeId = "11111111-1111-4111-8111-111111111111";
+    const rightNodeId = "22222222-2222-4222-8222-222222222222";
+    const fetchedUrls: string[] = [];
+    const tab = {
+      closed: false,
+      opener: {},
+      document: { title: "", body: { textContent: "" } },
+      location: { href: "" },
+      close: vi.fn(),
+    };
+    vi.stubGlobal(
+      "URL",
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => "blob:test/cmp-1"),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
+    vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+
+    const comparePayload = makeCompareResponse({
+      items: [
+        {
+          ...makeCompareResponse().items[1],
+          left: {
+            ...makeCompareResponse().items[1].left!,
+            node_id: leftNodeId,
+            member_node_ids: [leftNodeId],
+          },
+          right: {
+            ...makeCompareResponse().items[1].right!,
+            node_id: rightNodeId,
+            member_node_ids: [rightNodeId],
+          },
+        },
+      ],
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (input: string) => {
+        fetchedUrls.push(input);
+        if (input.endsWith("/api/v1/search/comprehensive")) {
+          return new Response(
+            JSON.stringify({
+              documents: [
+                {
+                  document_id: "doc-1",
+                  title: "Thông tư mẫu A",
+                  display_title: "Thông tư mẫu A",
+                  document_number: "10/2021/TT-BCA",
+                  doc_type: "circular",
+                  issuing_body: "Bộ Công an",
+                  source_format: "pdf",
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        if (input.endsWith("/api/v1/documents/doc-1/versions")) {
+          return new Response(
+            JSON.stringify(makeVersions("doc-1", "10/2021/TT-BCA", "Thông tư mẫu A")),
+            { status: 200 },
+          );
+        }
+        if (input.endsWith("/api/v1/compare/documents")) {
+          return new Response(JSON.stringify(comparePayload), { status: 200 });
+        }
+        if (input.endsWith("/original")) {
+          return new Response(new Blob(["%PDF-1.4"]), {
+            status: 200,
+            headers: {
+              "Content-Type": "application/pdf",
+              "X-Source-Format": "pdf",
+              "Content-Disposition": 'inline; filename="v1.pdf"',
+            },
+          });
+        }
+        return new Response("{}", { status: 200 });
+      }),
+    );
+
+    render(<DocumentComparePage accessToken="tok-1" />);
+    fireEvent.change(screen.getByLabelText("Văn bản cần so sánh phiên bản"), {
+      target: { value: "10/2021" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Tìm văn bản" }));
+    fireEvent.click(await screen.findByRole("button", { name: /10\/2021\/TT-BCA/ }));
+    await screen.findByLabelText("Phiên bản cũ (vế A)");
+    const compareBtn = screen.getByRole("button", { name: "So sánh" });
+    await waitFor(() => expect(compareBtn).toBeEnabled());
+    fireEvent.click(compareBtn);
+
+    const region = await screen.findByRole("region", { name: "Kết quả so sánh" });
+    fireEvent.click(within(region).getByRole("button", { name: "Mở gốc vế A (trang 8)" }));
+    await waitFor(() =>
+      expect(fetchedUrls).toContain(`/api/v1/compare/nodes/${leftNodeId}/original`),
+    );
+    fireEvent.click(within(region).getByRole("button", { name: "Mở gốc vế B (trang 9)" }));
+    await waitFor(() =>
+      expect(fetchedUrls).toContain(`/api/v1/compare/nodes/${rightNodeId}/original`),
+    );
+    expect(fetchedUrls.some((url) => url.includes("/api/v1/citations/"))).toBe(false);
+  });
+
   it("supports amendment_pair suggestion click (including swap) and cross_document mode", async () => {
     const compareBodies: Array<Record<string, unknown>> = [];
     vi.stubGlobal(

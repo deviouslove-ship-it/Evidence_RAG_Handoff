@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict
 
 from ...auth_acl.policy import Principal
@@ -14,6 +15,7 @@ from ...comparison.service import (
     CompareError,
     CompareSelection,
     compare_documents,
+    get_authorized_compare_node_source,
     list_document_versions,
     node_timeline_diff,
 )
@@ -22,6 +24,7 @@ from ...schemas import EffectivityView
 from .dependencies import no_store
 from .errors import api_error
 from .guards import database_pool
+from .original_response import original_file_response
 from .user import require_user
 
 router = APIRouter(prefix="/api/v1", tags=["comparison"], dependencies=[Depends(no_store)])
@@ -287,3 +290,20 @@ async def summarize_route(
         )
     except CompareError as exc:
         raise api_error(exc.status_code, exc.code, details=exc.details) from exc
+
+
+@router.get("/compare/nodes/{node_id}/original")
+async def get_compare_node_original(
+    request: Request,
+    node_id: UUID,
+    principal: Annotated[Principal, Depends(require_user)],
+) -> Response:
+    """Original file for an approved, source-valid comparison node (retired versions ok)."""
+
+    try:
+        source = await get_authorized_compare_node_source(
+            database_pool(request), UUID(principal.id), node_id
+        )
+    except CompareError as exc:
+        raise api_error(exc.status_code, exc.code, details=exc.details) from exc
+    return await original_file_response(request.app.state.settings, source)

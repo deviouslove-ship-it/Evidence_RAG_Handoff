@@ -78,6 +78,12 @@ def test_normalize_structural_key_extracts_dieu_family() -> None:
     assert normalize_structural_key("000001:chuong:I/dieu:5/khoan:2/diem:a") == (
         "dieu:5/khoan:2/diem:a"
     )
+    assert normalize_structural_key("000001:dieu:5/khoan:2/diem:A") == (
+        "dieu:5/khoan:2/diem:a"
+    )
+    assert normalize_structural_key("dieu:5/khoan:2/diem:Đ") == (
+        "dieu:5/khoan:2/diem:đ"
+    )
     assert normalize_structural_key("000003:dieu:2/khoan:1") == "dieu:2/khoan:1"
     assert normalize_structural_key("000004:dieu:2/khoan:1/tiep:2") == "dieu:2/khoan:1"
     assert normalize_structural_key("dieu:5/khoan:2") == "dieu:5/khoan:2"
@@ -259,6 +265,31 @@ def test_number_parser_total_for_regex_accepted_forms() -> None:
     assert vi.amounts_and_percents[0].value_num == 1234.56
     us = extract_normative_signals("Phạt 1,234.56 đồng.")
     assert us.amounts_and_percents[0].value_num == 1234.56
+    # Single ",NNN" group with decimal comma is a decimal, never thousands.
+    dec_pct = extract_normative_signals("Lãi suất 0,125% mỗi năm.")
+    assert QuantitySpan(0.125, "percent", "0,125%") in dec_pct.amounts_and_percents
+    dec_money = extract_normative_signals("Hạn mức 1,125 tỷ đồng.")
+    assert QuantitySpan(1.125, "ty_dong", "1,125 tỷ đồng") in dec_money.amounts_and_percents
+
+
+def test_single_group_comma_decimal_differs_from_thousands_in_diff() -> None:
+    pct_left = _node("dieu:1/khoan:1", "Áp dụng mức 0,125%.", ordinal=0)
+    pct_right = _node("dieu:1/khoan:1", "Áp dụng mức 0,5%.", ordinal=0)
+    pct_diff = diff_pair(
+        AlignedPair(left=pct_left, right=pct_right, alignment_method="structural_key")
+    )
+    assert pct_diff.change_kind == "modified"
+    assert pct_diff.signals.amounts_changed
+    assert pct_diff.signals.impact_level == "high"
+
+    amt_left = _node("dieu:1/khoan:2", "Hạn mức 1,125 tỷ đồng.", ordinal=1)
+    amt_right = _node("dieu:1/khoan:2", "Hạn mức 1125 tỷ đồng.", ordinal=1)
+    amt_diff = diff_pair(
+        AlignedPair(left=amt_left, right=amt_right, alignment_method="structural_key")
+    )
+    assert amt_diff.change_kind == "modified"
+    assert [s.value_num for s in amt_diff.signals.amounts_changed] == [1.125, 1125.0]
+    assert amt_diff.signals.impact_level == "high"
 
 
 def test_us_format_amount_does_not_abort_comparison() -> None:
@@ -486,6 +517,24 @@ def test_align_explicit_link_right_to_left_by_target_node_id_and_target_path() -
     assert pairs_path[0].left is left[0]
     assert pairs_path[0].right is right[0]
     assert pairs_path[0].amendment_action == "replace"
+
+
+def test_align_explicit_link_blank_or_bare_ordinal_target_path_skips_unkeyed() -> None:
+    src_a, src_b = uuid4(), uuid4()
+    left = [
+        _node("000001:doan", "Sửa đổi đoạn mở đầu về chế độ báo cáo.", ordinal=0, node_id=src_a),
+        _node("000002:doan", "Bổ sung đoạn quy định xử lý vi phạm.", ordinal=1, node_id=src_b),
+    ]
+    unkeyed = stitch_logical_nodes([
+        _record("000001", "Nội dung đoạn văn chưa gắn số hiệu điều khoản.", node_type="paragraph"),
+    ])
+    assert unkeyed[0].structural_key == ""
+    links = [
+        AmendmentLink(source_node_id=src_a, target_path="000001", action="modify"),
+        AmendmentLink(source_node_id=src_b, target_path="   ", action="replace"),
+    ]
+    pairs = align_nodes(left, unkeyed, links, mode="amendment_pair")
+    assert all(p.alignment_method != "explicit_amendment" for p in pairs)
 
 
 def test_align_empty_inputs() -> None:

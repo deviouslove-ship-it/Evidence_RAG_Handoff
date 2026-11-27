@@ -158,14 +158,15 @@ def align_nodes(
         )
         if target is None and link.target_path:
             key = normalize_structural_key(link.target_path)
-            target = next(
-                (
-                    node
-                    for node in target_nodes
-                    if node.primary_node_id not in used_target and node.structural_key == key
-                ),
-                None,
-            )
+            if key:
+                target = next(
+                    (
+                        node
+                        for node in target_nodes
+                        if node.primary_node_id not in used_target and node.structural_key == key
+                    ),
+                    None,
+                )
         if target is None or target.primary_node_id in used_target:
             return None
         return target

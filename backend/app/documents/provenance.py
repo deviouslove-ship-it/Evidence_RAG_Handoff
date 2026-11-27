@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import Lock
+from urllib.parse import quote
 from uuid import UUID
 
 PDF_MAGIC = b"%PDF-"
@@ -156,6 +157,51 @@ def verify_immutable_pdf(
 
 
 SOURCE_FORMATS = ("docx", "doc", "txt")
+
+SOURCE_MEDIA: dict[str, tuple[str, str]] = {
+    "pdf": ("application/pdf", "inline"),
+    "docx": (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "attachment",
+    ),
+    "doc": ("application/msword", "attachment"),
+    "txt": ("text/plain", "attachment"),
+}
+
+
+def content_disposition(disposition: str, filename: str, source_format: str) -> str:
+    """RFC 6266 header with an ASCII fallback and the original (UTF-8) file name."""
+
+    name = Path(filename.replace("\\", "/")).name.strip() or f"document.{source_format}"
+    name = re.sub(r"[\x00-\x1f\x7f\"]", "_", name)
+    if not name.lower().endswith(f".{source_format}"):
+        name = f"{name}.{source_format}"
+    ascii_name = (
+        re.sub(r"[^A-Za-z0-9._\-]+", "_", name).strip("_") or f"document.{source_format}"
+    )
+    return f'{disposition}; filename="{ascii_name}"; filename*=UTF-8\'\'{quote(name)}'
+
+
+def read_original_source_bytes(
+    store_root: Path,
+    *,
+    original_file_path: str,
+    source_hash: str,
+    source_format: str,
+    source_file_sha256: str | None,
+    max_bytes: int,
+) -> tuple[bytes, str]:
+    """Read and SHA-verify the original uploaded file (PDF or Word/TXT source)."""
+
+    if source_format == "pdf":
+        content = read_immutable_pdf(
+            store_root, original_file_path, source_hash, max_bytes=max_bytes
+        )
+        return content, source_hash
+    content = read_immutable_source(
+        store_root, source_format, source_file_sha256, max_bytes=max_bytes
+    )
+    return content, source_file_sha256 or ""
 
 
 def read_immutable_source(

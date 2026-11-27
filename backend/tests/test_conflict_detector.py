@@ -502,6 +502,173 @@ def test_cross_reference_turns_divergence_into_exception_refinement() -> None:
     assert findings_cited[0].severity == "low"
 
 
+def test_cross_reference_targeting_different_node_in_doc_b_keeps_contradiction() -> None:
+    doc_a = uuid4()
+    doc_b = uuid4()
+    id_a = uuid4()
+    id_b = uuid4()
+    other_node_in_b = uuid4()
+    node_a = _single_scoped(
+        "Thời hạn cấp giấy phép xuất khẩu là 5 ngày làm việc theo hồ sơ hợp lệ.",
+        doc_id=doc_a,
+        node_id=id_a,
+        taxonomy_codes=("thoi_han",),
+    )
+    node_b = _single_scoped(
+        "Thời hạn cấp giấy phép xuất khẩu là 15 ngày làm việc theo hồ sơ hợp lệ.",
+        doc_id=doc_b,
+        node_id=id_b,
+        taxonomy_codes=("thoi_han",),
+    )
+    ref_other = ApprovedNodeReference(
+        source_node_id=id_a,
+        target_node_id=other_node_in_b,
+        target_document_id=doc_b,
+        target_expression="Điều 9",
+        verified=True,
+    )
+    findings = detect_conflict_candidates([node_a, node_b], approved_references=[ref_other])
+    assert len(findings) == 1
+    assert findings[0].finding_type == "contradiction"
+    assert findings[0].severity == "high"
+
+
+def test_amendment_respects_as_of_date_precedence_actions_and_non_empty_target_path() -> None:
+    doc_a, doc_b = uuid4(), uuid4()
+    id_a, id_b = uuid4(), uuid4()
+    node_a = _single_scoped(
+        "Thời hạn giải quyết cấp giấy phép kinh doanh là 5 ngày làm việc "
+        "kể từ ngày nhận đủ hồ sơ hợp lệ.",
+        doc_id=doc_a,
+        node_id=id_a,
+        taxonomy_codes=("thoi_han",),
+    )
+    node_b = _single_scoped(
+        "Thời hạn giải quyết cấp giấy phép kinh doanh là 15 ngày làm việc "
+        "kể từ ngày nhận đủ hồ sơ hợp lệ.",
+        doc_id=doc_b,
+        node_id=id_b,
+        taxonomy_codes=("thoi_han",),
+    )
+
+    future_amendment = ApprovedNodeAmendment(
+        source_document_id=doc_b,
+        target_document_id=doc_a,
+        source_node_id=id_b,
+        target_node_id=id_a,
+        action="replace",
+        valid_from=date(2026, 6, 1),
+        approved=True,
+    )
+    before_effective = detect_conflict_candidates(
+        [node_a, node_b],
+        approved_amendments=[future_amendment],
+        as_of_date=date(2025, 12, 31),
+    )
+    assert len(before_effective) == 1
+    assert before_effective[0].finding_type == "contradiction"
+
+    at_effective = detect_conflict_candidates(
+        [node_a, node_b],
+        approved_amendments=[future_amendment],
+        as_of_date=date(2026, 6, 1),
+    )
+    assert len(at_effective) == 1
+    assert at_effective[0].finding_type == "superseded_already"
+
+    for non_superseding_action in ("add", "commence"):
+        am = ApprovedNodeAmendment(
+            source_document_id=doc_b,
+            target_document_id=doc_a,
+            source_node_id=id_b,
+            target_node_id=id_a,
+            action=non_superseding_action,
+            valid_from=date(2024, 1, 1),
+            approved=True,
+        )
+        res = detect_conflict_candidates(
+            [node_a, node_b],
+            approved_amendments=[am],
+            as_of_date=date(2025, 6, 1),
+        )
+        assert len(res) == 1
+        assert res[0].finding_type == "contradiction"
+
+    unkeyed_a = ScopedLogicalNode(
+        document_id=doc_a,
+        node=filter_normative_nodes(
+            [
+                _doc_input(
+                    [
+                        _record(
+                            "000001",
+                            "Thời hạn giải quyết cấp giấy phép kinh doanh là 5 ngày làm việc "
+                            "kể từ ngày nhận đủ hồ sơ hợp lệ.",
+                            node_type="paragraph",
+                            node_id=id_a,
+                            taxonomy_codes=("thoi_han",),
+                        )
+                    ],
+                    document_id=doc_a,
+                )
+            ]
+        )[0].node,
+        effective_status_at_date=AmendmentStatus.ACTIVE.value,
+    )
+    assert unkeyed_a.node.structural_key == ""
+    for blank_path in ("", "000001"):
+        am_blank = ApprovedNodeAmendment(
+            source_document_id=doc_b,
+            target_document_id=doc_a,
+            source_node_id=id_b,
+            target_node_id=None,
+            target_path=blank_path,
+            action="modify",
+            valid_from=date(2024, 1, 1),
+            approved=True,
+        )
+        res_blank = detect_conflict_candidates(
+            [unkeyed_a, node_b],
+            approved_amendments=[am_blank],
+            as_of_date=date(2025, 6, 1),
+        )
+        assert len(res_blank) == 1
+        assert res_blank[0].finding_type == "contradiction"
+
+
+def test_authority_tier_noun_cap_tinh_does_not_trigger_authority_divergence() -> None:
+    # Administrative tier noun "cấp tỉnh" must not match verb "cấp"
+    # even when the other side has an authority verb.
+    noun_a = _single_scoped(
+        "UBND cấp tỉnh gửi báo cáo tổng hợp tình hình an toàn thực phẩm hàng quý.",
+        taxonomy_codes=("bao_cao",),
+    )
+    noun_b = _single_scoped(
+        "Bộ Y tế kiểm tra việc gửi báo cáo tổng hợp tình hình an toàn thực phẩm hàng quý.",
+        taxonomy_codes=("bao_cao",),
+    )
+    pair_noun = generate_candidate_pairs([noun_a, noun_b])[0]
+    finding_noun = classify_candidate_pair(pair_noun)
+    assert finding_noun is None or "authority_divergence" not in finding_noun.signals_json.get(
+        "signals", []
+    )
+
+    # Genuine competence phrase "cấp phép" still triggers authority_divergence
+    verb_a = _single_scoped(
+        "UBND tỉnh cấp phép hoạt động dịch vụ an toàn thực phẩm trên địa bàn.",
+        taxonomy_codes=("bao_cao",),
+    )
+    verb_b = _single_scoped(
+        "Bộ Y tế cấp phép hoạt động dịch vụ an toàn thực phẩm trên địa bàn.",
+        taxonomy_codes=("bao_cao",),
+    )
+    pair_verb = generate_candidate_pairs([verb_a, verb_b])[0]
+    finding_verb = classify_candidate_pair(pair_verb)
+    assert finding_verb is not None
+    assert finding_verb.finding_type == "contradiction"
+    assert "authority_divergence" in finding_verb.signals_json["signals"]
+
+
 def test_channel2_in_memory_cosine_similarity_pairs_and_detects_overlap() -> None:
     """Channel 2 works in-memory via LogicalNode.embedding without taxonomy labels or DB."""
     node_a = _single_scoped(

@@ -15642,6 +15642,106 @@
         ]
       }
     },
+    "/api/v1/compare/nodes/{node_id}/original": {
+      "get": {
+        "description": "Original file for an approved, source-valid comparison node (retired versions ok).",
+        "operationId": "get_compare_node_original_api_v1_compare_nodes__node_id__original_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-principal-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Principal-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-roles",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Lỗi có mã và trace_id; không trả dữ liệu nội bộ."
+          }
+        },
+        "summary": "Get Compare Node Original",
+        "tags": [
+          "comparison"
+        ]
+      }
+    },
     "/api/v1/compare/summarize": {
       "post": {
         "operationId": "summarize_route_api_v1_compare_summarize_post",

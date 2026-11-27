@@ -641,7 +641,7 @@ async function fetchSourcePdf(
 }
 
 const ORIGINAL_SOURCE_PATH =
-  /^\/api\/v1\/citations\/ev_[0-9a-fA-F-]+\/original(\?as_of_date=\d{4}-\d{2}-\d{2})?$/;
+  /^(?:\/api\/v1\/citations\/ev_[0-9a-fA-F-]+\/original(?:\?as_of_date=\d{4}-\d{2}-\d{2})?|\/api\/v1\/compare\/nodes\/[0-9a-fA-F-]+\/original)$/;
 
 export interface OriginalFile {
   blob: Blob;

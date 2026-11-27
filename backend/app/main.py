@@ -30,6 +30,7 @@ from .api.v1.errors import api_error, api_error_handler
 from .api.v1.execution import QueryExecution
 from .api.v1.ocr_ai import router as ocr_ai_router
 from .api.v1.openapi import configure_openapi
+from .api.v1.original_response import original_file_response
 from .api.v1.page_text import router as page_text_router
 from .api.v1.synthesis import router as synthesis_router
 from .api.v1.user import require_user
@@ -40,7 +41,6 @@ from .conflicts.worker import ConflictScanWorker
 from .documents.ocr_ai_jobs import OcrAiWorker
 from .documents.provenance import (
     read_immutable_pdf,
-    read_immutable_source,
     verify_immutable_pdf,
 )
 from .memory.service import (
@@ -764,41 +764,7 @@ def create_app() -> FastAPI:
         """
 
         found = await _open_citation(citation_id, principal, as_of_date)
-        settings = app.state.settings
-        if not settings.document_store_root:
-            raise api_error(503, "DOCUMENT_STORE_NOT_CONFIGURED")
-        root = Path(settings.document_store_root)
-        try:
-            if found.source_format == "pdf":
-                content = await run_in_threadpool(
-                    read_immutable_pdf, root, found.original_file_path, found.source_hash,
-                    max_bytes=settings.max_upload_bytes,
-                )
-                digest = found.source_hash
-            else:
-                content = await run_in_threadpool(
-                    read_immutable_source, root, found.source_format,
-                    found.source_file_sha256, max_bytes=settings.max_upload_bytes,
-                )
-                digest = found.source_file_sha256 or ""
-        except ValueError as exc:
-            raise api_error(503, "CITATION_SOURCE_UNAVAILABLE") from exc
-        media_type, disposition = _SOURCE_MEDIA.get(
-            found.source_format, ("application/octet-stream", "attachment")
-        )
-        return Response(
-            content=content,
-            media_type=media_type,
-            headers={
-                "Cache-Control": "no-store",
-                "X-Content-Type-Options": "nosniff",
-                "Content-Disposition": _content_disposition(
-                    disposition, found.original_filename, found.source_format
-                ),
-                "X-Source-Format": found.source_format,
-                "X-Source-SHA256": digest,
-            },
-        )
+        return await original_file_response(app.state.settings, found)
 
     @app.get("/api/v1/categories")
     async def categories(
@@ -827,31 +793,6 @@ class _WebFiles(StaticFiles):
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response
-
-
-_SOURCE_MEDIA = {
-    "pdf": ("application/pdf", "inline"),
-    "docx": (
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "attachment",
-    ),
-    "doc": ("application/msword", "attachment"),
-    "txt": ("text/plain", "attachment"),
-}
-
-
-def _content_disposition(disposition: str, filename: str, source_format: str) -> str:
-    """RFC 6266 header with an ASCII fallback and the original (UTF-8) file name."""
-
-    import re
-    from urllib.parse import quote
-
-    name = Path(filename.replace("\\", "/")).name.strip() or f"document.{source_format}"
-    name = re.sub(r"[\x00-\x1f\x7f\"]", "_", name)
-    if not name.lower().endswith(f".{source_format}"):
-        name = f"{name}.{source_format}"
-    ascii_name = re.sub(r"[^A-Za-z0-9._\-]+", "_", name).strip("_") or f"document.{source_format}"
-    return f"{disposition}; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(name)}"
 
 
 def _principal_id(value: str) -> UUID:

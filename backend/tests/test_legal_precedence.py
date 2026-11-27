@@ -698,3 +698,47 @@ def test_bidirectional_approved_amendments_require_review() -> None:
 
     assert result.precedence_result == "undetermined_requires_review"
     assert result.preferred_document_id is None
+
+
+def test_custom_rules_with_vietnamese_abbreviations_match_issuing_body() -> None:
+    custom_rules = (
+        AuthorityRule(
+            "custom_ubnd_hn",
+            "decision",
+            r"ubnd.*ha noi",
+            50,
+            "Quyết định UBND Hà Nội",
+            False,
+            5,
+        ),
+        AuthorityRule(
+            "custom_hdnd_tinh",
+            "resolution",
+            r"hdnd.*tinh",
+            50,
+            "Nghị quyết HĐND tỉnh",
+            False,
+            5,
+        ),
+        AuthorityRule(
+            "custom_bo_truong_yte",
+            "circular",
+            r"bo truong.*y te",
+            45,
+            "Thông tư Bộ trưởng Bộ Y tế",
+            False,
+            5,
+        ),
+    )
+    assert (
+        resolve_authority_tier("decision", "UBND TP. Hà Nội", custom_rules).rule_code
+        == "custom_ubnd_hn"
+    )
+    assert (
+        resolve_authority_tier("resolution", "HĐND tỉnh Nghệ An", custom_rules).rule_code
+        == "custom_hdnd_tinh"
+    )
+    assert (
+        resolve_authority_tier("circular", "Bộ trưởng Bộ Y tế", custom_rules).rule_code
+        == "custom_bo_truong_yte"
+    )

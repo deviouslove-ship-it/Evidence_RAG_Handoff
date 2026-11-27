@@ -918,3 +918,101 @@ async def test_summarize_checks_dated_link_and_remote_egress_policy(
             "SELECT count(*) FROM audit_events WHERE action = 'document.compare.summarize'"
         )
     assert int(sum_audits) == 2
+
+
+async def test_compare_node_original_allows_retired_version_while_citations_stay_strict(
+    comparison_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(comparison_pg_pool, actor_id=uuid4(), code="ORG", name="Originals")
+    outsider_cat = await create_category(
+        comparison_pg_pool, actor_id=uuid4(), code="OUT", name="Outsider"
+    )
+    cat_id, outsider_cat_id = UUID(cat["id"]), UUID(outsider_cat["id"])
+    curator = await _create_user(comparison_pg_pool, "org-curator", ["CURATOR"], [cat_id])
+    reviewer = await _create_user(comparison_pg_pool, "org-reviewer", ["REVIEWER"], [cat_id])
+    await _create_user(comparison_pg_pool, "org-reader", ["USER"], [cat_id])
+    await _create_user(comparison_pg_pool, "org-outsider", ["USER"], [outsider_cat_id])
+
+    doc_id, v1_id, v1_nodes = await _seed_version(
+        comparison_pg_pool, tmp_path,
+        curator_id=curator, reviewer_id=reviewer, category_id=cat_id,
+        title="Thông tư gốc v1/v2 HƯ CẤU", doc_number="40/2024/TT-BTC", doc_type="circular",
+        page_texts=["Điều 1. Thời hạn\n1. Tổ chức nộp hồ sơ trong 10 ngày."],
+        publication_date=date(2024, 1, 10),
+        effective_from=date(2024, 3, 1),
+    )
+    _, _, _ = await _seed_version(
+        comparison_pg_pool, tmp_path,
+        curator_id=curator, reviewer_id=reviewer, category_id=cat_id,
+        title="Thông tư gốc v1/v2 HƯ CẤU", doc_number="40/2024/TT-BTC", doc_type="circular",
+        page_texts=["Điều 1. Thời hạn\n1. Tổ chức nộp hồ sơ trong 15 ngày."],
+        publication_date=date(2025, 1, 10),
+        effective_from=date(2025, 3, 1),
+        document_id=doc_id,
+        version_number=2,
+        based_on_version_id=v1_id,
+        retire_based_on=True,
+    )
+    _, _, v3_draft_nodes = await _seed_version(
+        comparison_pg_pool, tmp_path,
+        curator_id=curator, reviewer_id=reviewer, category_id=cat_id,
+        title="Thông tư gốc v1/v2 HƯ CẤU", doc_number="40/2024/TT-BTC", doc_type="circular",
+        page_texts=["Điều 1. Thời hạn\n1. Bản nháp 99 ngày."],
+        approve=False,
+        document_id=doc_id,
+        version_number=3,
+    )
+
+    async with comparison_pg_pool.acquire() as conn:
+        v1_rel_path = await conn.fetchval(
+            "SELECT original_file_path FROM document_versions WHERE id = $1", v1_id
+        )
+    expected_v1_pdf = (tmp_path / v1_rel_path).read_bytes()
+    v1_clause_id = next(n["id"] for n in v1_nodes if n["path"].endswith("dieu:1/khoan:1"))
+    v3_clause_id = next(n["id"] for n in v3_draft_nodes if n["path"].endswith("dieu:1/khoan:1"))
+
+    app = _make_app(comparison_pg_pool)
+    app.state.settings = replace(app.state.settings, document_store_root=str(tmp_path))
+    reader_headers = await _auth_headers(comparison_pg_pool, "org-reader")
+    outsider_headers = await _auth_headers(comparison_pg_pool, "org-outsider")
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        # Retired v1 node opens cleanly via comparison-scoped endpoint
+        cmp_orig = await client.get(
+            f"/api/v1/compare/nodes/{v1_clause_id}/original", headers=reader_headers
+        )
+        assert cmp_orig.status_code == 200, cmp_orig.text
+        assert cmp_orig.content == expected_v1_pdf
+        assert cmp_orig.headers.get("cache-control") == "no-store"
+
+        # Strict Q&A citation endpoint still rejects retired v1 node
+        cit_orig = await client.get(
+            f"/api/v1/citations/ev_{v1_clause_id}/original", headers=reader_headers
+        )
+        assert cit_orig.status_code == 404
+        assert cit_orig.json()["code"] == "CITATION_INVALID"
+
+        # Outsider without ACL -> 404 DOCUMENT_NOT_FOUND
+        outsider_orig = await client.get(
+            f"/api/v1/compare/nodes/{v1_clause_id}/original", headers=outsider_headers
+        )
+        assert outsider_orig.status_code == 404
+        assert outsider_orig.json()["code"] == "DOCUMENT_NOT_FOUND"
+
+        # Unapproved draft node -> 404 DOCUMENT_NOT_FOUND
+        draft_orig = await client.get(
+            f"/api/v1/compare/nodes/{v3_clause_id}/original", headers=reader_headers
+        )
+        assert draft_orig.status_code == 404
+        assert draft_orig.json()["code"] == "DOCUMENT_NOT_FOUND"
+
+        # Suspended document -> 404 DOCUMENT_NOT_FOUND
+        async with comparison_pg_pool.acquire() as conn:
+            await conn.execute("UPDATE documents SET suspended_at = now() WHERE id = $1", doc_id)
+        susp_orig = await client.get(
+            f"/api/v1/compare/nodes/{v1_clause_id}/original", headers=reader_headers
+        )
+        assert susp_orig.status_code == 404
+        assert susp_orig.json()["code"] == "DOCUMENT_NOT_FOUND"

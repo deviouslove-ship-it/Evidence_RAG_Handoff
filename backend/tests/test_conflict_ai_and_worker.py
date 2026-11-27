@@ -1413,3 +1413,135 @@ async def test_create_conflict_run_concurrent_idempotency_has_no_unique_violatio
     assert errors[0].status_code == 409
 
 
+async def test_worker_skips_ai_screening_for_superseded_already_and_preserves_budget(
+    conflict_pg_pool: asyncpg.Pool, tmp_path: Path
+) -> None:
+    cat = await create_category(
+        conflict_pg_pool, actor_id=uuid4(), name="Danh mục Skip AI", code="cat_skip_ai"
+    )
+    cat_id = UUID(cat["id"])
+    curator_id, _ = await _create_user(conflict_pg_pool, "cur-sai", ["CURATOR"], [cat_id])
+    reviewer_id, rev_principal = await _create_user(
+        conflict_pg_pool, "rev-sai", ["REVIEWER", "USER"], [cat_id]
+    )
+    doc_a, ver_a, _ = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Nghị định SAI A",
+        doc_number="81/2024/NĐ-CP",
+        doc_type="decree",
+        issuing_body="Chính phủ",
+        article_text=(
+            "Điều 1. Thời hạn giải quyết hồ sơ cấp phép kinh doanh là 05 ngày làm việc.\n"
+            "Điều 2. Mức phí thẩm định dự án đầu tư xây dựng là 10 triệu đồng."
+        ),
+        publication_date=date(2024, 1, 10),
+        effective_from=date(2024, 2, 1),
+    )
+    doc_b, ver_b, _ = await _seed_approved_doc(
+        conflict_pg_pool,
+        tmp_path,
+        curator_id=curator_id,
+        reviewer_id=reviewer_id,
+        category_id=cat_id,
+        title="Thông tư SAI B",
+        doc_number="82/2024/TT-BTC",
+        doc_type="circular",
+        issuing_body="Bộ Tài chính",
+        article_text=(
+            "Điều 1. Thời hạn giải quyết hồ sơ cấp phép kinh doanh là 15 ngày làm việc.\n"
+            "Điều 2. Mức phí thẩm định dự án đầu tư xây dựng là 25 triệu đồng."
+        ),
+        publication_date=date(2024, 3, 10),
+        effective_from=date(2024, 4, 1),
+    )
+    async with conflict_pg_pool.acquire() as conn:
+        a_d1 = await conn.fetchval(
+            "SELECT id FROM document_nodes WHERE document_version_id = $1 AND path LIKE '%dieu:1%' "
+            "AND review_status = 'approved' ORDER BY length(text_original) DESC LIMIT 1",
+            ver_a,
+        )
+        b_d1 = await conn.fetchval(
+            "SELECT id FROM document_nodes WHERE document_version_id = $1 AND path LIKE '%dieu:1%' "
+            "AND review_status = 'approved' ORDER BY length(text_original) DESC LIMIT 1",
+            ver_b,
+        )
+        await conn.execute(
+            """INSERT INTO node_amendments
+               (source_node_id, source_document_id, target_document_id, target_node_id,
+                scope, action, valid_from, evidence_source, review_status, reviewed_by, reviewed_at)
+               VALUES ($1, $2, $3, $4, 'node', 'replace', $5, 'manual', 'approved', $6, now())""",
+            b_d1,
+            doc_b,
+            doc_a,
+            a_d1,
+            date(2024, 4, 1),
+            reviewer_id,
+        )
+
+    budget_1_settings = Settings(
+        database_url="postgresql://example",
+        programs_root=None,
+        operating_mode="LOCAL",
+        llm_attempt_budget=2,
+        session_ttl_seconds=1800,
+        retention_approved=False,
+        dev_allow_in_memory_store=False,
+        allowed_origins=(),
+        conflict_scan_max_ai_pairs=1,
+    )
+    run = await create_conflict_run(
+        conflict_pg_pool,
+        rev_principal,
+        request_id="req-skip-ai-superseded",
+        document_ids=[doc_a, doc_b],
+        as_of_date=date(2025, 1, 1),
+        use_ai=True,
+        settings=budget_1_settings,
+    )
+    run_id = UUID(run["id"])
+
+    class _CountingRuntime:
+        mode = OperatingMode.LOCAL
+        relation_ready = True
+
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        async def generate(self, stage: str, messages: Any, **_: Any) -> GenerationOutcome:
+            prompt = messages[1]["content"]
+            self.calls.append(prompt)
+            clause_a = prompt.split("<CLAUSE_A>\n", 1)[1].split("\n</CLAUSE_A>", 1)[0]
+            clause_b = prompt.split("<CLAUSE_B>\n", 1)[1].split("\n</CLAUSE_B>", 1)[0]
+            return GenerationOutcome(
+                content=json.dumps(
+                    {
+                        "classification": "contradiction",
+                        "confidence": 0.92,
+                        "summary_vi": "Chênh lệch mức phí 10 triệu đồng và 25 triệu đồng.",
+                        "quote_a": clause_a,
+                        "quote_b": clause_b,
+                    },
+                    ensure_ascii=False,
+                )
+            )
+
+    runtime = _CountingRuntime()
+    worker = ConflictScanWorker(conflict_pg_pool, runtime=runtime)
+    assert await worker.run_once() is True
+
+    # AI was invoked ONLY once (for Điều 2 contradiction), never for Điều 1 superseded_already
+    assert len(runtime.calls) == 1
+    assert "phí thẩm định" in runtime.calls[0].lower()
+
+    findings = await list_conflict_findings(conflict_pg_pool, rev_principal, run_id)
+    by_type = {item["finding_type"]: item for item in findings["items"]}
+    assert "superseded_already" in by_type
+    assert "contradiction" in by_type
+    assert by_type["superseded_already"]["detection_method"] == "rule"
+    assert by_type["contradiction"]["detection_method"] == "rule_plus_ai"
+
+

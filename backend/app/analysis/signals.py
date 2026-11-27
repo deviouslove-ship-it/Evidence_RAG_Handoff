@@ -35,7 +35,10 @@ from ..vietnamese_nlp.unicode_norm import fold_text, normalize_text
 _ORDINAL_PREFIX = re.compile(r"^\d{6}:")
 _BARE_ORDINAL = re.compile(r"^\d{6}$")
 _TIEP_SUFFIX = re.compile(r"/tiep:\d+$")
-_DIEU_KEY = re.compile(r"(?:^|/)dieu:(\d+)(?:/khoan:(\d+))?(?:/diem:([a-zà-ỹ]))?")
+_DIEU_KEY = re.compile(
+    r"(?:^|/)dieu:(\d+)(?:/khoan:(\d+))?(?:/diem:([a-zà-ỹ]))?",
+    re.IGNORECASE,
+)
 
 # Prohibition cues are the subset of checks._NEGATION that forbids conduct; the remaining
 # generic cues ("không", "chưa", "không phải") only yield "negation" when no prohibition
@@ -202,7 +205,7 @@ class NormativeSignals:
 
 
 _THOUSANDS_DOT = re.compile(r"\d{1,3}(?:\.\d{3})+")
-_THOUSANDS_COMMA = re.compile(r"\d{1,3}(?:,\d{3})+")
+_THOUSANDS_COMMA = re.compile(r"[1-9]\d{0,2}(?:,\d{3}){2,}")
 
 
 def _parse_vi_number(raw: str) -> float:

@@ -65,6 +65,54 @@ class CompareSelection:
     include_embeddings: bool = True
 
 
+@dataclass(frozen=True)
+class CompareNodeSource:
+    """Authorized original-source metadata for one comparison node."""
+
+    original_file_path: str
+    source_hash: str
+    source_format: str = "pdf"
+    source_file_sha256: str | None = None
+    original_filename: str = "document.pdf"
+
+
+async def get_authorized_compare_node_source(
+    pool: Any, principal_id: UUID, node_id: UUID
+) -> CompareNodeSource:
+    """Resolve an approved, source-valid node's original file (retired versions allowed)."""
+
+    async with _scoped(pool, principal_id) as connection:
+        row = await connection.fetchrow(
+            f"""SELECT dv.original_file_path,
+                       dv.original_file_sha256 AS source_hash,
+                       dv.source_format,
+                       dv.source_file_sha256,
+                       dv.original_filename
+                FROM document_nodes dn
+                JOIN document_versions dv ON dv.id = dn.document_version_id
+                JOIN documents d ON d.id = dv.document_id
+                JOIN ({ALLOWED_DOCUMENTS_SQL}) allowed ON allowed.document_id = d.id
+                JOIN source_provenance sp ON sp.document_version_id = dv.id
+                WHERE dn.id = $1
+                  AND d.deleted_at IS NULL
+                  AND d.suspended_at IS NULL
+                  AND dv.review_status = 'approved'
+                  AND sp.verified_at IS NOT NULL
+                  AND dn.review_status = 'approved'
+                  AND node_source_text_valid(dn.id)""",
+            node_id,
+        )
+    if row is None:
+        raise CompareError("DOCUMENT_NOT_FOUND", 404)
+    return CompareNodeSource(
+        original_file_path=row["original_file_path"],
+        source_hash=row["source_hash"],
+        source_format=row["source_format"] or "pdf",
+        source_file_sha256=row["source_file_sha256"],
+        original_filename=row["original_filename"] or "document.pdf",
+    )
+
+
 @asynccontextmanager
 async def _scoped(pool: Any, principal_id: UUID) -> AsyncIterator[Any]:
     async with pool.acquire() as connection, connection.transaction():

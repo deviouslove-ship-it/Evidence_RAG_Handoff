@@ -28,6 +28,7 @@ from app.analysis.signals import (
     stitch_logical_nodes,
 )
 from app.conflicts.precedence import (
+    AMENDMENT_PRECEDENCE_ACTIONS,
     INACTIVE_STATUSES,
     _normalize_status,
     normalize_issuing_authority,
@@ -77,7 +78,9 @@ _MONEY_MULTIPLIERS: dict[str, float] = {
 }
 
 _AUTHORITY_VERBS_RE = re.compile(
-    r"\b(?:quyet dinh|cap|phe duyet|tham dinh|thu hoi|kiem tra|ban hanh|thanh tra)\b"
+    r"\b(?:quyet dinh|co tham quyen cap|"
+    r"cap\s+(?:phep|giay|chung\s+nhan|bang|the|moi|lai|doi|so)|"
+    r"phe duyet|tham dinh|thu hoi|kiem tra|ban hanh|thanh tra)\b"
 )
 
 _FIXED_AUTHORITY_PATTERNS: tuple[re.Pattern[str], ...] = (
@@ -571,6 +574,8 @@ def _has_authority_divergence(
 def _matching_amendment_actions(
     pair: CandidatePair,
     approved_amendments: Sequence[ApprovedNodeAmendment],
+    *,
+    as_of_date: date | None = None,
 ) -> tuple[str, ...]:
     ids_a = set(pair.node_a.node.member_node_ids)
     ids_b = set(pair.node_b.node.member_node_ids)
@@ -583,34 +588,37 @@ def _matching_amendment_actions(
     for am in approved_amendments:
         if not am.approved:
             continue
-        if am.source_node_id in ids_a:
+        action = am.action.strip().lower()
+        if action not in AMENDMENT_PRECEDENCE_ACTIONS:
+            continue
+        if (
+            as_of_date is not None
+            and am.valid_from is not None
+            and am.valid_from > as_of_date
+        ):
+            continue
+        for src_ids, tgt_ids, tgt_key, tgt_doc in (
+            (ids_a, ids_b, key_b, doc_b),
+            (ids_b, ids_a, key_a, doc_a),
+        ):
+            if am.source_node_id not in src_ids:
+                continue
             target_matches = (
-                (am.target_node_id is not None and am.target_node_id in ids_b)
+                (am.target_node_id is not None and am.target_node_id in tgt_ids)
                 or (
                     am.target_node_id is None
-                    and am.target_document_id == doc_b
+                    and am.target_document_id == tgt_doc
                     and (
                         am.target_path is None
-                        or normalize_structural_key(am.target_path) == key_b
+                        or (
+                            bool(tgt_key)
+                            and normalize_structural_key(am.target_path) == tgt_key
+                        )
                     )
                 )
             )
             if target_matches:
-                actions.append(am.action.strip().lower())
-        elif am.source_node_id in ids_b:
-            target_matches = (
-                (am.target_node_id is not None and am.target_node_id in ids_a)
-                or (
-                    am.target_node_id is None
-                    and am.target_document_id == doc_a
-                    and (
-                        am.target_path is None
-                        or normalize_structural_key(am.target_path) == key_a
-                    )
-                )
-            )
-            if target_matches:
-                actions.append(am.action.strip().lower())
+                actions.append(action)
     return tuple(sorted(set(actions)))
 
 
@@ -626,16 +634,15 @@ def _has_cross_reference(
     for ref in approved_references:
         if not ref.verified:
             continue
-        if ref.source_node_id in ids_a and (
-            (ref.target_node_id is not None and ref.target_node_id in ids_b)
-            or ref.target_document_id == doc_b
+        for src_ids, tgt_ids, tgt_doc in (
+            (ids_a, ids_b, doc_b),
+            (ids_b, ids_a, doc_a),
         ):
-            return True
-        if ref.source_node_id in ids_b and (
-            (ref.target_node_id is not None and ref.target_node_id in ids_a)
-            or ref.target_document_id == doc_a
-        ):
-            return True
+            if ref.source_node_id in src_ids and (
+                (ref.target_node_id is not None and ref.target_node_id in tgt_ids)
+                or (ref.target_node_id is None and ref.target_document_id == tgt_doc)
+            ):
+                return True
 
     if pair.node_a.document_number:
         canon_a = canonical_document_number(pair.node_a.document_number)
@@ -714,6 +721,7 @@ def classify_candidate_pair(
     *,
     approved_amendments: Sequence[ApprovedNodeAmendment] = (),
     approved_references: Sequence[ApprovedNodeReference] = (),
+    as_of_date: date | None = None,
 ) -> ConflictCandidateFinding | None:
     """Deterministically classify one candidate pair or return ``None`` if benign."""
 
@@ -722,7 +730,9 @@ def classify_candidate_pair(
     sig_a = extract_normative_signals(node_a.node.text_original)
     sig_b = extract_normative_signals(node_b.node.text_original)
 
-    amendment_actions = _matching_amendment_actions(pair, approved_amendments)
+    amendment_actions = _matching_amendment_actions(
+        pair, approved_amendments, as_of_date=as_of_date
+    )
     if amendment_actions:
         signals: tuple[str, ...] = ("superseded_by_approved_amendment",)
         return ConflictCandidateFinding(
@@ -861,6 +871,7 @@ def detect_conflict_candidates(
     vector_similarities: Mapping[tuple[UUID, UUID], float] | None = None,
     approved_amendments: Sequence[ApprovedNodeAmendment] = (),
     approved_references: Sequence[ApprovedNodeReference] = (),
+    as_of_date: date | None = None,
     max_pairs: int = DEFAULT_MAX_PAIRS,
     max_pairs_per_node: int = DEFAULT_MAX_PAIRS_PER_NODE,
 ) -> list[ConflictCandidateFinding]:
@@ -878,6 +889,7 @@ def detect_conflict_candidates(
             pair,
             approved_amendments=approved_amendments,
             approved_references=approved_references,
+            as_of_date=as_of_date,
         )
         if finding is not None:
             findings.append(finding)
