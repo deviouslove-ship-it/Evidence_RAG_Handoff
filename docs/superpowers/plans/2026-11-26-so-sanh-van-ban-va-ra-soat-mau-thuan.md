@@ -323,7 +323,7 @@ flowchart TD
 - Create: `backend/tests/test_comparison_api_pg.py`
 - Create: `frontend/src/pages/DocumentComparePage.test.tsx`
 
-- [ ] **Step 1: Viết `backend/tests/test_comparison_api_pg.py`**
+- [x] **Step 1: Viết `backend/tests/test_comparison_api_pg.py`**
   - Kiểm thử trên PostgreSQL thật (theo pattern các file `*_pg.py` hiện có trong `backend/tests/`):
     1. **ACL isolation (R1):** User A không thuộc danh mục của doc X nhận `404 DOCUMENT_NOT_FOUND` khi gọi `/versions`, `/compare/documents`, `/nodes/{id}/diff`, `/compare/summarize`.
     2. **Phiên bản lịch sử vs bản nháp/đình chỉ (R1):** Doc có `v1` (`approved`, `retired_at IS NOT NULL`) và `v2` (`approved`, `retired_at IS NULL`) và `v3` (`draft`) → so sánh `v1` vs `v2` trả `200 OK` với diff chính xác; so sánh có `v3` trả `404 COMPARE_VERSION_NOT_FOUND`; đặt `suspended_at` cho doc → trả `404 DOCUMENT_NOT_FOUND`.
@@ -331,10 +331,10 @@ flowchart TD
     4. **Đổi số hiệu Điều & văn bản không có Điều (R2):** Test dữ liệu thật lưu qua `write_nodes` có tiền tố `000001:` và đoạn `tiep:2`.
     5. **AI Summary & chính sách egress:** Mock AI trả lời có số bịa không nằm trong vế A/B → bị `check_point` đánh dấu/loại; khi 1 trong 2 văn bản có `remote_processing_allowed = FALSE` ở mode `API` → không gọi remote endpoint, chuyển local hoặc fallback sạch.
 
-- [ ] **Step 2: Viết `frontend/src/pages/DocumentComparePage.test.tsx`**
+- [x] **Step 2: Viết `frontend/src/pages/DocumentComparePage.test.tsx`**
   - Test luồng chọn chế độ, filter `"Chỉ xem điểm thay đổi"`, chuyển side-by-side/inline, chuỗi độc hại `<img src=x onerror=alert(1)>` trong nội dung diff được escape hoàn toàn dưới dạng text, nút AI summary hiển thị fallback khi API báo local/deterministic, và xác minh `handleLogout` xóa state so sánh.
 
-- [ ] **Step 3: Chạy toàn bộ test Pha 1 + kiểm tra cổng chất lượng**
+- [x] **Step 3: Chạy toàn bộ test Pha 1 + kiểm tra cổng chất lượng**
   - Run: `pytest backend/tests/test_comparison_engine.py backend/tests/test_comparison_api_pg.py -q`
   - Run: `npm --prefix frontend test -- --run src/pages/DocumentComparePage.test.tsx`
   - Run: `python scripts/export_openapi.py --check && python scripts/validate_no_literal_runtime_paths.py`
@@ -415,9 +415,9 @@ flowchart TD
    - `CHECK (node_a_id <> node_b_id AND document_a_id <> document_b_id)`
    - Indexes trên `(run_id, severity, finding_type)` và `(review_status, created_at DESC)`.
 
-- [ ] **Step 1: Viết `0018_legal_hierarchy_and_conflict_reviews.sql` và `0018_legal_hierarchy_and_conflict_reviews.down.sql`**
-- [ ] **Step 2: Cập nhật danh sách migration trong `backend/tests/test_auth_and_admin_portal.py`**
-- [ ] **Step 3: Chạy kiểm tra migration up/down**
+- [x] **Step 1: Viết `0018_legal_hierarchy_and_conflict_reviews.sql` và `0018_legal_hierarchy_and_conflict_reviews.down.sql`**
+- [x] **Step 2: Cập nhật danh sách migration trong `backend/tests/test_auth_and_admin_portal.py`**
+- [x] **Step 3: Chạy kiểm tra migration up/down**
   - Run: `python scripts/validate_migrations.py`
 
 ---
@@ -444,7 +444,7 @@ flowchart TD
      - Nếu **khác cơ quan ngang cấp** (VD Thông tư Bộ A vs Thông tư Bộ B) hoặc thiếu ngày hiệu lực → trả `undetermined_requires_review` với lý do rõ ràng (*"Hai văn bản ngang bậc từ hai cơ quan khác nhau — cần chuyên viên/cơ quan có thẩm quyền đối chiếu phạm vi quản lý"*).
   5. **Trường hợp thiếu căn cứ:** Bất kỳ bên nào không xác định được bậc (VD `doc_type='other'` hoặc `resolution`/`decision` thiếu `issuing_body`) → trả `undetermined_requires_review`, tuyệt đối không đoán mò.
 
-- [ ] **Step 1: Viết `backend/tests/test_legal_precedence.py` trước (TDD)**
+- [x] **Step 1: Viết `backend/tests/test_legal_precedence.py` trước (TDD)**
   - Test đủ 8 tình huống:
     1. `law` (Quốc hội) vs `decree` (Chính phủ) → `higher_authority_a`.
     2. `decree` (Chính phủ) vs `circular` (Bộ Tài chính) → `higher_authority_a`.
@@ -455,12 +455,12 @@ flowchart TD
     7. Hai `circular` khác Bộ (`Bộ Tài chính` vs `Bộ Công Thương`) → `undetermined_requires_review`.
     8. Cặp có `approved_amendment` (`replace`) giữa B → A → `superseded_by_amendment` bất kể ngày (R3).
 
-- [ ] **Step 2: Chạy test mới để xác nhận fail**
+- [x] **Step 2: Chạy test mới để xác nhận fail**
   - Run: `pytest backend/tests/test_legal_precedence.py -q`
 
-- [ ] **Step 3: Triển khai `backend/app/conflicts/precedence.py`**
+- [x] **Step 3: Triển khai `backend/app/conflicts/precedence.py`**
 
-- [ ] **Step 4: Chạy lại test xác nhận PASS**
+- [x] **Step 4: Chạy lại test xác nhận PASS**
   - Run: `pytest backend/tests/test_legal_precedence.py -q`
 
 ---
@@ -491,7 +491,7 @@ flowchart TD
      - `scope_overlap_without_link` (`finding_type = "overlap"`, `severity = medium`): không có tín hiệu trái ngược trực tiếp nhưng tương đồng ngữ nghĩa rất cao (`similarity >= 0.84` hoặc lexical Jaccard `>= 0.55`) giữa 2 văn bản cùng hiệu lực mà không có liên kết `node_amendments`/`node_references`.
    - Cặp không đạt bất kỳ tín hiệu nào ở trên bị loại bỏ (không trả rác cho người dùng).
 
-- [ ] **Step 1: Viết `backend/tests/test_conflict_detector.py` trước (TDD)**
+- [x] **Step 1: Viết `backend/tests/test_conflict_detector.py` trước (TDD)**
   - Test phát hiện:
     1. Trái ngược thời hạn (`5 ngày làm việc` vs `15 ngày làm việc` cho cùng thủ tục cấp giấy phép) → `contradiction`, `high`, có `deadline_divergence`.
     2. Trái ngược cấm – cho phép (`nghiêm cấm ủy quyền` vs `được phép ủy quyền`) → `contradiction`, `high`, có `deontic_polarity_conflict`.
@@ -500,12 +500,12 @@ flowchart TD
     5. Hai quy định khác hoàn toàn chủ đề (phòng cháy chữa cháy vs kế toán tài chính) dù đều có con số `10 ngày` → `subject_overlap` thấp → bị loại, không báo giả.
     6. Cặp đã có `node_amendments` đã duyệt → `superseded_already` (R3).
 
-- [ ] **Step 2: Chạy test mới xác nhận fail**
+- [x] **Step 2: Chạy test mới xác nhận fail**
   - Run: `pytest backend/tests/test_conflict_detector.py -q`
 
-- [ ] **Step 3: Triển khai `backend/app/conflicts/detector.py`**
+- [x] **Step 3: Triển khai `backend/app/conflicts/detector.py`**
 
-- [ ] **Step 4: Chạy lại test xác nhận PASS**
+- [x] **Step 4: Chạy lại test xác nhận PASS**
   - Run: `pytest backend/tests/test_conflict_detector.py -q`
 
 ---
@@ -542,10 +542,10 @@ flowchart TD
      `{"classification": "contradiction|overlap|exception_refinement|unrelated", "confidence": 0.0..1.0, "summary_vi": str, "quote_a": str, "quote_b": str}`.
    - Hậu kiểm bắt buộc: `quote_a` phải xuất hiện nguyên văn (chuẩn hóa khoảng trắng/NFC) trong `node_a.text_original`, `quote_b` trong `node_b.text_original`, và `summary_vi` qua `check_point()`. Nếu AI trả `"unrelated"` với trích dẫn hợp lệ và `confidence >= 0.8` trên cặp chỉ có tín hiệu yếu (`medium`/`low`), hạ mức xuống để giảm báo giả; **nếu AI timeout, lỗi JSON hoặc rớt hậu kiểm → giữ nguyên kết quả tầng xác định (`detection_method = 'rule'`)**, không làm hỏng cả lượt quét.
 
-- [ ] **Step 1: Thêm cấu hình `EVIDENCE_CONFLICT_SCAN_*` vào `backend/app/config.py`**
-- [ ] **Step 2: Triển khai `backend/app/conflicts/store.py` và `backend/app/conflicts/ai_screen.py`**
-- [ ] **Step 3: Triển khai `backend/app/conflicts/worker.py` và gắn vào `lifespan()` trong `backend/app/main.py`**
-- [ ] **Step 4: Chạy kiểm tra import & syntax**
+- [x] **Step 1: Thêm cấu hình `EVIDENCE_CONFLICT_SCAN_*` vào `backend/app/config.py`**
+- [x] **Step 2: Triển khai `backend/app/conflicts/store.py` và `backend/app/conflicts/ai_screen.py`**
+- [x] **Step 3: Triển khai `backend/app/conflicts/worker.py` và gắn vào `lifespan()` trong `backend/app/main.py`**
+- [x] **Step 4: Chạy kiểm tra import & syntax**
   - Run: `python -m py_compile backend/app/conflicts/store.py backend/app/conflicts/ai_screen.py backend/app/conflicts/worker.py backend/app/main.py`
 
 ---
@@ -579,10 +579,10 @@ flowchart TD
    - `POST /api/v1/admin/authority-rules`
    - `PUT /api/v1/admin/authority-rules/{rule_id}` (chỉnh sửa rank, pattern, active, note — ghi `audit_events` `authority_rule.updated`).
 
-- [ ] **Step 1: Thêm mã lỗi `CONFLICT_*` vào `backend/app/api/v1/errors.py`**
-- [ ] **Step 2: Triển khai `backend/app/api/v1/conflicts.py` và gắn router trong `backend/app/main.py`**
-- [ ] **Step 3: Cập nhật `docs/openapi.json` (`python scripts/export_openapi.py --check`)**
-- [ ] **Step 4: Viết `backend/tests/test_conflicts_api_pg.py` và chạy kiểm thử PostgreSQL thật**
+- [x] **Step 1: Thêm mã lỗi `CONFLICT_*` vào `backend/app/api/v1/errors.py`**
+- [x] **Step 2: Triển khai `backend/app/api/v1/conflicts.py` và gắn router trong `backend/app/main.py`**
+- [x] **Step 3: Cập nhật `docs/openapi.json` (`python scripts/export_openapi.py --check`)**
+- [x] **Step 4: Viết `backend/tests/test_conflicts_api_pg.py` và chạy kiểm thử PostgreSQL thật**
   - Kiểm chứng:
     1. Tạo scan với 2 văn bản có mâu thuẫn thời hạn & khác cấp bậc (`decree` vs `circular`) → worker hoàn thành, trả `finding_type="contradiction"`, `precedence_result="higher_authority_a"`.
     2. Idempotency theo `request_id`, giới hạn `max_documents` & `max_queued`, nút `cancel` dừng run sạch.
@@ -625,14 +625,14 @@ flowchart TD
 3. **Kịch bản smoke/eval (`scripts/smoke_compare_and_conflicts.py`):**
    - Chạy qua API HTTP (nhận `--base-url`, `--username`, `--password` từ CLI/env, không hardcode đường dẫn máy), tự tạo hoặc chạy trên bộ văn bản mẫu có đủ 4 tình huống (so sánh phiên bản, so sánh 2 văn bản đổi số Điều, mâu thuẫn thời hạn Nghị định vs Thông tư, ngoại lệ `"trừ trường hợp"`), in báo cáo PASS/FAIL định lượng.
 
-- [ ] **Step 1: Cập nhật `frontend/src/types.ts` và `frontend/src/api/client.ts` cho toàn bộ API conflicts & authority rules**
-- [ ] **Step 2: Triển khai `ConflictFindingCard.tsx`, `ConflictReviewPage.tsx`, `ConflictTriagePanel.tsx`, `AuthorityRulesPanel.tsx`, nối vào `App.tsx`, `AdminPortal.tsx`, `styles.css`**
-- [ ] **Step 3: Viết và chạy `frontend/src/pages/ConflictReviewPage.test.tsx`**
+- [x] **Step 1: Cập nhật `frontend/src/types.ts` và `frontend/src/api/client.ts` cho toàn bộ API conflicts & authority rules**
+- [x] **Step 2: Triển khai `ConflictFindingCard.tsx`, `ConflictReviewPage.tsx`, `ConflictTriagePanel.tsx`, `AuthorityRulesPanel.tsx`, nối vào `App.tsx`, `AdminPortal.tsx`, `styles.css`**
+- [x] **Step 3: Viết và chạy `frontend/src/pages/ConflictReviewPage.test.tsx`**
   - Test luồng tạo scan, polling/cancel, hiển thị cảnh báo tham khảo + trạng thái `undetermined_requires_review`, nút chuyển nhanh sang tab So sánh, triage trong Admin Portal, và XSS escaping.
   - Run: `npm --prefix frontend test -- --run`
   - Run: `npm --prefix frontend run build`
-- [ ] **Step 4: Viết `scripts/smoke_compare_and_conflicts.py` và cập nhật tài liệu VI/EN (`HUONG_DAN_NGUOI_DUNG.md`, `HUONG_DAN_QUAN_TRI.md`, `USER_GUIDE.md`, `ADMIN_GUIDE.md`)**
-- [ ] **Step 5: Chạy đầy đủ cổng kiểm định toàn dự án (Verification Gate)**
+- [x] **Step 4: Viết `scripts/smoke_compare_and_conflicts.py` và cập nhật tài liệu VI/EN (`HUONG_DAN_NGUOI_DUNG.md`, `HUONG_DAN_QUAN_TRI.md`, `USER_GUIDE.md`, `ADMIN_GUIDE.md`)**
+- [x] **Step 5: Chạy đầy đủ cổng kiểm định toàn dự án (Verification Gate)**
   - Run: `pytest backend/tests/ -q`
   - Run: `npm --prefix frontend test -- --run && npm --prefix frontend run build`
   - Run: `python scripts/validate_migrations.py && python scripts/export_openapi.py --check && python scripts/validate_no_literal_runtime_paths.py`
@@ -642,6 +642,6 @@ flowchart TD
 
 ## 5. Checklist nghiệm thu cuối cùng (Definition of Done)
 
-- [ ] **Tính năng 1 (So sánh 2 văn bản):** So sánh được (a) 2 phiên bản cùng 1 văn bản (gồm phiên bản lịch sử đã duyệt), (b) văn bản gốc với văn bản sửa đổi/bổ sung gắn `node_amendments` + A5 node diff, (c) 2 văn bản khác nhau cùng chủ đề kể cả khi bị đánh số lại Điều hoặc không có cấu trúc Điều/Khoản; hoạt động tức thời không cần LLM; có nút tóm tắt AI tùy chọn đã hậu kiểm số liệu & tuân thủ `LOCAL`/`API`.
-- [ ] **Tính năng 2 (Rà soát mâu thuẫn, chồng chéo):** Quét bất đồng bộ có giới hạn theo tập văn bản (2–20) hoặc danh mục, lọc bỏ cặp đã được `node_amendments` giải quyết hoặc văn bản đã hết hiệu lực, chỉ ra tín hiệu trái ngược/chồng chéo/ngoại lệ kèm trích dẫn nguyên văn + `"Mở trang gốc"`, đánh giá thứ bậc hiệu lực dựa trên bảng quy tắc cấu hình (`doc_type` + `issuing_body` + `effective_from` + cảnh báo *lex specialis* / `undetermined_requires_review`), có hàng đợi thẩm định cho `REVIEWER`/`CURATOR` và chỉ sinh `draft` vào `node_amendments`.
-- [ ] **An toàn & tương thích Portable:** ACL/ABAC & `node_source_text_valid` nghiêm ngặt, 0 đường dẫn tuyệt đối hardcode, migration `0018` có up/down sạch, `docs/openapi.json` khớp, không cần tải model mới hay re-embed 7.447 vectors, toàn bộ `pytest`, `vitest`, `build`, `verify.ps1` đều xanh.
+- [x] **Tính năng 1 (So sánh 2 văn bản):** So sánh được (a) 2 phiên bản cùng 1 văn bản (gồm phiên bản lịch sử đã duyệt), (b) văn bản gốc với văn bản sửa đổi/bổ sung gắn `node_amendments` + A5 node diff, (c) 2 văn bản khác nhau cùng chủ đề kể cả khi bị đánh số lại Điều hoặc không có cấu trúc Điều/Khoản; hoạt động tức thời không cần LLM; có nút tóm tắt AI tùy chọn đã hậu kiểm số liệu & tuân thủ `LOCAL`/`API`.
+- [x] **Tính năng 2 (Rà soát mâu thuẫn, chồng chéo):** Quét bất đồng bộ có giới hạn theo tập văn bản (2–20) hoặc danh mục, lọc bỏ cặp đã được `node_amendments` giải quyết hoặc văn bản đã hết hiệu lực, chỉ ra tín hiệu trái ngược/chồng chéo/ngoại lệ kèm trích dẫn nguyên văn + `"Mở trang gốc"`, đánh giá thứ bậc hiệu lực dựa trên bảng quy tắc cấu hình (`doc_type` + `issuing_body` + `effective_from` + cảnh báo *lex specialis* / `undetermined_requires_review`), có hàng đợi thẩm định cho `REVIEWER`/`CURATOR` và chỉ sinh `draft` vào `node_amendments`.
+- [x] **An toàn & tương thích Portable:** ACL/ABAC & `node_source_text_valid` nghiêm ngặt, 0 đường dẫn tuyệt đối hardcode, migration `0018` có up/down sạch, `docs/openapi.json` khớp, không cần tải model mới hay re-embed 7.447 vectors, toàn bộ `pytest`, `vitest`, `build`, `verify.ps1` đều xanh.
